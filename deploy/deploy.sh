@@ -21,6 +21,11 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 TARGET_REF="${1:-origin/main}"
+# deploy.sh peut être modifié par son propre `git reset --hard` : bash lit le
+# script au fil de l'eau, donc on le relance une fois si son contenu a changé.
+SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${0}")"
+sum_self() { sha256sum "$SELF" 2>/dev/null | cut -d' ' -f1 || echo none; }
+SUM_BEFORE="$(sum_self)"
 
 fail() { echo "❌ $*" >&2; exit 1; }
 envval() { grep -E "^$1=" .env 2>/dev/null | head -1 | cut -d= -f2- || true; }
@@ -33,6 +38,10 @@ echo "== 1/5 code source : $TARGET_REF =="
 git fetch --tags --prune origin
 FULL_SHA="$(git rev-parse --verify "${TARGET_REF}^{commit}")" || fail "ref inconnue : $TARGET_REF"
 git reset --hard "$FULL_SHA" >/dev/null   # .env n'est pas suivi : préservé
+if [[ "${KNIGHT_DEPLOY_REEXEC:-0}" != "1" && "$(sum_self)" != "$SUM_BEFORE" ]]; then
+  echo "   deploy.sh mis à jour par le reset → relance du script"
+  exec env KNIGHT_DEPLOY_REEXEC=1 "$SELF" "$@"
+fi
 [[ -z "$(git status --porcelain)" ]] || { git status --short; fail "arbre de travail sale après reset"; }
 echo "   commit déployé : $FULL_SHA ($(git log -1 --format=%s | cut -c1-60))"
 
