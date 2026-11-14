@@ -6,7 +6,8 @@
  *   +1 Dame archétype Célébrité… → cohérent, aspects ≤ 9)
  * - PS = (10 + 6 × meilleure Chair SANS OD) + Dur à cuir = 10 + 6 × 4 + 5 = 39
  *   (base 34, règle p.90/172 ; +5 PS via l'avantage Dur à cuir, lame XI)
- * - Défense = Hargne 5 (les 4 OD de base sont ailleurs : force/endurance/tir/perception)
+ * - Défense = Hargne 5 (les 4 OD de base sont en 4 aspects différents :
+ *   force/Chair, sangfroid/Dame, tir/Machine, perception/Masque — tranchage v4 §0.1)
  * - Réaction = Tir 4 (+1 OD Tir) → 5
  * - Initiative = Perception 4 (+1 OD Perception) → 5
  * - Contacts = meilleure Dame SANS OD = Parole 6 → 6
@@ -40,9 +41,10 @@ export const personnageExemple: Character = {
     discretion: 2, dexterite: 3, perception: 4,
   },
   overdrives: [
-    // 4 OD de base de la Paladin (p.138) — placés par le joueur
+    // 4 OD de base de la Paladin (p.138), un par aspect : force (Chair),
+    // sangfroid (Dame), tir (Machine), perception (Masque) — tranchage v4 §0.1
     { trait: 'force', niveau: 1 },
-    { trait: 'endurance', niveau: 1 },
+    { trait: 'sangfroid', niveau: 1 },
     { trait: 'tir', niveau: 1 },
     { trait: 'perception', niveau: 1 },
   ],

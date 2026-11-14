@@ -5,20 +5,20 @@
 > chaque entrée pointe le fichier, la règle du digest manquante ou ambiguë,
 > et la page du livre quand elle est connue.
 
-## 1. Incohérences du digest (à trancher avec le livre papier)
+## 1. Incohérences du digest — TRANCHÉES (prompt v4 §0, validées par NunnuN)
 
-- **OD de base de la Paladin (p.138)** : le digest dit « 4 OD, un dans chacune
-  des caractéristiques de 4 aspects, au choix : Force/Endurance (Chair),
-  Tir/Perception (Dame)… » — **Tir est Machine et Perception est Masque**,
-  pas Dame. Interprétation retenue : 4 OD de base dans 4 caractéristiques au
-  choix du joueur parmi celles des aspects. Exemple codé : force, endurance,
-  tir, perception. → `src/data/meta-armor.ts`
-- **Défense/Réaction/Initiative : « la plus haute » (p.172) vs « au choix »
-  (p.88)** : interprétation retenue = **au choix** (p.88, plus précise),
-  avec repli sur « la plus haute » si aucun choix. → `src/engine/stats.ts`
-- **Tableau des blessures (p.91)** : ligne 1 colonne 1 = « Mort » alors que la
-  ligne 6 colonne 6 = « Rien ! juste l'agonie » — codé tel quel, à vérifier
-  (perte 1D6+1D6 impossible à « Mort » pour une 2ᵉ mise à l'agonie ?).
+- ✅ **OD de base de la Paladin (p.138)** — TRANCHÉ : 4 OD dans 4
+  caractéristiques de 4 aspects **différents**, au choix du joueur
+  (Tir = Machine, Perception = Masque). Exemple codé corrigé :
+  force/Chair, sangfroid/Dame, tir/Machine, perception/Masque.
+  Garde anti-régression : `src/data/__tests__/tranchages.test.ts`.
+- ✅ **Défense/Réaction/Initiative** — CONFIRMÉ : interprétation « au choix »
+  (p.88) avec repli « la plus haute ». Déjà codé, test de garde ajouté.
+- 🔶 **Tableau des blessures (p.91)** — TRANCHÉ (codage tel quel) : table
+  complète en données (`src/data/blessures.ts`) avec les lignes douteuses
+  marquées `// TODO-RULES: vérifier p.91` (ligne 1 « Mort » vs ligne 6
+  « juste l'agonie »). L'application automatique des malus via le moteur
+  reste à câbler (livrable moteur it. 2).
 
 ## 2. Coûts et automatisations partielles
 

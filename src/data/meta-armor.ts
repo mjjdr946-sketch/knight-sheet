@@ -20,14 +20,15 @@ export const paladin: MetaArmor = {
   paTotal: 120,
   peTotal: 20,
   cdfTotal: 8,
-  // 4 OD de base, un par caractéristique de 4 aspects au choix (p.138)
-  // RÈGLES: à compléter — l'exemple du digest "Tir/Perception (Dame)" est incohérent
-  // (Tir et Perception sont Machine/Masque) ; le joueur choisit ses 4 OD à la création.
+  // 4 OD de base (p.138) : un dans une caractéristique de 4 aspects DIFFÉRENTS,
+  // au choix du joueur. TRANCHAGE v4 §0.1 : Tir = Machine, Perception = Masque
+  // (l'exemple du digest « Tir/Perception (Dame) » est faux).
+  // Exemple codé : force (Chair), tir (Machine), perception (Masque), sangfroid (Dame).
   overdrivesDeBase: [
     { trait: 'force', niveau: 1 },
-    { trait: 'endurance', niveau: 1 },
     { trait: 'tir', niveau: 1 },
     { trait: 'perception', niveau: 1 },
+    { trait: 'sangfroid', niveau: 1 },
   ],
   capacites: [
     {
