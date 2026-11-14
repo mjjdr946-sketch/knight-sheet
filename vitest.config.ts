@@ -3,7 +3,8 @@ import path from 'node:path';
 
 export default defineConfig({
   test: {
-    environment: 'node',
+    environment: 'jsdom', // localStorage requis par le store persistant
+    setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/__tests__/**/*.test.ts'],
   },
   resolve: {
