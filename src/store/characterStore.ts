@@ -10,6 +10,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { applyDamage, type DamageInput, type DamageResult } from '../engine/damage';
 import { computeDerived } from '../engine/stats';
+import { STYLE_CONDITION_ID, getStyle, styleVersCondition } from '../engine/combat';
 import { personnageExemple } from '../data/character';
 import { MODULES_INTERDITS_PALADIN } from '../data/modules';
 import type { Character, Condition, DerivedStats } from '../types/character';
@@ -60,6 +61,11 @@ interface CharacterStore {
   subirDegats: (input: DamageInput) => DamageResult;
   /** Change le choix d'une valeur dérivée (au choix, changeable entre missions — p.88) */
   setChoixDerive: (cle: 'defense' | 'reaction' | 'initiative' | 'sante', trait: string) => void;
+  /**
+   * Déclare le style de combat (p.87-89) — un seul à la fois, déclaré avant
+   * l'initiative. Remplace la condition de style existante.
+   */
+  declarerStyle: (styleId: string) => void;
   /** Charge un personnage complet (import futur) */
   remplacerPersonnage: (character: Character) => void;
 }
@@ -235,6 +241,17 @@ export const useCharacterStore = create<CharacterStore>()(
           ...character,
           choixDerivees: { ...character.choixDerivees, [cle]: trait as never },
         }));
+      },
+
+      declarerStyle: (styleId) => {
+        const { character } = get();
+        const style = getStyle(styleId);
+        // Un seul style à la fois : on retire l'ancienne condition de style
+        const conditions = [
+          ...character.conditions.filter((c) => c.id !== STYLE_CONDITION_ID),
+          ...(style.id !== 'standard' ? [styleVersCondition(style)] : []),
+        ];
+        set(recalcule({ ...character, conditions }));
       },
 
       remplacerPersonnage: (character) => set(recalcule(character)),
