@@ -6,7 +6,7 @@
  *   +1 Dame archétype Célébrité… → cohérent, aspects ≤ 9)
  * - PS = (10 + 6 × meilleure Chair SANS OD) + Dur à cuir = 10 + 6 × 4 + 5 = 39
  *   (base 34, règle p.90/172 ; +5 PS via l'avantage Dur à cuir, lame XI)
- * - Défense = Hargne 5 (+1 OD Hargne si armure déployée) → 6
+ * - Défense = Hargne 5 (les 4 OD de base sont ailleurs : force/endurance/tir/perception)
  * - Réaction = Tir 4 (+1 OD Tir) → 5
  * - Initiative = Perception 4 (+1 OD Perception) → 5
  * - Contacts = meilleure Dame SANS OD = Parole 6 → 6
@@ -96,7 +96,7 @@ export const personnageExemple: Character = {
   },
   jauges: {
     // Scores actuels de départ — les max viennent du moteur
-    ps: { current: 34 },
+    ps: { current: 39 }, // 34 de base + 5 Dur à cuir
     pa: { current: 120 },
     pe: { current: 20 },
     cdf: { current: 8 },
