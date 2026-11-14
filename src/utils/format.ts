@@ -3,6 +3,14 @@
  */
 import type { DamageProfile } from '@/types/character';
 
+/** Libellés lisibles des bonus spéciaux (Force, Dextérité, Tir…) */
+const BONUS_LABELS: Record<string, string> = {
+  force: 'Force',
+  'force×2': 'Force ×2',
+  dexterite: 'Dextérité',
+  tir: 'Tir',
+};
+
 export function formaterProfil(profil: DamageProfile): string {
   const des = `${profil.nombre}D${profil.faces}`;
   let bonus = '';
@@ -10,7 +18,7 @@ export function formaterProfil(profil: DamageProfile): string {
     if (profil.bonus > 0) bonus = `+${profil.bonus}`;
     else if (profil.bonus < 0) bonus = profil.bonus.toString();
   } else {
-    bonus = `+${profil.bonus}`;
+    bonus = `+${BONUS_LABELS[profil.bonus] ?? profil.bonus}`;
   }
   const moyenne = profil.moyenne !== undefined ? ` (${profil.moyenne})` : '';
   return `${des}${bonus}${moyenne}`;
