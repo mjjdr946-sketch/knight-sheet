@@ -78,6 +78,15 @@ DOMAIN="$(envval KNIGHT_DOMAIN)"
 if [[ -n "$DOMAIN" && "$DOMAIN" != "localhost" && "$TLS_MODE" == "host" ]]; then
   hcode="$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://${DOMAIN}${CHECK_PATH}" || true)"
   hcode="${hcode:-000}"
+  if [[ "$hcode" != "200" ]]; then
+    # Repli : le résolveur du VPS peut garder un NXDOMAIN en cache juste après
+    # la création du sous-domaine. --resolve teste Caddy + le certificat (SNI).
+    h2="$(curl -s --resolve "${DOMAIN}:443:127.0.0.1" -o /dev/null -w '%{http_code}' --max-time 15 "https://${DOMAIN}${CHECK_PATH}" || true)"
+    if [[ "${h2:-000}" == "200" ]]; then
+      echo "   HTTPS via --resolve → 200 (cache DNS local du VPS, certificat OK)"
+      hcode=200
+    fi
+  fi
   echo "   HTTPS https://${DOMAIN}${CHECK_PATH} → $hcode"
   [[ "$hcode" == "200" ]] || echo "   ⚠️  vérifier DNS + bloc Caddy système (deploy/caddy-host.conf)"
 fi
