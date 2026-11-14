@@ -1,0 +1,72 @@
+name: knight   # stack Docker autonome et indépendante (aucun partage avec biblio/honcho/foundry)
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        GIT_SHA: ${KNIGHT_GIT_SHA:-dev}
+    image: knight-sheet:${KNIGHT_GIT_SHA:-dev}
+    container_name: knight-app
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      NEXT_TELEMETRY_DISABLED: 1
+    # Aucun volume : app 100 % front, l'état vit dans le localStorage du navigateur.
+    # 8000 = honcho-api, 8010 = biblio → 8011. Jamais 0.0.0.0 : localhost uniquement.
+    ports:
+      - "${KNIGHT_BIND_IP:-127.0.0.1}:${KNIGHT_PORT:-8011}:3000"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    security_opt:
+      - no-new-privileges:true
+
+  # Caddy fourni par la stack (profil "tls"), comme dans le dépôt Biblio.
+  # Sur CE VPS le Caddy système occupe déjà 80/443 → on ne publie pas ces ports
+  # ici (conflit). Deux modes, voir deploy/README.md :
+  #   host    (défaut) : Caddy système + bloc serveur, app sur 127.0.0.1:8011
+  #   bundled          : ce conteneur, publié sur KNIGHT_CADDY_HTTP/KNIGHT_CADDY_HTTPS
+  caddy:
+    image: caddy:2-alpine
+    container_name: knight-caddy
+    restart: unless-stopped
+    profiles: ["tls"]
+    ports:
+      - "${KNIGHT_CADDY_BIND_IP:-127.0.0.1}:${KNIGHT_CADDY_HTTP:-8080}:80"
+      - "${KNIGHT_CADDY_BIND_IP:-127.0.0.1}:${KNIGHT_CADDY_HTTPS:-8443}:443"
+    environment:
+      KNIGHT_DOMAIN: ${KNIGHT_DOMAIN:-localhost}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - knight-caddy-data:/data
+      - knight-caddy-config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  knight-caddy-data:
+  knight-caddy-config:

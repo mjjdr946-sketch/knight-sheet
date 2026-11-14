@@ -1,0 +1,18 @@
+# Caddyfile de la stack knight (profil "tls", mode bundled).
+# Sur le VPS de NunnuN, 80/443 sont tenus par le Caddy SYSTÈME : ce conteneur
+# écoute donc sur 8080/8443 côté hôte (cf. docker-compose.yml) et sert
+# l'application par le réseau interne de la stack (app:3000).
+{$KNIGHT_DOMAIN:localhost} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "same-origin"
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		-Server
+	}
+
+	reverse_proxy app:3000
+}

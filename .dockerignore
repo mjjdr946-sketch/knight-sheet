@@ -1,0 +1,15 @@
+node_modules
+.next
+out
+coverage
+.git
+.gitignore
+*.tsbuildinfo
+.DS_Store
+TODO-RULES.md
+deploy
+docker-compose.yml
+Dockerfile
+.env
+.env.example
+ops-layer

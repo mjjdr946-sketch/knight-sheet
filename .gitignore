@@ -4,3 +4,6 @@ out/
 coverage/
 *.tsbuildinfo
 .DS_Store
+# secrets d'environnement (jamais commités)
+.env
+.env.*.local
