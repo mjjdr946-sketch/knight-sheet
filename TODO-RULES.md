@@ -89,15 +89,14 @@ Le digest PARTIE 4 (annexe 2) contient tout ; seule une sélection est codée :
 
 ## 5. Schéma / technique
 
-- **`migrate()` du persist** : vide — première migration à écrire au
-  prochain breaking change du schéma (`knight-sheet-v1`). →
-  `src/store/characterStore.ts`
-- **`coutActivationPE()`** : parsing par premier entier ; à remplacer par
-  un champ structuré `coutPEActivation` / `coutPEUsage` quand les coûts
-  composés seront gérés.
-- **Équipement multi-mains** : `equiperArme` ne gère pas la contrainte
-  deux-mains/deux-armes (akimbo/ambidextre vérifient les armes réellement
-  en main — FAQ p.453) ni les armes slotées « considérées en main ».
+- ✅ **`migrate()` du persist** — implémenté v1→v2 : normalisation des champs
+  ajoutés en itération 2 (`agonieCoups`, booléens d'équipement, défauts sûrs).
+- ✅ **Coûts PE structurés** — `parseCoutPE()` (engine/equipement) : activation
+  + usage par tir/action/tour ; store : `depenserPEUsage(cout)` + refus à
+  PE insuffisant ; maintenance Shrine câblée (`payerMaintenanceShrine`).
+- ✅ **Équipement multi-mains** — `validerEquipement` (engine/equipement) :
+  deux-mains = mains libres, armes slotées « en main » (FAQ p.453) ;
+  `equiperArme` du store refuse maintenant les combinaisons invalides.
 - **Export/import de personnage** : `remplacerPersonnage` existe, pas d'UI.
 
 ---
