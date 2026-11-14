@@ -11,12 +11,15 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { applyDamage, type DamageInput, type DamageResult } from '../engine/damage';
 import { computeDerived } from '../engine/stats';
 import { STYLE_CONDITION_ID, getStyle, styleVersCondition } from '../engine/combat';
+import { appliquerBlessure, suiteAgonie } from '../engine/blessures';
+import { appliquerTestEspoir, depenserHeroisme, type ResultatHeroisme, type UsageHeroisme } from '../engine/heroisme';
+import { parseCoutPE, validerEquipement, validerSlotage } from '../engine/equipement';
 import { personnageExemple } from '../data/character';
 import { MODULES_INTERDITS_PALADIN } from '../data/modules';
 import type { Character, Condition, DerivedStats } from '../types/character';
 
 /** Version du schéma de persistance — à incrémenter à chaque breaking change */
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 export const STORAGE_KEY = 'knight-sheet-v1';
 
 /** Cibles de jauge modifiables par l'UI */
@@ -39,13 +42,14 @@ interface CharacterStore {
   reglerJauge: (cible: JaugeCible, valeur: number) => void;
   /**
    * Active/désactive un module. Refuse les modules interdits à la Paladin
-   * (« Lente et lourde », p.140) et déduit le coût en PE à l'activation.
+   * (« Lente et lourde », p.140) et déduit le coût d'activation en PE
+   * (coûts structurés, à 0 PE plus rien d'utilisable — p.130).
    */
   activerModule: (id: string, activer: boolean) => boolean;
   /** Active/désactive une capacité d'armure (Shrine, Watchtower) + coût PE */
   activerCapacite: (id: string, activer: boolean) => boolean;
-  /** Équipe/retire une arme (une seule équipée pour chaque usage de main — simplifié itération 1) */
-  equiperArme: (id: string, equiper: boolean) => void;
+  /** Équipe/retire une arme (validation multi-mains p.87/FAQ p.453) */
+  equiperArme: (id: string, equiper: boolean) => boolean;
   /** Ajoute une condition (blessure, agonie…) avec ses modificateurs */
   ajouterBlessure: (condition: Condition) => void;
   /** Retire une condition (implant cybernétique / thérapie — entre missions) */
@@ -58,6 +62,30 @@ interface CharacterStore {
    */
   resetCombat: () => void;
   /** Résout un paquet de dégâts via le moteur et applique les nouvelles jauges */
+  /**
+   * Tire une blessure aléatoire (dés 2D6 injectés) suite à une mise à
+   * l'agonie — règle p.90 : 1re/2e fois = blessure, 3e = MORT.
+   * Retourne {mort, nom} pour l'UI.
+   */
+  tirerBlessureAgonie: (deLigne: number, deColonne: number) => { mort: boolean; nom: string; description: string };
+  /** Dépense un point d'héroïsme (usages p.96-97) ou 3 pour une carte du destin */
+  utiliserHeroisme: (usage: UsageHeroisme) => ResultatHeroisme;
+  /** Test d'espoir (p.96) : échec → −1D6 PEs (dés injectés) */
+  testerEspoir: (reussi: boolean, de6: number) => { pes: number; perte: number };
+  /**
+   * Utilise un nod (annexe : 3D6 restaurés, 1 action de déplacement).
+   * RÈGLES: à compléter — l'espacement d'1 h entre deux nods d'énergie et
+   * l'abus (fuite −3D6 PE / explosion / réacteur 1 h) restent à l'arbitrage MJ.
+   */
+  utiliserNod: (type: 'soin' | 'armure' | 'energie', de1: number, de2: number, de3: number) => number;
+  /** Déduit un coût PE PAR USAGE (ex. tir supplémentaire Watchtower 1 PE — FAQ p.455) */
+  depenserPEUsage: (cout: number) => boolean;
+  /** Paie la maintenance du Shrine pour un tour (1 PE, FAQ p.455) */
+  payerMaintenanceShrine: () => boolean;
+  /** Slote une arme de tir dans un bras (évolution 150 PG — p.140, FAQ p.455) */
+  sloterArme: (armeId: string, bras: 'brasGauche' | 'brasDroit') => boolean;
+  /** Retire une arme slotée de son bras (entre missions) */
+  desloterArme: (armeId: string) => void;
   subirDegats: (input: DamageInput) => DamageResult;
   /** Change le choix d'une valeur dérivée (au choix, changeable entre missions — p.88) */
   setChoixDerive: (cle: 'defense' | 'reaction' | 'initiative' | 'sante', trait: string) => void;
@@ -71,15 +99,10 @@ interface CharacterStore {
 }
 
 /**
- * Extrait le coût en PE d'activation d'un module/capacité.
- * Convention : premier entier de la chaîne de coût. Les coûts composés
- * ('2 (activation) + 1 par tir') ne déduisent que le coût d'activation —
- * les coûts par usage sont gérés par leurs actions dédiées (à venir).
+ * Coût d'activation structuré — remplace le parsing naïf (voir engine/equipement).
  */
 function coutActivationPE(coutPE?: string): number {
-  if (!coutPE) return 0;
-  const match = coutPE.match(/\d+/);
-  return match ? parseInt(match[0], 10) : 0; // RÈGLES: à compléter — coûts par usage en dur côté actions
+  return parseCoutPE(coutPE).activation;
 }
 
 /** Recalcule les dérivées après une mutation d'état */
@@ -143,8 +166,10 @@ export const useCharacterStore = create<CharacterStore>()(
         const jauges = { ...character.jauges };
         if (activer) {
           const cout = coutActivationPE(module.coutPE);
+          // p.130 : à 0 PE, plus aucun module ni OD utilisable
+          if (cout > jauges.pe.current) return false;
           if (cout > 0) {
-            jauges.pe = { current: Math.max(0, jauges.pe.current - cout) };
+            jauges.pe = { current: jauges.pe.current - cout };
           }
         }
         set(recalcule({ ...character, modules, jauges }));
@@ -174,10 +199,18 @@ export const useCharacterStore = create<CharacterStore>()(
 
       equiperArme: (id, equiper) => {
         const { character } = get();
+        const arme = character.armes.find((a) => a.id === id);
+        if (!arme) return false;
+        // Validation multi-mains (p.87, FAQ p.453) — le déséquiper est toujours permis
+        if (equiper) {
+          const armeModifiee = { ...arme, equipee: true };
+          if (!validerEquipement(character, armeModifiee).ok) return false;
+        }
         const armes = character.armes.map((a) =>
           a.id === id ? { ...a, equipee: equiper } : a,
         );
         set(recalcule({ ...character, armes }));
+        return true;
       },
 
       ajouterBlessure: (condition) => {
@@ -219,8 +252,103 @@ export const useCharacterStore = create<CharacterStore>()(
           modules,
           metaArmor: { ...character.metaArmor, capacites },
           armureDeployee: true,
+          agonieCoups: 0, // compteur d'agonie remis à zéro
           jauges,
         }));
+      },
+
+      tirerBlessureAgonie: (deLigne, deColonne) => {
+        const { character } = get();
+        // p.90 : compteur de coups à 0 PS ; 1re/2e = blessure, 3e = mort
+        const coups = (character.agonieCoups ?? 0) + 1;
+        const issue = suiteAgonie(coups);
+        if (issue === 'mort') {
+          set(recalcule({ ...character, agonieCoups: coups }));
+          return { mort: true, nom: 'Mort', description: 'Troisième mise à l’agonie (p.90)' };
+        }
+        const r = appliquerBlessure(deLigne, deColonne);
+        if (r.condition) {
+          set(recalcule({ ...character, agonieCoups: coups, conditions: [...character.conditions, r.condition] }));
+        } else {
+          set(recalcule({ ...character, agonieCoups: coups }));
+        }
+        return { mort: r.mort, nom: r.nom, description: r.description };
+      },
+
+      utiliserHeroisme: (usage) => {
+        const { character } = get();
+        const r = depenserHeroisme(character, usage);
+        if (!r.ok) return r;
+        const jauges = { ...character.jauges };
+        jauges.heroisme = { current: r.heroisme };
+        if (r.ps !== undefined) jauges.ps = { current: r.ps };
+        if (r.pes !== undefined) jauges.pes = { current: r.pes };
+        // Remise à zéro du compteur d'agonie quand la mise à l'agonie est ignorée
+        const agonieCoups = r.ps !== undefined ? 0 : character.agonieCoups;
+        set(recalcule({ ...character, jauges, agonieCoups }));
+        return r;
+      },
+
+      testerEspoir: (reussi, de6) => {
+        const { character } = get();
+        const r = appliquerTestEspoir(character, reussi, de6);
+        const jauges = { ...character.jauges, pes: { current: r.pes } };
+        set(recalcule({ ...character, jauges }));
+        return r;
+      },
+
+      utiliserNod: (type, de1, de2, de3) => {
+        // Nods (annexe) : 3D6 restaurés ; 1 action de déplacement ; sur soi ou autrui
+        const restaure = de1 + de2 + de3;
+        const { character, derived } = get();
+        const jauges = { ...character.jauges };
+        if (type === 'soin') {
+          jauges.ps = { current: Math.min(derived.ps.max, jauges.ps.current + restaure) };
+        } else if (type === 'armure') {
+          jauges.pa = { current: Math.min(derived.pa.max, jauges.pa.current + restaure) };
+        } else {
+          jauges.pe = { current: Math.min(derived.pe.max, jauges.pe.current + restaure) };
+        }
+        set(recalcule({ ...character, jauges }));
+        return restaure;
+      },
+
+      depenserPEUsage: (cout) => {
+        const { character } = get();
+        const jauges = { ...character.jauges };
+        // p.130 : à 0 PE, plus rien d'utilisable — refus si le coût dépasse le score
+        if (cout > jauges.pe.current) return false;
+        jauges.pe = { current: jauges.pe.current - cout };
+        set(recalcule({ ...character, jauges }));
+        return true;
+      },
+
+      payerMaintenanceShrine: () => {
+        // FAQ p.455 : le Shrine est maintenable en payant les PE chaque tour
+        const shrine = get().character.metaArmor.capacites.find((c) => c.id === 'shrine');
+        if (!shrine?.active) return false;
+        return get().depenserPEUsage(1);
+      },
+
+      sloterArme: (armeId, bras) => {
+        const { character } = get();
+        const arme = character.armes.find((a) => a.id === armeId);
+        if (!arme) return false;
+        const v = validerSlotage(character, { ...arme, slotee: bras }, bras);
+        if (!v.ok) return false;
+        const armes = character.armes.map((a) =>
+          a.id === armeId ? { ...a, slotee: bras } : a,
+        );
+        set(recalcule({ ...character, armes }));
+        return true;
+      },
+
+      desloterArme: (armeId) => {
+        const { character } = get();
+        const armes = character.armes.map((a) =>
+          a.id === armeId ? { ...a, slotee: undefined } : a,
+        );
+        set(recalcule({ ...character, armes }));
       },
 
       subirDegats: (input) => {
@@ -262,8 +390,19 @@ export const useCharacterStore = create<CharacterStore>()(
       storage: createJSONStorage(() => localStorage),
       // Le schéma est versionné : les migrations futures passeront par `migrate`
       migrate: (persisted, version) => {
-        // RÈGLES: à compléter — première migration au prochain breaking change du schéma
-        return persisted as CharacterStore;
+        // Migration v1 → v2 : normalisation du personnage (champs ajoutés it. 2)
+        const perso = (persisted as Partial<CharacterStore>)?.character;
+        if (!perso) return persisted as CharacterStore;
+        const normalise: Character = {
+          ...personnageExemple,
+          ...perso,
+          // champs nouveaux en v2 avec valeurs par défaut sûres
+          agonieCoups: perso.agonieCoups ?? 0,
+          overdrives: perso.overdrives ?? [],
+          conditions: perso.conditions ?? [],
+          armes: (perso.armes ?? []).map((a) => ({ ...a, equipee: a.equipee === true })),
+        };
+        return { ...(persisted as CharacterStore), character: normalise };
       },
       partialize: (state) => ({ character: state.character }) as unknown as CharacterStore,
       merge: (persisted, current) => {

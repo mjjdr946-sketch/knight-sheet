@@ -277,6 +277,8 @@ export interface Character {
   };
   /** État : armure déployée ou foldée (Guardian 5 PA / CdF 5) */
   armureDeployee: boolean;
+  /** Compteur de coups reçus alors qu'à 0 PS (règle p.90 : 3e = mort) */
+  agonieCoups?: number;
   /** PG et PX cumulés (totaux, ne bougent qu'entre missions) */
   gloire: number;
   experience: number;
