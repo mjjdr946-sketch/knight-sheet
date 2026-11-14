@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base mobile-first — fond sombre, texte neutre clair (pas de teinte verte) */
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  @apply h-full bg-zinc-950 text-zinc-100 antialiased;
+  overscroll-behavior-y: none;
+}
+
+/* Police display pour les titres (system, pas de dépendance réseau) */
+.font-display {
+  font-family: 'Segoe UI', 'Inter', system-ui, sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Zone de sûreté iOS (thumb zone / encoches) */
+.safe-bottom {
+  padding-bottom: max(0.25rem, env(safe-area-inset-bottom));
+}
+.safe-top {
+  padding-top: max(0.25rem, env(safe-area-inset-top));
+}
