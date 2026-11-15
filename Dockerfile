@@ -20,8 +20,13 @@ COPY . .
 # l'historique, des métadonnées et de `docker inspect`. Le build ÉCHOUE si le
 # secret est absent ou vide : impossible de produire une image sans mot de passe.
 # 'output: standalone' est requis ; deploy.sh le garantit dans next.config.mjs.
+# Cache-buster : un secret BuildKit n'invalide PAS le cache de build, donc
+# changer le mot de passe ne reconstruirait rien (image à l'ancien secret).
+# On passe le sha256 du mot de passe (pas le secret) pour casser le cache.
+ARG SHEET_PASSWORD_HASH=dev
 RUN --mount=type=secret,id=sheet_password,required=true \
     set -eux; \
+    echo "secret hash: ${SHEET_PASSWORD_HASH:0:12}"; \
     test -s /run/secrets/sheet_password || { echo "❌ secret sheet_password absent ou vide" >&2; exit 1; }; \
     if [ ! -d public ]; then mkdir -p public; fi; \
     grep -q "standalone" next.config.mjs || { echo "❌ next.config.mjs sans output:'standalone'" >&2; exit 1; }; \

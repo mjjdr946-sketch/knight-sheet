@@ -65,7 +65,10 @@ printf '%s' "$PW" > .sheet_password
 chmod 600 .sheet_password
 trap 'rm -f "$ROOT/.sheet_password"' EXIT
 sed -i "s/^KNIGHT_GIT_SHA=.*/KNIGHT_GIT_SHA=$FULL_SHA/" .env
-docker compose build --build-arg GIT_SHA="$FULL_SHA" app
+# Un secret BuildKit n'invalide pas le cache : on casse le cache avec le sha256
+# du mot de passe (jamais le secret lui-même) quand il change.
+PW_HASH="$(printf '%s' "$PW" | sha256sum | cut -d' ' -f1)"
+docker compose build --build-arg GIT_SHA="$FULL_SHA" --build-arg SHEET_PASSWORD_HASH="$PW_HASH" app
 
 echo "== 4/5 démarrage stack knight =="
 PORT="$(envval KNIGHT_PORT)"; PORT="${PORT:-8011}"
