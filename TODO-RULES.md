@@ -69,8 +69,18 @@
 
 ## 4. Mécaniques de jeu
 
+- ✅ **Simulateur de duel (p.76-89, prompt v5)** — `engine/dice.ts`
+  (paire = réussite, exploit/critique, dés injectables) + `computeAttack`
+  (dés = base + combo, OD = réussites auto, styles Agressif/Précis/
+  Puissant/Pilonnage/Ambidextre-Akimbo jumelés) ; UI : modes attaque/
+  encaisse, opposition mémorisée, historique des 20 derniers jets,
+  relance d'exploit, dégâts auto sur touche (+Force au contact).
+- ✅ **Mécanique de dés spécifiée** (p.76-78, validée par NunnuN) :
+  n dés = base + combo, réussite = face paire, toucher = strictement
+  supérieur à défense/réaction.
 - ✅ **Tableau des blessures aléatoires (p.91)** — tirage injecté 2D6,
-  application automatique en `Condition` + `Modifier` (moteur + store).
+  application automatique en `Condition` + `Modifier` (moteur + store),
+  accès UI depuis le mode encaissement à 0 PS.
 - 🔶 **Implant cybernétique (20 PG, −3 PEs) / thérapie (100 PG, p.91)** :
   le retrait de condition existe (`retirerCondition`) mais pas d'action
   dédiée qui applique le coût et le −3 PEs total.
@@ -113,7 +123,24 @@
   les avantages chiffrés autres que Dur à cuir / Forteresse spirituelle
   ne créent pas de `Modifier` automatique (ex. Esprit d'acier, Vétéran).
 
+## 6. Ouverts — itération 3 et au-delà (prompt v5)
+
+- 🔶 **Relance d'exploit en cascade** : si la relance est elle-même un
+  exploit, le livre ne précise pas — une seule relance appliquée
+  (`relanceExploit`, `// RÈGLES: à compléter`).
+- 🔶 **Coût PE des tirs Watchtower** : 1 PE déduit par tir lancé quand le
+  mode est actif (FAQ p.455) — le premier tir gratuit du tour n'est pas
+  distingué (pas de notion de tour dans l'app).
+- 🔶 **Combo de tir** : le combo pertinent d'une arme de tir n'est pas
+  déduit automatiquement (option `comboTrait` manuelle ; défaut = Tir seul).
+- 🔶 **Akimbo en simulation** : le cumul des dés des 2 armes (p.87) n'est
+  pas calculé — une arme à la fois ; le malus jumelé (−1 dé) est appliqué.
+- ✅ **Ordre d'action** : gestion manuelle (choix validé prompt v5 — pas de
+  tracker automatique).
+- 🔶 **Paliers d'OD à effets de règle** : non automatisés (cf. §3).
+- 🔶 **Niveaux de modules (achat progressif)** : non modélisé (cf. §2).
+
 ---
-*Feuille de route itération 3 (hors scope actuel) : PNJ/colosses, tracker
-d'initiative, dégâts environnementaux, véhicules, UI des usages d'héroïsme,
-achat progressif des niveaux de modules, effets de paliers d'OD.*
+*Feuille de route itération 4 : PNJ/colosses, dégâts environnementaux,
+véhicules, UI des usages d'héroïsme, panneau adversaire (défense/réaction
+des cibles), achat progressif des modules, effets de paliers d'OD.*
