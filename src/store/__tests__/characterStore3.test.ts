@@ -13,7 +13,7 @@ beforeEach(() => {
     derived: computeDerived(character),
     actifId: 'principal',
     autresFiches: {},
-    combatSession: { opposition: 0, typeOpposition: 'contact', historique: [] },
+    combatSession: { opposition: 0, typeOpposition: 'contact', historique: [], tour: 1, tirsCeTour: 0, contactsDepenses: 0 },
   });
 });
 

@@ -30,6 +30,8 @@ export default function AttributsPage() {
   const character = useCharacterStore((s) => s.character);
   const derived = useCharacterStore((s) => s.derived);
   const setChoixDerive = useCharacterStore((s) => s.setChoixDerive);
+  const depenserContacts = useCharacterStore((s) => s.depenserContacts);
+  const contactsDepenses = useCharacterStore((s) => s.combatSession.contactsDepenses);
 
   // Édition de caractéristique : bornée par l'aspect (plafond, p.110) et 1 minimum
   const ajusterTrait = (aspect: AspectId, trait: TraitId, delta: number) => {
@@ -125,8 +127,26 @@ export default function AttributsPage() {
           })}
           <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-2 text-sm text-white">
             Points de contact ={' '}
-            <span className="font-bold text-neon-cyan">{derived.contacts}</span>
+            <span className="font-bold text-neon-cyan">{derived.contacts - (contactsDepenses ?? 0)}</span>
             <span className="ml-2 text-xs text-zinc-600" title="meilleure carac. Dame, sans OD (p.95, p.172)">meilleure Dame sans OD · p.95</span>
+          </div>
+          {/* Dépense de contacts (p.95) : 1 pt = connaissance · 2 = informateur · 3 = ami · 4 = ami de confiance · 6 = personnalité */}
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-2">
+            <p className="text-xs text-zinc-400">Dépense de contacts (p.95) — dépensés : {contactsDepenses ?? 0}</p>
+            <div className="mt-1 flex gap-1.5">
+              {[1, 2, 3, 4, 6].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => depenserContacts(n)}
+                  disabled={(contactsDepenses ?? 0) + n > derived.contacts}
+                  className="min-h-[48px] flex-1 rounded-lg border border-zinc-700 text-xs text-zinc-300 disabled:opacity-40 active:bg-zinc-800"
+                >
+                  −{n}
+                </button>
+              ))}
+            </div>
+            <p className="mt-0.5 text-[10px] text-zinc-600">1 = connaissance · 2 = informateur · 3 = ami · 4 = ami de confiance · 6 = personnalité (MJ)</p>
           </div>
         </div>
       </Accordion>

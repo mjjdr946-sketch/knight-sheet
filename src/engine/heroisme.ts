@@ -70,14 +70,36 @@ export function gagnerHeroisme(character: Character, points: number): number {
  * le résultat (réussite + dé de perte) est injecté.
  */
 export function appliquerTestEspoir(character: Character, reussi: boolean, de6: number): { pes: number; perte: number } {
-  const perte = reussi ? 0 : Math.max(1, de6); // réussite : aucune perte
+  let perte = reussi ? 0 : Math.max(1, de6); // réussite : aucune perte
+  // Esprit d'acier (lame IX) : −1 point d'espoir perdu, toutes sources (p.119)
+  perte = perteReduiteEspritAcier(character, perte);
   return {
     pes: Math.max(0, character.jauges.pes.current - perte),
     perte,
   };
 }
 
-/** À 0 PEs : dépenser 1 point d'héroïsme pour revenir à 1 PEs sans action (p.96) */
+/** À 0 PS : dépenser 1 point d'héroïsme pour revenir à 1 PEs sans action (p.96) */
 export function revenirDuDesespoir(character: Character): ResultatHeroisme {
   return depenserHeroisme({ ...character, jauges: { ...character.jauges } }, 'garder-espoir');
+}
+
+/**
+ * OD Hargne niv 3 (annexe) : à 0 PS le personnage ne meurt pas immédiatement,
+ * il combat la mort. (Les niveaux 4-5 raffinent la règle — gestion MJ.)
+ */
+export function combatLaMort(character: Character): boolean {
+  const hargne = character.overdrives.find((od) => od.trait === 'hargne');
+  return (hargne?.niveau ?? 0) >= 3 && character.armureDeployee;
+}
+
+/**
+ * Esprit d'acier (lame IX, p.119) : −1 point d'espoir perdu (toutes sources).
+ * Appliqué au test d'espoir : la perte d'1D6 est réduite de 1 (min 0).
+ */
+export function perteReduiteEspritAcier(character: Character, perte: number): number {
+  const aEspritAcier = character.identite.cartes.some((c) =>
+    c.avantagesRetenus.some((a) => a.startsWith('Esprit d\u2019acier')),
+  );
+  return aEspritAcier ? Math.max(0, perte - 1) : perte;
 }

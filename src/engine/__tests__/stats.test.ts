@@ -33,11 +33,11 @@ describe('PS — règle p.90 / p.172', () => {
     expect(computePSMax(perso)).toBe(34);
   });
 
-  it("l'overdrive de Chair n'augmente PAS le PS (sans overdrive — p.172)", () => {
+  it("l'overdrive de Chair n'augmente PAS le PS via le calcul (sans OD — p.172)", () => {
     const perso = clone(personnageExemple);
     perso.identite.cartes = [];
-    perso.overdrives.push({ trait: 'endurance', niveau: 3 });
-    expect(computePSMax(perso)).toBe(34); // inchangé
+    perso.overdrives.push({ trait: 'endurance', niveau: 2 });
+    expect(computePSMax(perso)).toBe(34); // inchangé (palier +6 PS seulement à l'OD Endurance niv 3, annexe)
   });
 
   it('avantage Dur à cuir (lame XI) : +5 PS total', () => {

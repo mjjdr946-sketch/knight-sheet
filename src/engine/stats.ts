@@ -134,15 +134,28 @@ export function computePSMax(character: Character): number {
   }
   const base = PS_BASE + PS_FACTEUR * meilleure;
   const mods = collectModifiers(character, 'ps');
+  // OD Endurance niv 3 (annexe) : +6 PS EN MÉTA-ARMURE (uniquement déployée)
+  const endurance = character.overdrives.find((od) => od.trait === 'endurance');
+  if (endurance && endurance.niveau >= 3 && character.armureDeployee) {
+    mods.push({ source: 'OD Endurance niv 3', target: 'ps', valeur: 6, type: 'bonus' });
+  }
   return appliquerModificateurs(base, mods);
 }
 
 /**
  * Défense — règle p.88, p.172 : une caractéristique de l'aspect Bête au choix
  * + 1 par niveau d'overdrive de cette caractéristique.
+ * OD Aura niv 5 (annexe) : ajoute l'Aura à la défense.
  */
 export function computeDefense(character: Character): number {
-  return computeDerivedFromAspect(character, 'bete', 'defense', 'defense');
+  const base = computeDerivedFromAspect(character, 'bete', 'defense', 'defense');
+  const aura = character.overdrives.find((od) => od.trait === 'aura');
+  if (aura && aura.niveau >= 5) {
+    return appliquerModificateurs(base, [
+      { source: 'OD Aura niv 5', target: 'defense', valeur: character.traits.aura, type: 'bonus' },
+    ]);
+  }
+  return base;
 }
 
 /**
@@ -155,11 +168,19 @@ export function computeReaction(character: Character): number {
 }
 
 /**
- * Initiative — règle p.86, p.172 : une caractéristique de l'aspect Masque au choix
- * + 1 par niveau d'overdrive.
+ * Initiative — règle p.86, p.172 : une caractéristique de l'aspect Masque au
+ * choix + 1 par niveau d'overdrive.
+ * OD Instinct niv 3 (annexe) : +3 initiative par niveau d'OD d'Instinct.
  */
 export function computeInitiative(character: Character): number {
-  return computeDerivedFromAspect(character, 'masque', 'initiative', 'initiative');
+  const base = computeDerivedFromAspect(character, 'masque', 'initiative', 'initiative');
+  const instinct = character.overdrives.find((od) => od.trait === 'instinct');
+  if (instinct && instinct.niveau >= 3) {
+    return appliquerModificateurs(base, [
+      { source: 'OD Instinct niv 3', target: 'initiative', valeur: 3 * instinct.niveau, type: 'bonus' },
+    ]);
+  }
+  return base;
 }
 
 function computeDerivedFromAspect(

@@ -39,6 +39,7 @@ export default function CombatPage() {
   const basculerFavori = useCharacterStore((s) => s.basculerFavori);
   const passerAuTourSuivant = useCharacterStore((s) => s.passerAuTourSuivant);
   const utiliserHeroisme = useCharacterStore((s) => s.utiliserHeroisme);
+  const testerEspoir = useCharacterStore((s) => s.testerEspoir);
   const tour = useCharacterStore((s) => s.combatSession.tour);
   const favoris = character.favoris ?? [];
   const favorisArmes = favoris.filter((f) => f.startsWith('arme:')).map((f) => f.slice(5));
@@ -471,6 +472,26 @@ export default function CombatPage() {
 
       <Accordion titre="Héroïsme — usages" compteur={character.jauges.heroisme.current} sousTitre="1 point chacun (p.96-97)" accent="gold">
         <div className="space-y-1.5">
+          {/* Test d'espoir (p.96) — jet Sang-Froid combo Hargne côté MJ */}
+          <div className="rounded-lg border border-zinc-700 bg-zinc-950 p-2">
+            <p className="mb-1 text-xs text-zinc-400">Test d'espoir (p.96) — jet Sang-Froid combo Hargne</p>
+            <div className="flex gap-1.5">
+              <button
+                type="button"
+                onClick={() => { const r = testerEspoir(true, 1 + Math.floor(Math.random() * 6)); alert(`Réussite : aucune perte (${r.perte} PEs perdus).`); }}
+                className="min-h-[48px] flex-1 rounded-lg bg-neon-cyan/15 text-xs text-neon-cyan active:bg-neon-cyan/25"
+              >
+                Réussite
+              </button>
+              <button
+                type="button"
+                onClick={() => { const r = testerEspoir(false, 1 + Math.floor(Math.random() * 6)); alert(`Échec : −${r.perte} PEs (1D6, p.96).`); }}
+                className="min-h-[48px] flex-1 rounded-lg bg-red-900/40 text-xs text-red-300 active:bg-red-900/60"
+              >
+                Échec (−1D6)
+              </button>
+            </div>
+          </div>
           {(
             [
               { usage: 'ignorer-agonie', nom: 'Ignorer une mise à l\u2019agonie', desc: 'Conserve 1 PS exactement' },

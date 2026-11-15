@@ -17,6 +17,8 @@ export default function IdentitePage() {
   const character = useCharacterStore((s) => s.character);
   const majIdentite = useCharacterStore((s) => s.majIdentite);
   const remplacerPersonnage = useCharacterStore((s) => s.remplacerPersonnage);
+  const poserImplant = useCharacterStore((s) => s.poserImplant);
+  const therapieReconstruction = useCharacterStore((s) => s.therapieReconstruction);
 
   const [drawer, setDrawer] = useState(false);
   const [lameSelectionnee, setLameSelectionnee] = useState<number | null>(null);
@@ -153,6 +155,38 @@ export default function IdentitePage() {
 
       {/* ─── Fiches de personnages (prompt v6 §2) ───────────────────── */}
       <FichesSection />
+
+      {/* ─── État & soins lourds (p.90-91) ──────────────────────────── */}
+      <Accordion titre="État & soins lourds" compteur={character.conditions.length} accent="cyan">
+        <div className="space-y-1.5">
+          {character.conditions.map((c) => (
+            <div key={c.id} className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-950 px-2.5 py-2">
+              <div>
+                <p className="text-xs text-white">{c.nom}</p>
+                <p className="text-[11px] text-zinc-500">{c.description || c.categorie}</p>
+              </div>
+              {c.categorie === 'blessure' && (
+                <button
+                  type="button"
+                  onClick={() => { const ok = poserImplant(c.id); alert(ok ? 'Implant posé (20 PG, −3 PEs total, p.91)' : 'Refusé — max 6 implants (p.91)'); }}
+                  className="min-h-[48px] rounded-lg border border-zinc-700 px-2.5 text-[11px] text-zinc-300 active:bg-zinc-800"
+                >
+                  Implant (20 PG)
+                </button>
+              )}
+            </div>
+          ))}
+          {character.conditions.length === 0 && <p className="text-xs text-zinc-600">Aucune condition active.</p>}
+          <button
+            type="button"
+            onClick={() => { const ok = therapieReconstruction(); alert(ok ? 'Thérapie effectuée : toutes les blessures effacées (100 PG, p.91)' : 'Aucune blessure à effacer'); }}
+            disabled={!character.conditions.some((c) => c.categorie === 'blessure')}
+            className="min-h-[48px] w-full rounded-lg bg-neon-cyan/15 text-xs font-medium text-neon-cyan disabled:opacity-40 active:bg-neon-cyan/25"
+          >
+            Thérapie de reconstruction (100 PG — p.91)
+          </button>
+        </div>
+      </Accordion>
 
       {/* ─── Export / import (replié) ───────────────────────────────── */}
       <Accordion titre="Sauvegarde" accent="cyan">

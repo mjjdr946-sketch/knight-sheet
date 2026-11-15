@@ -67,9 +67,11 @@ export interface CombatSession {
   tour: number;
   /** tirs déjà effectués ce tour (Watchtower : le 1er est gratuit — FAQ p.455) */
   tirsCeTour: number;
+  /** points de contact dépensés cette mission (p.95) */
+  contactsDepenses: number;
 }
 
-const SESSION_VIDE: CombatSession = { opposition: 0, typeOpposition: 'contact', historique: [], tour: 1, tirsCeTour: 0 };
+const SESSION_VIDE: CombatSession = { opposition: 0, typeOpposition: 'contact', historique: [], tour: 1, tirsCeTour: 0, contactsDepenses: 0 };
 export const STORAGE_KEY = 'knight-sheet-v1';
 
 /** Cibles de jauge modifiables par l'UI */
@@ -112,6 +114,17 @@ interface CharacterStore {
   passerAuTourSuivant: () => void;
   /** Bascule un favori générique (« type:id ») — prompt v6 §3, par personnage */
   basculerFavori: (id: string) => void;
+  /**
+   * Monte un module au niveau suivant (p.428 : niveaux précédents requis,
+   * max 3). Refus si déjà au niveau 3 ou module sans niveaux.
+   */
+  monterNiveauModule: (id: string) => boolean;
+  /** Pose un implant cybernétique (20 PG, −3 PEs total, max 6 — p.91) */
+  poserImplant: (conditionId: string) => boolean;
+  /** Thérapie de reconstruction (100 PG, p.91) : efface toutes les blessures */
+  therapieReconstruction: () => boolean;
+  /** Dépense des points de contact (p.95 : 1/2/3/4/6 selon le lieu) */
+  depenserContacts: (points: number) => boolean;
 
   // ─── Actions ────────────────────────────────────────────────────────────
   /**
@@ -323,6 +336,72 @@ export const useCharacterStore = create<CharacterStore>()(
         set(recalcule({ ...character, favoris: Array.from(favoris) }));
       },
 
+      monterNiveauModule: (id) => {
+        const { character } = get();
+        const module = character.modules.find((m) => m.id === id);
+        if (!module) return false;
+        const niveauActuel = module.niveau ?? 1;
+        // p.428 : niveaux 1→3, les niveaux précédents sont requis
+        if (niveauActuel >= 3) return false;
+        const modules = character.modules.map((m) =>
+          m.id === id ? { ...m, niveau: niveauActuel + 1 } : m,
+        );
+        // RÈGLES: à compléter — les effets du niveau suivant sont décrits dans
+        // les données (description) mais nécessitent des Modifier dédiés par
+        // module (ex. saut niv 2 : +9 dégâts). L'achat PG est à l'arbitrage MJ.
+        set(recalcule({ ...character, modules }));
+        return true;
+      },
+
+      poserImplant: (conditionId) => {
+        const { character } = get();
+        // p.91 : 20 PG (pose entre missions), −3 PEs TOTAL par implant, max 6
+        const implants = character.conditions.filter((c) => c.nom.startsWith('Implant cybernétique')).length;
+        if (implants >= 6) return false;
+        const cible = character.conditions.find((c) => c.id === conditionId);
+        if (!cible) return false;
+        // l'implant ignore les effets de la blessure → on retire la condition
+        // et on pose l'implant (permanent, −3 PEs)
+        const implant: Condition = {
+          id: `implant-${Date.now()}`,
+          nom: `Implant cybernétique ${implants + 1}`,
+          categorie: 'autre',
+          description: `Ignore les effets de « ${cible.nom} » (p.91)`,
+          effets: [{ source: 'Implant cybernétique', target: 'pes', valeur: -3, type: 'malus' }],
+          permanente: true,
+        };
+        const conditions = [
+          ...character.conditions.filter((c) => c.id !== conditionId),
+          implant,
+        ];
+        set(recalcule({ ...character, conditions }));
+        return true;
+      },
+
+      therapieReconstruction: () => {
+        const { character } = get();
+        // p.91 : 100 PG (gloire dépensée par le MJ), 3 h — efface TOUTES les blessures
+        const blessures = character.conditions.filter((c) => c.categorie === 'blessure');
+        if (blessures.length === 0) return false;
+        set(recalcule({
+          ...character,
+          conditions: character.conditions.filter((c) => c.categorie !== 'blessure'),
+        }));
+        return true;
+      },
+
+      depenserContacts: (points) => {
+        const { character, derived, combatSession } = get();
+        // p.95 : dépense par lieu (1/2/3/4/6) ; retour au max entre missions
+        const disponibles = derived.contacts - combatSession.contactsDepenses;
+        if (points > disponibles) return false;
+        set({
+          combatSession: { ...combatSession, contactsDepenses: combatSession.contactsDepenses + points },
+        });
+        void character;
+        return true;
+      },
+
       ajusterJauge: (cible, delta) => {
         const { character, derived } = get();
         const jauges = { ...character.jauges };
@@ -462,8 +541,11 @@ export const useCharacterStore = create<CharacterStore>()(
           agonieCoups: 0, // compteur d'agonie remis à zéro
           jauges,
         }));
-        // l'historique des jets de la phase est vidé
+        // l'historique des jets de la phase est vidé + contacts au max (p.95)
         get().viderHistorique();
+        useCharacterStore.setState((s) => ({
+          combatSession: { ...s.combatSession, contactsDepenses: 0 },
+        }));
       },
 
       tirerBlessureAgonie: (deLigne, deColonne) => {
