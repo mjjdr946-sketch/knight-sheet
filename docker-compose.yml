@@ -7,6 +7,10 @@ services:
       dockerfile: Dockerfile
       args:
         GIT_SHA: ${KNIGHT_GIT_SHA:-dev}
+      # Mot de passe d'accès : secret de BUILD monté par BuildKit (jamais un
+      # build-arg). deploy/deploy.sh l'écrit dans ce fichier (600) avant le build.
+      secrets:
+        - sheet_password
     image: knight-sheet:${KNIGHT_GIT_SHA:-dev}
     container_name: knight-app
     restart: unless-stopped
@@ -70,3 +74,7 @@ services:
 volumes:
   knight-caddy-data:
   knight-caddy-config:
+
+secrets:
+  sheet_password:
+    file: ${KNIGHT_PASSWORD_FILE:-.sheet_password}

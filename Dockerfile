@@ -15,11 +15,17 @@ LABEL org.opencontainers.image.title="knight-sheet" \
       org.opencontainers.image.revision="${GIT_SHA}"
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# Mot de passe d'accès (it. 4) : Next l'inline dans le middleware AU BUILD.
+# Il est fourni par un SECRET BuildKit (jamais un ARG/ENV) → absent de
+# l'historique, des métadonnées et de `docker inspect`. Le build ÉCHOUE si le
+# secret est absent ou vide : impossible de produire une image sans mot de passe.
 # 'output: standalone' est requis ; deploy.sh le garantit dans next.config.mjs.
-RUN set -eux; \
+RUN --mount=type=secret,id=sheet_password,required=true \
+    set -eux; \
+    test -s /run/secrets/sheet_password || { echo "❌ secret sheet_password absent ou vide" >&2; exit 1; }; \
     if [ ! -d public ]; then mkdir -p public; fi; \
-    grep -q "standalone" next.config.mjs || (echo "next.config.mjs sans output:'standalone'" >&2; exit 1); \
-    npm run build
+    grep -q "standalone" next.config.mjs || { echo "❌ next.config.mjs sans output:'standalone'" >&2; exit 1; }; \
+    SHEET_PASSWORD="$(cat /run/secrets/sheet_password)" npm run build
 
 FROM node:20-alpine AS runner
 WORKDIR /app

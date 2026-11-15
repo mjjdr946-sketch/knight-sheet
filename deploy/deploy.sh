@@ -55,7 +55,15 @@ else
 fi
 [[ -d public ]] || mkdir -p public
 
-echo "== 3/5 build image ($FULL_SHA) =="
+echo "== 3/6 build image ($FULL_SHA) =="
+# Mot de passe d'accès : OBLIGATOIRE en prod (sinon le site resterait ouvert,
+# cf. middleware.ts). Jamais un build-arg : secret BuildKit via fichier 600.
+PW="$(envval SHEET_PASSWORD)"
+[[ ${#PW} -ge 16 ]] || fail "SHEET_PASSWORD absent ou trop court (${#PW} caractères, minimum 16) — renseigner .env"
+umask 077
+printf '%s' "$PW" > .sheet_password
+chmod 600 .sheet_password
+trap 'rm -f "$ROOT/.sheet_password"' EXIT
 sed -i "s/^KNIGHT_GIT_SHA=.*/KNIGHT_GIT_SHA=$FULL_SHA/" .env
 docker compose build --build-arg GIT_SHA="$FULL_SHA" app
 
@@ -76,28 +84,57 @@ done
 echo "   healthcheck conteneur : $state"
 [[ "$state" == "healthy" ]] || { docker logs --tail 40 knight-app; fail "conteneur non healthy"; }
 
-# `/` fait un redirect() volontaire vers /personnage/combat : on vérifie une
-# page réelle (200) plutôt que la racine (307 sans Location, géré par le client).
 CHECK_PATH="$(envval KNIGHT_CHECK_PATH)"; CHECK_PATH="${CHECK_PATH:-/personnage/combat}"
+
+# a) page de login publique
+code="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${PORT}/login")"
+echo "   /login (public) → $code"
+[[ "$code" == "200" ]] || fail "/login ne répond pas 200 (code $code)"
+
+# b) page protégée SANS session : doit rediriger (jamais 200)
 code="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${PORT}${CHECK_PATH}")"
-echo "   HTTP 127.0.0.1:${PORT}${CHECK_PATH} → $code"
-[[ "$code" == "200" ]] || fail "l'app ne répond pas 200 sur ${CHECK_PATH} (code $code)"
+echo "   ${CHECK_PATH} sans cookie → $code (attendu 3xx/401, jamais 200)"
+case "$code" in 3*|401) ;; *) fail "page protégée accessible sans mot de passe (code $code) — SÉCURITÉ";; esac
+
+# c) mauvais mot de passe : refusé
+code="$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' \
+  -d '{"password":"mauvais-mot-de-passe-de-test"}' "http://127.0.0.1:${PORT}/api/login")"
+echo "   /api/login mauvais mot de passe → $code (attendu 401)"
+[[ "$code" == "401" ]] || fail "mot de passe erroné accepté (code $code) — SÉCURITÉ"
+
+# d) bon mot de passe : cookie posé avec les bons attributs
+jar="$(mktemp)"
+resp="$(printf '{"password":"%s"}' "$PW" | curl -s -D - -o /dev/null -c "$jar" -X POST \
+  -H 'Content-Type: application/json' --data-binary @- "http://127.0.0.1:${PORT}/api/login")"
+echo "   /api/login bon mot de passe → $(printf '%s' "$resp" | head -1 | tr -d '\r')"
+printf '%s' "$resp" | grep -qi '^set-cookie: sheet-auth=' || { rm -f "$jar"; fail "aucun cookie sheet-auth posé"; }
+printf '%s' "$resp" | grep -qi 'httponly' || echo "   ⚠️  cookie sans HttpOnly"
+printf '%s' "$resp" | grep -qi 'secure'   || echo "   ⚠️  cookie sans Secure"
+code="$(curl -s -o /dev/null -w '%{http_code}' -b "$jar" "http://127.0.0.1:${PORT}${CHECK_PATH}")"
+rm -f "$jar"
+echo "   ${CHECK_PATH} avec cookie (http local) → $code"
+[[ "$code" == "200" ]] || echo "   ↳ normal en local : l'attribut Secure empêche l'envoi du cookie en http, parcours complet testé en HTTPS"
+
 
 DOMAIN="$(envval KNIGHT_DOMAIN)"
 if [[ -n "$DOMAIN" && "$DOMAIN" != "localhost" && "$TLS_MODE" == "host" ]]; then
-  hcode="$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "https://${DOMAIN}${CHECK_PATH}" || true)"
-  hcode="${hcode:-000}"
-  if [[ "$hcode" != "200" ]]; then
-    # Repli : le résolveur du VPS peut garder un NXDOMAIN en cache juste après
-    # la création du sous-domaine. --resolve teste Caddy + le certificat (SNI).
-    h2="$(curl -s --resolve "${DOMAIN}:443:127.0.0.1" -o /dev/null -w '%{http_code}' --max-time 15 "https://${DOMAIN}${CHECK_PATH}" || true)"
-    if [[ "${h2:-000}" == "200" ]]; then
-      echo "   HTTPS via --resolve → 200 (cache DNS local du VPS, certificat OK)"
-      hcode=200
-    fi
-  fi
-  echo "   HTTPS https://${DOMAIN}${CHECK_PATH} → $hcode"
-  [[ "$hcode" == "200" ]] || echo "   ⚠️  vérifier DNS + bloc Caddy système (deploy/caddy-host.conf)"
+  # --resolve : le résolveur du VPS peut garder un NXDOMAIN/NXDOMAIN+TTL en cache
+  # (le certificat et le SNI sont toujours validés, seul le DNS est forcé).
+  R=(--resolve "${DOMAIN}:443:127.0.0.1")
+  hcode="$(curl -s "${R[@]}" -o /dev/null -w '%{http_code}' --max-time 15 "https://${DOMAIN}/login" || true)"
+  echo "   HTTPS https://${DOMAIN}/login → ${hcode:-000}"
+
+  # parcours authentifié de bout en bout À TRAVERS Caddy (cookie Secure inclus)
+  jar2="$(mktemp)"
+  printf '{"password":"%s"}' "$PW" | curl -s "${R[@]}" -o /dev/null -c "$jar2" -X POST \
+    -H 'Content-Type: application/json' --data-binary @- "https://${DOMAIN}/api/login"
+  h2="$(curl -s "${R[@]}" -b "$jar2" -o /dev/null -w '%{http_code}' --max-time 15 "https://${DOMAIN}${CHECK_PATH}" || true)"
+  h3="$(curl -s "${R[@]}" -o /dev/null -w '%{http_code}' --max-time 15 "https://${DOMAIN}${CHECK_PATH}" || true)"
+  rm -f "$jar2"
+  echo "   HTTPS ${CHECK_PATH} avec cookie → ${h2:-000} (attendu 200)"
+  echo "   HTTPS ${CHECK_PATH} sans cookie → ${h3:-000} (attendu 3xx)"
+  [[ "${h2:-000}" == "200" ]] || echo "   ⚠️  parcours HTTPS authentifié à vérifier (DNS, Caddy, cookie Secure)"
+  case "${h3:-000}" in 3*|401|000) ;; *) echo "   ⚠️  page protégée accessible sans cookie en HTTPS (code $h3) — SÉCURITÉ";; esac
 fi
 
 echo "✅ déployé : $FULL_SHA sur 127.0.0.1:${PORT}"

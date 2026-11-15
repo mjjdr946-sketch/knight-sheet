@@ -49,6 +49,36 @@ cd /opt/knight && ./deploy/deploy.sh <sha>      # commit précis
 
 Rollback = redéployer le SHA précédent (les images restent taguées par SHA).
 
+## Accès protégé (mot de passe, itération 4)
+
+Le site est fermé par un middleware Next.js qui compare au **secret de build**
+`SHEET_PASSWORD` (inliné dans le middleware par Next — ce n'est pas une variable
+runtime : la changer exige un rebuild).
+
+- Le mot de passe vit **uniquement** dans `/opt/knight/.env` (mode 600). Il n'est
+  jamais passé en `--build-arg` : `deploy.sh` l'écrit dans `.sheet_password`
+  (600, ignoré par git et par le contexte Docker), Compose le monte comme
+  **secret BuildKit**, et le fichier est supprimé à la fin du script.
+  → il n'apparaît ni dans `docker history`, ni dans `docker inspect`, ni dans
+  les labels de l'image.
+- **Fail-closed** : sans `SHEET_PASSWORD` (ou < 16 caractères) `deploy.sh`
+  s'arrête, et le `Dockerfile` échoue si le secret manque. Une image sans mot de
+  passe ne peut pas être produite par erreur.
+- `deploy.sh` vérifie à chaque déploiement : `/login` → 200, page protégée sans
+  cookie → 3xx, mauvais mot de passe → 401, bon mot de passe → cookie
+  (`HttpOnly` + `Secure`) puis page protégée → 200, et le même parcours de bout
+  en bout **à travers Caddy** en HTTPS.
+- Session : cookie `sheet-auth`, 30 jours. **Le cookie contient le mot de passe
+  en clair** (choix du dev) : en cas de fuite du cookie, le secret est exposé —
+  à remplacer par un HMAC dérivé côté serveur (proposé à l'itération suivante).
+
+```bash
+# lire le mot de passe (ne jamais le coller dans un chat)
+ssh biblio-vps 'grep ^SHEET_PASSWORD= /opt/knight/.env | cut -d= -f2-'
+# le changer : éditer .env puis redéployer (rebuild obligatoire)
+ssh biblio-vps 'cd /opt/knight && ./deploy/deploy.sh'
+```
+
 ## Mode TLS `bundled`
 
 `KNIGHT_TLS_MODE=bundled` démarre `knight-caddy` (profil `tls`) sur

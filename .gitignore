@@ -7,3 +7,4 @@ coverage/
 # secrets d'environnement (jamais commités)
 .env
 .env.*.local
+.sheet_password
