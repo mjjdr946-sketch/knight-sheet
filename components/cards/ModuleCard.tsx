@@ -36,7 +36,7 @@ export default function ModuleCard({ module, onActiver }: ModuleCardProps) {
         <div className="flex items-center justify-between">
           <span className="font-medium text-white">{module.nom}</span>
           <span
-            className={`rounded-full px-2 py-0.5 text-[10px] uppercase ${
+            className={`rounded-full px-2 py-0.5 text-xs uppercase ${
               module.etat === 'actif'
                 ? 'bg-neon-cyan/15 text-neon-cyan'
                 : module.etat === 'endommage'
@@ -47,7 +47,7 @@ export default function ModuleCard({ module, onActiver }: ModuleCardProps) {
             {module.etat}
           </span>
         </div>
-        <p className="mt-0.5 text-[11px] text-zinc-500">
+        <p className="mt-0.5 text-xs text-zinc-500">
           {module.categorie} · {slots || 'aucun slot'}{module.coutPE ? ` · ${module.coutPE} PE` : ''}
         </p>
       </button>
@@ -85,7 +85,7 @@ export default function ModuleCard({ module, onActiver }: ModuleCardProps) {
               onActiver(module.etat !== 'actif');
               setDrawer(false);
             }}
-            className="min-h-[44px] w-full rounded-lg bg-neon-cyan/15 text-sm font-medium text-neon-cyan active:bg-neon-cyan/25"
+            className="min-h-[48px] w-full rounded-lg bg-neon-cyan/15 text-sm font-medium text-neon-cyan active:bg-neon-cyan/25"
           >
             {module.etat === 'actif' ? 'Désactiver' : 'Activer'}
           </button>

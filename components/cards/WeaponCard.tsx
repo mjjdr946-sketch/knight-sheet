@@ -35,7 +35,7 @@ export default function WeaponCard({ arme, modeActif, onModeChange, onEquiper, o
       >
         <div className="flex items-center justify-between">
           <span className="font-medium text-white">{arme.nom}</span>
-          <span className={`rounded-full px-2 py-0.5 text-[10px] uppercase ${arme.equipee ? 'bg-neon-cyan/15 text-neon-cyan' : 'bg-zinc-800 text-zinc-500'}`}>
+          <span className={`rounded-full px-2 py-0.5 text-xs uppercase ${arme.equipee ? 'bg-neon-cyan/15 text-neon-cyan' : 'bg-zinc-800 text-zinc-500'}`}>
             {arme.equipee ? 'Équipée' : 'Rangée'}
           </span>
         </div>
@@ -45,10 +45,10 @@ export default function WeaponCard({ arme, modeActif, onModeChange, onEquiper, o
         </div>
         <div className="mt-1 flex flex-wrap gap-1">
           {profil.effets.slice(0, 3).map((e) => (
-            <span key={e} className="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-300">{e}</span>
+            <span key={e} className="rounded bg-zinc-800 px-1.5 py-0.5 text-xs text-zinc-300">{e}</span>
           ))}
           {profil.effets.length > 3 && (
-            <span className="text-[10px] text-zinc-500">+{profil.effets.length - 3}</span>
+            <span className="text-xs text-zinc-500">+{profil.effets.length - 3}</span>
           )}
         </div>
       </button>
@@ -65,7 +65,7 @@ export default function WeaponCard({ arme, modeActif, onModeChange, onEquiper, o
                     key={i}
                     type="button"
                     onClick={() => onModeChange(i)}
-                    className={`min-h-[44px] rounded-lg border px-3 text-xs ${
+                    className={`min-h-[48px] rounded-lg border px-3 text-xs ${
                       modeActif === i ? 'border-neon-cyan text-neon-cyan shadow-glow-cyan' : 'border-zinc-700 text-zinc-400'
                     }`}
                   >
@@ -102,7 +102,7 @@ export default function WeaponCard({ arme, modeActif, onModeChange, onEquiper, o
               else onEquiper(true);
               setDrawer(false);
             }}
-            className="min-h-[44px] w-full rounded-lg bg-neon-cyan/15 text-sm font-medium text-neon-cyan active:bg-neon-cyan/25"
+            className="min-h-[48px] w-full rounded-lg bg-neon-cyan/15 text-sm font-medium text-neon-cyan active:bg-neon-cyan/25"
           >
             {arme.equipee ? 'Ranger' : 'Équiper'}
           </button>

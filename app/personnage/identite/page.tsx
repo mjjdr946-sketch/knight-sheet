@@ -8,6 +8,7 @@
  */
 import { useRef, useState } from 'react';
 import RuleDrawer from '../../../components/drawers/RuleDrawer';
+import Accordion from '../../../components/ui/Accordion';
 import { LAMES_TAROT } from '../../../src/data/tarot';
 import { useCharacterStore } from '@/store/characterStore';
 
@@ -81,12 +82,8 @@ export default function IdentitePage() {
 
   return (
     <div className="space-y-5">
-      {/* ─── Lames du tarot ─────────────────────────────────────────── */}
-      <section>
-        <h2 className="font-display mb-1 text-xs uppercase tracking-widest text-zinc-500">Lames du tarot</h2>
-        <p className="mb-2 text-[10px] text-zinc-600">
-          5 lames tirées, 2 avantages + 1 inconvénient retenus (p.114-122) · tap = détail
-        </p>
+      {/* ─── Lames du tarot (replié, compteur = retenues) ───────────── */}
+      <Accordion titre="Lames du tarot" compteur={`${numerosRetenus.size}/22`} sousTitre="2 avantages + 1 inconvénient retenus (p.114-122)" accent="gold">
         <div className="grid grid-cols-4 gap-1.5">
           {LAMES_TAROT.map((lame, i) => (
             <button
@@ -97,18 +94,18 @@ export default function IdentitePage() {
                 numerosRetenus.has(lame.numero) ? 'border-neon-gold/60 shadow-glow-gold bg-zinc-900' : 'border-zinc-800'
               }`}
             >
-              <span className="block text-[10px] text-zinc-500">{lame.numero}</span>
-              <span className="block text-[10px] leading-tight text-white">{lame.nom.replace('L\u2019', '')}</span>
+              <span className="block text-xs text-zinc-500">{lame.numero}</span>
+              <span className="block text-xs leading-tight text-white">{lame.nom.replace('L\u2019', '')}</span>
             </button>
           ))}
         </div>
-      </section>
+      </Accordion>
 
       {/* ─── Haut fait / blason / serment ───────────────────────────── */}
       <section className="space-y-2">
         <h2 className="font-display text-xs uppercase tracking-widest text-zinc-500">Histoire</h2>
         <label className="block rounded-xl border border-zinc-800 bg-zinc-900/70 p-2">
-          <span className="text-[10px] uppercase text-zinc-500">Haut fait</span>
+          <span className="text-xs uppercase text-zinc-500">Haut fait</span>
           <input
             value={character.identite.hautFait.nom}
             onChange={(e) => majIdentite({ hautFait: { ...character.identite.hautFait, nom: e.target.value } })}
@@ -116,7 +113,7 @@ export default function IdentitePage() {
           />
         </label>
         <label className="block rounded-xl border border-zinc-800 bg-zinc-900/70 p-2">
-          <span className="text-[10px] uppercase text-zinc-500">Surnom</span>
+          <span className="text-xs uppercase text-zinc-500">Surnom</span>
           <input
             value={character.identite.hautFait.surnom}
             onChange={(e) => majIdentite({ hautFait: { ...character.identite.hautFait, surnom: e.target.value } })}
@@ -124,7 +121,7 @@ export default function IdentitePage() {
           />
         </label>
         <label className="block rounded-xl border border-zinc-800 bg-zinc-900/70 p-2">
-          <span className="text-[10px] uppercase text-zinc-500">Blason & vœu (p.126)</span>
+          <span className="text-xs uppercase text-zinc-500">Blason & vœu (p.126)</span>
           <input
             value={character.identite.blason}
             onChange={(e) => majIdentite({ blason: e.target.value })}
@@ -132,7 +129,7 @@ export default function IdentitePage() {
           />
         </label>
         <label className="block rounded-xl border border-zinc-800 bg-zinc-900/70 p-2">
-          <span className="text-[10px] uppercase text-zinc-500">Serment</span>
+          <span className="text-xs uppercase text-zinc-500">Serment</span>
           <input
             value={character.identite.serment ?? ''}
             onChange={(e) => majIdentite({ serment: e.target.value })}
@@ -141,33 +138,32 @@ export default function IdentitePage() {
         </label>
       </section>
 
-      {/* ─── Motivations ────────────────────────────────────────────── */}
-      <section>
-        <h2 className="font-display mb-2 text-xs uppercase tracking-widest text-zinc-500">Motivations</h2>
+      {/* ─── Motivations (replié) ───────────────────────────────────── */}
+      <Accordion titre="Motivations" compteur={character.identite.motivations.length} accent="gold">
         <ul className="space-y-1.5">
           {character.identite.motivations.map((m, i) => (
             <li key={i} className={`rounded-lg border px-2.5 py-2 text-xs ${m.type === 'majeure' ? 'border-neon-gold/40 text-neon-gold' : 'border-zinc-800 text-zinc-300'}`}>
-              <span className="mr-1.5 text-[10px] uppercase">{m.type}</span>{m.texte}
+              <span className="mr-1.5 text-xs uppercase">{m.type}</span>{m.texte}
             </li>
           ))}
         </ul>
-        <p className="mt-1 text-[10px] text-zinc-600">1 majeure + 3 mineures (vœu du blason inclus) · motivation accomplie = +1D6 espoir (p.127)</p>
-      </section>
+        <p className="mt-1 text-xs text-zinc-600">1 majeure + 3 mineures (vœu du blason inclus) · motivation accomplie = +1D6 espoir (p.127)</p>
+      </Accordion>
 
-      {/* ─── Export / import ────────────────────────────────────────── */}
-      <section className="space-y-2 pb-2">
-        <h2 className="font-display text-xs uppercase tracking-widest text-zinc-500">Sauvegarde</h2>
+      {/* ─── Export / import (replié) ───────────────────────────────── */}
+      <Accordion titre="Sauvegarde" accent="cyan">
+        <div className="space-y-2 pb-2">
         <button
           type="button"
           onClick={exporter}
-          className="min-h-[44px] w-full rounded-lg border border-neon-cyan/40 text-xs font-semibold uppercase tracking-wider text-neon-cyan active:bg-neon-cyan/10"
+          className="min-h-[48px] w-full rounded-lg border border-neon-cyan/40 text-xs font-semibold uppercase tracking-wider text-neon-cyan active:bg-neon-cyan/10"
         >
           Exporter le personnage (JSON)
         </button>
         <button
           type="button"
           onClick={() => importRef.current?.click()}
-          className="min-h-[44px] w-full rounded-lg border border-zinc-700 text-xs text-zinc-300 active:bg-zinc-800"
+          className="min-h-[48px] w-full rounded-lg border border-zinc-700 text-xs text-zinc-300 active:bg-zinc-800"
         >
           Importer un personnage (JSON)
         </button>
@@ -183,7 +179,8 @@ export default function IdentitePage() {
           }}
         />
         {messageImport && <p className="text-center text-xs text-neon-cyan">{messageImport}</p>}
-      </section>
+        </div>
+      </Accordion>
 
       {/* Drawer de détail d'une lame */}
       {lameSelectionnee !== null && LAMES_TAROT[lameSelectionnee] && (
@@ -206,7 +203,7 @@ export default function IdentitePage() {
             <button
               type="button"
               onClick={() => { toggleLame(lameSelectionnee); setDrawer(false); }}
-              className={`min-h-[44px] w-full rounded-lg text-sm font-medium ${
+              className={`min-h-[48px] w-full rounded-lg text-sm font-medium ${
                 numerosRetenus.has(LAMES_TAROT[lameSelectionnee].numero)
                   ? 'bg-red-900/30 text-red-300'
                   : 'bg-neon-gold/15 text-neon-gold'
@@ -214,7 +211,7 @@ export default function IdentitePage() {
             >
               {numerosRetenus.has(LAMES_TAROT[lameSelectionnee].numero) ? 'Retirer de la feuille' : 'Retenir cette lame'}
             </button>
-            <p className="text-[10px] text-zinc-600">
+            <p className="text-xs text-zinc-600">
               Chaque lame une seule fois · avantage + inconvénient de la même lame possibles (FAQ p.449)
             </p>
           </div>

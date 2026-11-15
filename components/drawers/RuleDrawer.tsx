@@ -53,7 +53,7 @@ export default function RuleDrawer({ open, onClose, titre, sousTitre, pageRef, c
                   <h2 className="font-display text-base text-white">{titre}</h2>
                   {sousTitre && <p className="mt-0.5 text-xs text-zinc-400">{sousTitre}</p>}
                   {pageRef && (
-                    <span className="mt-1 inline-block rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] text-neon-cyan">
+                    <span className="mt-1 inline-block rounded bg-zinc-800 px-1.5 py-0.5 text-xs text-neon-cyan">
                       {pageRef}
                     </span>
                   )}
@@ -62,7 +62,7 @@ export default function RuleDrawer({ open, onClose, titre, sousTitre, pageRef, c
                   type="button"
                   aria-label="Fermer le panneau"
                   onClick={onClose}
-                  className="flex h-11 w-11 items-center justify-center rounded-lg text-2xl text-zinc-400 active:bg-zinc-800"
+                  className="flex h-12 w-12 items-center justify-center rounded-lg text-2xl text-zinc-400 active:bg-zinc-800"
                 >
                   ×
                 </button>

@@ -7,6 +7,7 @@
  * représente une intermission.
  */
 import { useCharacterStore } from '@/store/characterStore';
+import Accordion from '../../../components/ui/Accordion';
 import type { AspectId, TraitId } from '@/types/character';
 
 const ASPECTS: { id: AspectId; nom: string; traits: { id: TraitId; nom: string }[] }[] = [
@@ -49,7 +50,7 @@ export default function AttributsPage() {
         <h2 className="font-display text-xs uppercase tracking-widest text-zinc-500">
           Aspects & caractéristiques
         </h2>
-        <p className="text-[10px] text-zinc-600">
+        <p className="text-xs text-zinc-600">
           L'aspect fixe le plafond de ses caractéristiques (p.110) · aspect limité à 9 pour les PJ
         </p>
         {ASPECTS.map((aspect) => (
@@ -61,13 +62,13 @@ export default function AttributsPage() {
             <div className="grid grid-cols-3 gap-1.5">
               {aspect.traits.map((t) => (
                 <div key={t.id} className="flex items-center justify-between rounded-lg bg-zinc-950 px-1 py-1">
-                  <span className="text-[10px] text-zinc-400">{t.nom}</span>
+                  <span className="text-xs text-zinc-400">{t.nom}</span>
                   <div className="flex items-center">
                     <button
                       type="button"
                       aria-label={`Retirer un point de ${t.nom}`}
                       onClick={() => ajusterTrait(aspect.id, t.id, -1)}
-                      className="h-9 w-8 rounded text-sm text-zinc-400 active:bg-zinc-800"
+                      className="h-12 w-10 rounded text-sm text-zinc-400 active:bg-zinc-800"
                     >
                       −
                     </button>
@@ -76,7 +77,7 @@ export default function AttributsPage() {
                       type="button"
                       aria-label={`Ajouter un point à ${t.nom}`}
                       onClick={() => ajusterTrait(aspect.id, t.id, +1)}
-                      className="h-9 w-8 rounded text-sm text-zinc-400 active:bg-zinc-800"
+                      className="h-12 w-10 rounded text-sm text-zinc-400 active:bg-zinc-800"
                     >
                       +
                     </button>
@@ -88,9 +89,8 @@ export default function AttributsPage() {
         ))}
       </section>
 
-      {/* ─── Valeurs dérivées : choix de la caractéristique ─────────── */}
-      <section>
-        <h2 className="font-display mb-2 text-xs uppercase tracking-widest text-zinc-500">Valeurs dérivées</h2>
+      {/* ─── Valeurs dérivées : choix de la caractéristique (replié) ── */}
+      <Accordion titre="Valeurs dérivées" compteur={4} accent="cyan">
         <div className="space-y-2">
           {CHOIX_DERIVEES.map((d) => {
             const valeur = d.cle === 'defense' ? derived.defense : d.cle === 'reaction' ? derived.reaction : d.cle === 'initiative' ? derived.initiative : derived.ps.max;
@@ -102,7 +102,7 @@ export default function AttributsPage() {
                   <span className="text-sm text-white">
                     {d.nom} = <span className="font-bold text-neon-cyan">{valeur}</span>
                   </span>
-                  <span className="text-[10px] text-zinc-600" title={`${d.formule} (${d.page})`}>
+                  <span className="text-xs text-zinc-600" title={`${d.formule} (${d.page})`}>
                     {d.formule} · {d.page}
                   </span>
                 </div>
@@ -112,7 +112,7 @@ export default function AttributsPage() {
                       key={t.id}
                       type="button"
                       onClick={() => setChoixDerive(d.cle, t.id)}
-                      className={`min-h-[40px] shrink-0 rounded-lg border px-2 text-[11px] ${
+                      className={`min-h-[40px] shrink-0 rounded-lg border px-2 text-xs ${
                         choix === t.id ? 'border-neon-cyan text-neon-cyan shadow-glow-cyan' : 'border-zinc-700 text-zinc-400'
                       }`}
                     >
@@ -126,10 +126,10 @@ export default function AttributsPage() {
           <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-2 text-sm text-white">
             Points de contact ={' '}
             <span className="font-bold text-neon-cyan">{derived.contacts}</span>
-            <span className="ml-2 text-[10px] text-zinc-600" title="meilleure carac. Dame, sans OD (p.95, p.172)">meilleure Dame sans OD · p.95</span>
+            <span className="ml-2 text-xs text-zinc-600" title="meilleure carac. Dame, sans OD (p.95, p.172)">meilleure Dame sans OD · p.95</span>
           </div>
         </div>
-      </section>
+      </Accordion>
     </div>
   );
 }

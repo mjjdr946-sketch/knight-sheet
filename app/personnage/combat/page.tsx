@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import WeaponCard from '../../../components/cards/WeaponCard';
 import ModuleCard from '../../../components/cards/ModuleCard';
+import Accordion from '../../../components/ui/Accordion';
 import { useCharacterStore } from '@/store/characterStore';
 import { STYLES_COMBAT } from '@/engine/combat';
 import type { DamageResult } from '@/engine/damage';
@@ -64,12 +65,12 @@ export default function CombatPage() {
             { label: 'CdF', valeur: derived.cdf },
           ].map((s) => (
             <div key={s.label} className="rounded-lg border border-zinc-800 bg-zinc-900/70 py-2">
-              <p className="text-[9px] uppercase tracking-wider text-zinc-500">{s.label}</p>
+              <p className="text-xs uppercase tracking-wider text-zinc-500">{s.label}</p>
               <p className="text-lg font-bold text-white">{s.valeur}</p>
             </div>
           ))}
         </div>
-        <p className="mt-1 text-[10px] text-zinc-600">
+        <p className="mt-1 text-xs text-zinc-600">
           Réaction {derived.reaction} = seuil à dépasser au tir · Défense {derived.defense} = au contact (p.86-88)
         </p>
       </section>
@@ -78,7 +79,7 @@ export default function CombatPage() {
       <section>
         <div className="mb-2 flex items-baseline justify-between">
           <h2 className="font-display text-xs uppercase tracking-widest text-zinc-500">Style de combat</h2>
-          <span className="text-[10px] text-neon-cyan">{styleActif}</span>
+          <span className="text-xs text-neon-cyan">{styleActif}</span>
         </div>
         <div className="flex gap-1.5 overflow-x-auto pb-1">
           {STYLES_COMBAT.map((s) => (
@@ -86,7 +87,7 @@ export default function CombatPage() {
               key={s.id}
               type="button"
               onClick={() => declarerStyle(s.id)}
-              className={`min-h-[44px] shrink-0 rounded-lg border px-3 text-xs ${
+              className={`min-h-[48px] shrink-0 rounded-lg border px-3 text-xs ${
                 styleActif === s.nom
                   ? 'border-neon-cyan text-neon-cyan shadow-glow-cyan'
                   : 'border-zinc-700 text-zinc-400'
@@ -96,14 +97,13 @@ export default function CombatPage() {
             </button>
           ))}
         </div>
-        <p className="mt-1 text-[10px] text-zinc-600">
+        <p className="mt-1 text-xs text-zinc-600">
           Déclaré avant l'initiative · changement = 1 action de déplacement (p.87)
         </p>
       </section>
 
       {/* ─── Armes ──────────────────────────────────────────────────── */}
-      <section>
-        <h2 className="font-display mb-2 text-xs uppercase tracking-widest text-zinc-500">Armes</h2>
+      <Accordion titre="Armes" compteur={character.armes.length} ouvertParDefaut accent="cyan">
         <div className="space-y-2">
           {character.armes.map((arme) => (
             <WeaponCard
@@ -116,11 +116,10 @@ export default function CombatPage() {
             />
           ))}
         </div>
-      </section>
+      </Accordion>
 
       {/* ─── Dégâts subis — résolution par le moteur ────────────────── */}
-      <section>
-        <h2 className="font-display mb-2 text-xs uppercase tracking-widest text-zinc-500">Dégâts subis</h2>
+      <Accordion titre="Dégâts subis" ouvertParDefaut accent="cyan">
         <div className="space-y-2 rounded-xl border border-zinc-800 bg-zinc-900/70 p-3">
           <div className="flex items-center gap-2">
             <label htmlFor="degats" className="w-24 text-xs text-zinc-400">Dégâts</label>
@@ -130,31 +129,31 @@ export default function CombatPage() {
               min={0}
               value={degats || ''}
               onChange={(e) => setDegats(parseInt(e.target.value, 10) || 0)}
-              className="min-h-[44px] w-20 rounded-lg border border-zinc-700 bg-zinc-950 px-2 text-center text-white"
+              className="min-h-[48px] w-20 rounded-lg border border-zinc-700 bg-zinc-950 px-2 text-center text-white"
             />
           </div>
           <div className="grid grid-cols-2 gap-2 text-xs">
-            <label className="flex min-h-[44px] items-center gap-2 rounded-lg bg-zinc-950 px-2">
+            <label className="flex min-h-[48px] items-center gap-2 rounded-lg bg-zinc-950 px-2">
               <input type="checkbox" checked={ignoreCdF} onChange={(e) => setIgnoreCdF(e.target.checked)} className="h-4 w-4 accent-cyan-400" />
               Ignore CdF
             </label>
-            <label className="flex min-h-[44px] items-center gap-2 rounded-lg bg-zinc-950 px-2">
+            <label className="flex min-h-[48px] items-center gap-2 rounded-lg bg-zinc-950 px-2">
               <input type="checkbox" checked={ignoreArmure} onChange={(e) => setIgnoreArmure(e.target.checked)} className="h-4 w-4 accent-cyan-400" />
               Ignore armure
             </label>
-            <label className="flex min-h-[44px] items-center gap-2 rounded-lg bg-zinc-950 px-2">
+            <label className="flex min-h-[48px] items-center gap-2 rounded-lg bg-zinc-950 px-2">
               Perce armure
-              <input type="number" min={0} value={perceArmure || ''} onChange={(e) => setPerceArmure(parseInt(e.target.value, 10) || 0)} className="w-14 rounded border border-zinc-700 bg-zinc-950 px-1 text-center text-white" />
+              <input type="number" min={0} value={perceArmure || ''} onChange={(e) => setPerceArmure(parseInt(e.target.value, 10) || 0)} className="w-16 rounded border border-zinc-700 bg-zinc-950 px-1 text-center text-white" />
             </label>
-            <label className="flex min-h-[44px] items-center gap-2 rounded-lg bg-zinc-950 px-2">
+            <label className="flex min-h-[48px] items-center gap-2 rounded-lg bg-zinc-950 px-2">
               Pénétrant
-              <input type="number" min={0} value={penetrant || ''} onChange={(e) => setPenetrant(parseInt(e.target.value, 10) || 0)} className="w-14 rounded border border-zinc-700 bg-zinc-950 px-1 text-center text-white" />
+              <input type="number" min={0} value={penetrant || ''} onChange={(e) => setPenetrant(parseInt(e.target.value, 10) || 0)} className="w-16 rounded border border-zinc-700 bg-zinc-950 px-1 text-center text-white" />
             </label>
           </div>
           <button
             type="button"
             onClick={encaisser}
-            className="min-h-[44px] w-full rounded-lg bg-red-900/40 text-sm font-semibold uppercase tracking-wider text-red-300 active:bg-red-900/60"
+            className="min-h-[48px] w-full rounded-lg bg-red-900/40 text-sm font-semibold uppercase tracking-wider text-red-300 active:bg-red-900/60"
           >
             Encaisser
           </button>
@@ -181,17 +180,16 @@ export default function CombatPage() {
             </motion.div>
           )}
         </div>
-      </section>
+      </Accordion>
 
-      {/* ─── Méta-armure : fold + modules rapides ───────────────────── */}
-      <section>
-        <h2 className="font-display mb-2 text-xs uppercase tracking-widest text-zinc-500">Méta-armure</h2>
+      {/* ─── Méta-armure : fold + modules rapides (replié — détail sur l'onglet Armure) */}
+      <Accordion titre="Méta-armure" sousTitre={character.armureDeployee ? 'déployée · 120 PA · CdF 8' : 'Guardian · 5 PA · CdF 5'} accent="gold">
         <div className="mb-2 grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={() => basculerArmure(true)}
             disabled={character.armureDeployee}
-            className="min-h-[44px] rounded-lg border border-neon-cyan/40 text-xs text-neon-cyan disabled:opacity-40 active:bg-neon-cyan/10"
+            className="min-h-[48px] rounded-lg border border-neon-cyan/40 text-xs text-neon-cyan disabled:opacity-40 active:bg-neon-cyan/10"
           >
             Déployer (120 PA · CdF 8)
           </button>
@@ -199,7 +197,7 @@ export default function CombatPage() {
             type="button"
             onClick={() => basculerArmure(false)}
             disabled={!character.armureDeployee}
-            className="min-h-[44px] rounded-lg border border-zinc-700 text-xs text-zinc-400 disabled:opacity-40 active:bg-zinc-800"
+            className="min-h-[48px] rounded-lg border border-zinc-700 text-xs text-zinc-400 disabled:opacity-40 active:bg-zinc-800"
           >
             Replier → Guardian (5 PA · CdF 5)
           </button>
@@ -209,18 +207,18 @@ export default function CombatPage() {
             <ModuleCard key={mod.id} module={mod} onActiver={(a) => activerModule(mod.id, a)} />
           ))}
         </div>
-      </section>
+      </Accordion>
 
       {/* ─── Reset combat ───────────────────────────────────────────── */}
       <section className="pb-2">
         <button
           type="button"
           onClick={() => resetCombat()}
-          className="min-h-[44px] w-full rounded-lg border border-neon-gold/40 text-xs font-semibold uppercase tracking-wider text-neon-gold active:bg-neon-gold/10"
+          className="min-h-[48px] w-full rounded-lg border border-neon-gold/40 text-xs font-semibold uppercase tracking-wider text-neon-gold active:bg-neon-gold/10"
         >
           Reset combat (retour Camelot)
         </button>
-        <p className="mt-1 text-center text-[10px] text-zinc-600">
+        <p className="mt-1 text-center text-xs text-zinc-600">
           Jauges au max · modules temporaires coupés · héroïsme conservé (p.90/96/130)
         </p>
       </section>

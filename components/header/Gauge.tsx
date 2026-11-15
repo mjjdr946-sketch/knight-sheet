@@ -55,7 +55,7 @@ export default function Gauge({ nom, current, max, accent, onDelta }: GaugeProps
   const ratio = max > 0 ? Math.min(1, current / max) : 0;
 
   return (
-    <div className={`relative flex min-w-[72px] flex-col rounded-xl border ${a.border} bg-zinc-900/80 px-2 py-1.5`}>
+    <div className={`relative flex min-w-[136px] flex-col rounded-xl border ${a.border} bg-zinc-900/80 px-2 py-1.5`}>
       {/* Flash néon au tap */}
       <AnimatePresence>
         {flash > 0 && (
@@ -71,7 +71,7 @@ export default function Gauge({ nom, current, max, accent, onDelta }: GaugeProps
         )}
       </AnimatePresence>
 
-      <span className={`text-[10px] font-medium uppercase tracking-wider ${a.text}`}>{nom}</span>
+      <span className={`text-xs font-medium uppercase tracking-wider ${a.text}`}>{nom}</span>
 
       <div className="flex items-center justify-center gap-1">
         {/* Cibles ≥ 44px (UX mobile) */}
@@ -79,7 +79,7 @@ export default function Gauge({ nom, current, max, accent, onDelta }: GaugeProps
           type="button"
           aria-label={`Retirer 1 point de ${nom}`}
           onClick={() => press(-1)}
-          className="flex h-11 w-11 items-center justify-center rounded-lg text-xl text-zinc-300 active:bg-zinc-800"
+          className="flex h-12 w-12 items-center justify-center rounded-lg text-xl text-zinc-300 active:bg-zinc-800"
         >
           −
         </button>
@@ -94,7 +94,7 @@ export default function Gauge({ nom, current, max, accent, onDelta }: GaugeProps
           type="button"
           aria-label={`Ajouter 1 point de ${nom}`}
           onClick={() => press(1)}
-          className="flex h-11 w-11 items-center justify-center rounded-lg text-xl text-zinc-300 active:bg-zinc-800"
+          className="flex h-12 w-12 items-center justify-center rounded-lg text-xl text-zinc-300 active:bg-zinc-800"
         >
           +
         </button>
@@ -109,7 +109,7 @@ export default function Gauge({ nom, current, max, accent, onDelta }: GaugeProps
         />
       </div>
 
-      <span className="mt-0.5 text-center text-[9px] text-zinc-500">max {max}</span>
+      <span className="mt-0.5 text-center text-xs text-zinc-500">max {max}</span>
     </div>
   );
 }

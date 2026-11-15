@@ -4,6 +4,17 @@ const config: Config = {
   content: ['./app/**/*.{ts,tsx}', './components/**/*.{ts,tsx}'],
   theme: {
     extend: {
+      // Lisibilité mobile (prompt v5 §1) : remap global des tailles
+      // text-xs = 16px minimum partout, décale tout l'échelonnement vers le haut.
+      fontSize: {
+        'xs': ['1rem', { lineHeight: '1.4' }],
+        'sm': ['1.125rem', { lineHeight: '1.45' }],
+        'base': ['1.25rem', { lineHeight: '1.5' }],
+        'lg': ['1.375rem', { lineHeight: '1.4' }],
+        'xl': ['1.5rem', { lineHeight: '1.35' }],
+        '2xl': ['1.875rem', { lineHeight: '1.25' }],
+        '3xl': ['2.25rem', { lineHeight: '1.2' }],
+      },
       colors: {
         // Identité visuelle : fond sombre, néon cyan primaire + doré (Paladin)
         neon: {
