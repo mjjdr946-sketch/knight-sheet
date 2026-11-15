@@ -34,7 +34,7 @@ command -v docker >/dev/null || fail "docker non installé"
 docker compose version >/dev/null 2>&1 || fail "plugin docker compose absent"
 [[ -f .env ]] || fail ".env absent — cp .env.example .env"
 
-echo "== 1/5 code source : $TARGET_REF =="
+echo "== 1/6 code source : $TARGET_REF =="
 git fetch --tags --prune origin
 FULL_SHA="$(git rev-parse --verify "${TARGET_REF}^{commit}")" || fail "ref inconnue : $TARGET_REF"
 git reset --hard "$FULL_SHA" >/dev/null   # .env n'est pas suivi : préservé
@@ -45,7 +45,7 @@ fi
 [[ -z "$(git status --porcelain)" ]] || { git status --short; fail "arbre de travail sale après reset"; }
 echo "   commit déployé : $FULL_SHA ($(git log -1 --format=%s | cut -c1-60))"
 
-echo "== 2/5 config Next (output: standalone) =="
+echo "== 2/6 config Next (output: standalone) =="
 if grep -q "output" next.config.mjs; then
   echo "   déjà présent (laissé tel quel)"
 else
@@ -70,14 +70,14 @@ sed -i "s/^KNIGHT_GIT_SHA=.*/KNIGHT_GIT_SHA=$FULL_SHA/" .env
 PW_HASH="$(printf '%s' "$PW" | sha256sum | cut -d' ' -f1)"
 docker compose build --build-arg GIT_SHA="$FULL_SHA" --build-arg SHEET_PASSWORD_HASH="$PW_HASH" app
 
-echo "== 4/5 démarrage stack knight =="
+echo "== 4/6 démarrage stack knight =="
 PORT="$(envval KNIGHT_PORT)"; PORT="${PORT:-8011}"
 TLS_MODE="$(envval KNIGHT_TLS_MODE)"; TLS_MODE="${TLS_MODE:-host}"
 COMPOSE=(docker compose)
 if [[ "$TLS_MODE" == "bundled" ]]; then COMPOSE+=(--profile tls); fi
 "${COMPOSE[@]}" up -d --remove-orphans
 
-echo "== 5/5 vérifications =="
+echo "== 5/6 vérifications (auth) =="
 state=unknown
 for _ in $(seq 1 40); do
   state="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' knight-app 2>/dev/null || echo missing)"
