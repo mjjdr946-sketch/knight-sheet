@@ -11,6 +11,7 @@ import { useState } from 'react';
 import Accordion from '../../components/ui/Accordion';
 import { useCharacterStore } from '@/store/characterStore';
 import { debordementCumule, type Adversaire, type TypePNJ } from '../../src/engine/pnj';
+import { VEHICULES } from '../../src/data/vehicules';
 import type { TraitId } from '@/types/character';
 
 const TYPES: { id: TypePNJ; nom: string }[] = [
@@ -165,6 +166,36 @@ export default function PanneauAdversaire() {
               })}
             </div>
           </div>
+
+          {/* Véhicules du catalogue (prompt v7 §3) — préremplissage colosse */}
+          <details className="rounded-lg border border-zinc-700 bg-zinc-950 p-2">
+            <summary className="min-h-[48px] cursor-pointer py-3 text-xs uppercase tracking-widest text-zinc-400">
+              Charger un véhicule (annexe pp.447-450)
+            </summary>
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              {VEHICULES.map((v) => (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => maj({
+                    nom: v.nom,
+                    type: 'colosse', // tous les véhicules sont colosses (p.104)
+                    pa: v.pa,
+                    ps: undefined,
+                    cdf: v.cdf,
+                    vitesse: v.vitesse,
+                    manoeuvrabilite: v.manoeuvrabilite,
+                  })}
+                  className="min-h-[48px] rounded-lg border border-zinc-600 px-2 text-[11px] text-zinc-300"
+                >
+                  {v.nom} ({v.pa} PA)
+                </button>
+              ))}
+            </div>
+            <p className="mt-1 text-[10px] text-zinc-600">
+              Véhicule en mouvement au contact : difficulté 3 × vitesse · tir : réaction pilote + manœuvrabilité (p.104)
+            </p>
+          </details>
 
           {/* État courant */}
           <div className="rounded-lg bg-zinc-950 px-2.5 py-2 text-xs">

@@ -11,6 +11,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import Accordion from '../../../components/ui/Accordion';
 import PanneauAdversaire from '../panneau-adversaire';
+import PanneauEnvironnement from '../panneau-environnement';
 import { useCharacterStore } from '@/store/characterStore';
 import { STYLES_COMBAT } from '../../../src/engine/combat';
 import { seuilEffectif } from '../../../src/engine/pnj';
@@ -165,6 +166,9 @@ export default function CombatPage() {
       {/* ─── Adversaire (prompt v7 §1) ───────────────────────────────── */}
       <PanneauAdversaire />
 
+      {/* ─── Environnement (prompt v7 §2, p.92) ──────────────────────── */}
+      <PanneauEnvironnement />
+
       {/* ─── Valeurs défensives (lecture seule, moteur) ─────────────── */}
       <section>
         <div className="grid grid-cols-4 gap-1.5 text-center">
@@ -303,7 +307,9 @@ export default function CombatPage() {
             {computeAttack(character, arme, styleId, { sacrificeDes, comboTrait: comboOverride ?? undefined }).reussitesAuto} auto
             <span className="ml-2 text-zinc-600">
               {arme.type === 'contact' ? 'Combat + Force' : 'Tir'}{comboOverride ? ` + combo ${comboOverride}` : ''} · p.76-78
-              {!jetLibre && ` · repère vs ${seuil}`}
+              {!jetLibre && adversaire?.vitesse !== undefined
+                ? ` · véhicule en mouvement : difficulté ${3 * adversaire.vitesse} (p.104)`
+                : !jetLibre && ` · repère vs ${seuil}`}
             </span>
           </p>
         )}

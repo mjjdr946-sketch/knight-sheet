@@ -37,6 +37,10 @@ export interface Adversaire {
   debordement?: number;
   /** Mode MJ : les valeurs défensives ne sont pas affichées à l'écran */
   modeMj?: boolean;
+  /** Véhicule uniquement : vitesse max/tour (0-5) — difficulté contact 3×vitesse */
+  vitesse?: number;
+  /** Véhicule uniquement : manœuvrabilité (dés du conducteur) */
+  manoeuvrabilite?: number;
 }
 
 /**
