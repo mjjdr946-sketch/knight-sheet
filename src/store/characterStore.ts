@@ -19,7 +19,20 @@ import { MODULES_INTERDITS_PALADIN } from '../data/modules';
 import type { ArmorModule, Character, Condition, DerivedStats } from '../types/character';
 
 /** Version du schéma de persistance — à incrémenter à chaque breaking change */
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
+
+/** Slots de personnages (prompt v6 §2) : plusieurs fiches sauvegardées */
+export interface SlotsPersonnages {
+  /** id de la fiche active */
+  actif: string;
+  /** fiches par id */
+  fiches: Record<string, Character>;
+}
+
+const SLOTS_INITIAUX: SlotsPersonnages = {
+  actif: 'principal',
+  fiches: { principal: personnageExemple },
+};
 
 /** Entrée de l'historique des jets de la phase (prompt v5 livrable 5) */
 export interface JetLog {
@@ -60,6 +73,18 @@ interface CharacterStore {
   character: Character;
   /** Stats dérivées recalculées à chaque mutation (jamais calculées côté UI) */
   derived: DerivedStats;
+  /** id de la fiche active (prompt v6 §2 : slots de personnages) */
+  actifId: string;
+  /** Fiches NON actives (l'active vit dans `character`) */
+  autresFiches: Record<string, Character>;
+  /** Crée une nouvelle fiche (à partir du modèle d'exemple) */
+  creerFiche: (nom: string) => string;
+  /** Duplique une fiche existante */
+  dupliquerFiche: (id: string) => string | null;
+  /** Supprime une fiche (la dernière restante est conservée) */
+  supprimerFiche: (id: string) => void;
+  /** Charge une fiche (l'active courante est sauvegardée au passage) */
+  chargerFiche: (id: string) => void;
   /** Session de combat : opposition mémorisée + historique des jets */
   combatSession: CombatSession;
   /** Mémorise l'opposition du tour (valeur MJ) — prompt v5 livrable 5 */
@@ -158,6 +183,65 @@ export const useCharacterStore = create<CharacterStore>()(
     (set, get) => ({
       character: personnageExemple,
       derived: computeDerived(personnageExemple),
+      actifId: 'principal',
+      autresFiches: {},
+
+      // ─── Slots de personnages (prompt v6 §2) ──────────────────────────
+      creerFiche: (nom) => {
+        const id = `fiche-${Date.now()}`;
+        const nouvelle: Character = {
+          ...structuredClone(personnageExemple),
+          id,
+          nom,
+          favoris: [],
+        };
+        set((s) => ({ autresFiches: { ...s.autresFiches, [id]: nouvelle } }));
+        return id;
+      },
+
+      dupliquerFiche: (id) => {
+        const { character, actifId, autresFiches } = get();
+        const source = id === actifId ? character : autresFiches[id];
+        if (!source) return null;
+        const nouveau = structuredClone(source);
+        nouveau.id = `fiche-${Date.now()}`;
+        nouveau.nom = `${source.nom} (copie)`;
+        set((s) => ({ autresFiches: { ...s.autresFiches, [nouveau.id]: nouveau } }));
+        return nouveau.id;
+      },
+
+      supprimerFiche: (id) => {
+        const { actifId, autresFiches, character } = get();
+        if (id === actifId) {
+          // supprimer l'active : basculer sur la première autre fiche, sinon garder
+          const premiere = Object.keys(autresFiches)[0];
+          if (!premiere) return; // au moins une fiche doit rester
+          const reste = { ...autresFiches };
+          delete reste[id];
+          const nouvelleActive = reste[premiere]!;
+          delete reste[premiere];
+          set(recalcule(nouvelleActive));
+          useCharacterStore.setState({ actifId: premiere, autresFiches: reste });
+          return;
+        }
+        const reste = { ...autresFiches };
+        delete reste[id];
+        void character;
+        set({ autresFiches: reste });
+      },
+
+      chargerFiche: (id) => {
+        const { actifId, autresFiches, character } = get();
+        if (id === actifId) return;
+        const cible = autresFiches[id];
+        if (!cible) return;
+        // sauvegarde de l'active au passage
+        set(recalcule(cible));
+        useCharacterStore.setState({
+          actifId: id,
+          autresFiches: { ...autresFiches, [actifId]: character },
+        });
+      },
       combatSession: SESSION_VIDE,
 
       memoriserOpposition: (opposition, typeOpposition) => {
@@ -492,8 +576,8 @@ export const useCharacterStore = create<CharacterStore>()(
       storage: createJSONStorage(() => localStorage),
       // Le schéma est versionné : les migrations futures passeront par `migrate`
       migrate: (persisted, version) => {
-        // Migration → v3 : normalisation du personnage (champs ajoutés it. 2)
-        // + session de combat (v3) avec défauts sûrs
+        // Migration → v4 : slots de personnages. v3 (character seul) →
+        // l'active devient la fiche « principal » ; les v4 gardent leurs fiches.
         const p = persisted as Partial<CharacterStore>;
         const perso = p?.character;
         if (!perso) return persisted as CharacterStore;
@@ -506,20 +590,34 @@ export const useCharacterStore = create<CharacterStore>()(
           conditions: perso.conditions ?? [],
           armes: (perso.armes ?? []).map((a) => ({ ...a, equipee: a.equipee === true })),
         };
+        const autres = p.autresFiches ?? {};
         return {
           ...(persisted as CharacterStore),
           character: normalise,
+          actifId: p.actifId ?? 'principal',
+          autresFiches: autres,
           combatSession: { ...SESSION_VIDE, ...(p?.combatSession ?? {}) },
         };
       },
       partialize: (state) =>
-        ({ character: state.character, combatSession: state.combatSession }) as unknown as CharacterStore,
+        ({
+          character: state.character,
+          combatSession: state.combatSession,
+          actifId: state.actifId,
+          autresFiches: state.autresFiches,
+        }) as unknown as CharacterStore,
       merge: (persisted, current) => {
-        // Restaure personnage + session ; les dérivées sont recalculées au merge
+        // Restaure personnage + fiches + session ; dérivées recalculées
         const p = persisted as Partial<CharacterStore>;
         const perso = p.character ?? current.character;
         const session: CombatSession = { ...SESSION_VIDE, ...(p.combatSession ?? {}) };
-        return { ...current, ...recalcule(perso), combatSession: session };
+        return {
+          ...current,
+          ...recalcule(perso),
+          combatSession: session,
+          actifId: p.actifId ?? current.actifId,
+          autresFiches: p.autresFiches ?? current.autresFiches,
+        };
       },
     },
   ),

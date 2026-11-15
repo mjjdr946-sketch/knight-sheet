@@ -181,8 +181,8 @@ describe('conditions — blessures et modificateurs', () => {
 });
 
 describe('persistance — clé versionnée knight-sheet-v1', () => {
-  it('la clé de stockage est knight-sheet-v1 (SCHEMA_VERSION 3)', () => {
+  it('la clé de stockage est knight-sheet-v1 (SCHEMA_VERSION 4)', () => {
     expect(useCharacterStore.persist.getOptions().name).toBe('knight-sheet-v1');
-    expect(useCharacterStore.persist.getOptions().version).toBe(3);
+    expect(useCharacterStore.persist.getOptions().version).toBe(4);
   });
 });

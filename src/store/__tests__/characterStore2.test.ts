@@ -128,9 +128,9 @@ describe('equiperArme — validation multi-mains (p.87)', () => {
 });
 
 describe('persistance — version 2 + migrate', () => {
-  it('SCHEMA_VERSION = 3', () => {
-    expect(SCHEMA_VERSION).toBe(3);
-    expect(useCharacterStore.persist.getOptions().version).toBe(3);
+  it('SCHEMA_VERSION = 4', () => {
+    expect(SCHEMA_VERSION).toBe(4);
+    expect(useCharacterStore.persist.getOptions().version).toBe(4);
   });
 
   it('migrate v1 : normalise les champs ajoutés (agonieCoups, armes.equipee booléen)', () => {
