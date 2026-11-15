@@ -5,9 +5,10 @@
 > chaque entrée pointe le fichier, la règle du digest manquante ou ambiguë,
 > et la page du livre quand elle est connue.
 >
-> État après **itération 2** (scope Full, prompt v4). Hors scope réservé
-> itération 3 : PNJ (bandes/salopards/colosses), tracker d'initiative,
-> dégâts environnementaux, véhicules.
+> État après **itération 4** (prompt v6 : jet libre, favoris, slots de
+> personnages, méta-armures, accès protégé). Hors scope reporté : PNJ
+> (bandes/salopards/colosses), tracker d'initiative, dégâts
+> environnementaux, véhicules.
 
 ## 1. Incohérences du digest — TRANCHÉES (prompt v4 §0, validées par NunnuN)
 
@@ -123,8 +124,14 @@
   les avantages chiffrés autres que Dur à cuir / Forteresse spirituelle
   ne créent pas de `Modifier` automatique (ex. Esprit d'acier, Vétéran).
 
-## 6. Ouverts — itération 3 et au-delà (prompt v5)
+## 6. Ouverts — itérations 3-4 et au-delà
 
+- 🔶 **Profils des 8 méta-armures non Paladin** (prompt v6 §4) :
+  `src/data/meta-armures.ts` les structure (Warrior, Warmaster, Rogue, Bard,
+  Wizard, Barbarian, Ranger, Priest) mais leurs PA/PE/CdF, slots, OD de
+  base, capacités, handicaps et évolutions (pp.130-137) ne sont PAS dans le
+  digest → placeholders `RÈGLES: à compléter`, scores à 0. Extraire les
+  pages du livre puis remplir les données (le moteur est déjà générique).
 - 🔶 **Relance d'exploit en cascade** : si la relance est elle-même un
   exploit, le livre ne précise pas — une seule relance appliquée
   (`relanceExploit`, `// RÈGLES: à compléter`).
