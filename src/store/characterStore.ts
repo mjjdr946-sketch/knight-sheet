@@ -17,6 +17,8 @@ import { parseCoutPE, validerEquipement, validerSlotage } from '../engine/equipe
 import { personnageExemple } from '../data/character';
 import { MODULES_INTERDITS_PALADIN } from '../data/modules';
 import { META_ARMURES } from '../data/meta-armures';
+import { subirDegatsPNJ } from '../engine/pnj';
+import type { Adversaire } from '../engine/pnj';
 import type { ArmorModule, Character, Condition, DerivedStats } from '../types/character';
 
 /** Version du schéma de persistance — à incrémenter à chaque breaking change */
@@ -88,6 +90,12 @@ interface CharacterStore {
   chargerFiche: (id: string) => void;
   /** Change de méta-armure (étape 7, p.129-131) — recalcul automatique via le moteur */
   changerArmure: (modele: string) => void;
+  /** Adversaire courant du duel (prompt v7 §1) — null = saisie manuelle */
+  adversaire: Adversaire | null;
+  /** Crée/remplace l'adversaire */
+  majAdversaire: (adv: Adversaire | null) => void;
+  /** Applique les dégâts à l'adversaire via le moteur PNJ (retourne le résultat) */
+  frapperAdversaire: (degats: number, options?: { violence?: number; ignoreCdf?: boolean; antiVehicule?: boolean }) => Adversaire | null;
   /** Session de combat : opposition mémorisée + historique des jets */
   combatSession: CombatSession;
   /** Mémorise l'opposition du tour (valeur MJ) — prompt v5 livrable 5 */
@@ -253,6 +261,25 @@ export const useCharacterStore = create<CharacterStore>()(
         // Le changement de méta-armure est rare et soumis au MJ (p.129) ;
         // les modules installés restent (leurs slots sont revérifiés à l'activation).
         set(recalcule({ ...character, metaArmor: structuredClone(nouvelle) }));
+      },
+
+      adversaire: null,
+
+      majAdversaire: (adv) => set({ adversaire: adv }),
+
+      frapperAdversaire: (degats, options) => {
+        const adv = get().adversaire;
+        if (!adv) return null;
+        const r = subirDegatsPNJ(adv, degats, options);
+        const nouveau: Adversaire = {
+          ...adv,
+          pa: r.pa,
+          ps: r.ps,
+          cohesion: r.cohesion,
+        };
+        // bande défaite / adversaire détruit : on garde la fiche (état visible)
+        set({ adversaire: nouveau });
+        return nouveau;
       },
       combatSession: SESSION_VIDE,
 
@@ -617,9 +644,10 @@ export const useCharacterStore = create<CharacterStore>()(
           combatSession: state.combatSession,
           actifId: state.actifId,
           autresFiches: state.autresFiches,
+          adversaire: state.adversaire,
         }) as unknown as CharacterStore,
       merge: (persisted, current) => {
-        // Restaure personnage + fiches + session ; dérivées recalculées
+        // Restaure personnage + fiches + session + adversaire ; dérivées recalculées
         const p = persisted as Partial<CharacterStore>;
         const perso = p.character ?? current.character;
         const session: CombatSession = { ...SESSION_VIDE, ...(p.combatSession ?? {}) };
@@ -629,6 +657,7 @@ export const useCharacterStore = create<CharacterStore>()(
           combatSession: session,
           actifId: p.actifId ?? current.actifId,
           autresFiches: p.autresFiches ?? current.autresFiches,
+          adversaire: p.adversaire ?? null,
         };
       },
     },

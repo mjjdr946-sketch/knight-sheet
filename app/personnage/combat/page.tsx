@@ -10,8 +10,10 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import Accordion from '../../../components/ui/Accordion';
+import PanneauAdversaire from '../panneau-adversaire';
 import { useCharacterStore } from '@/store/characterStore';
 import { STYLES_COMBAT } from '../../../src/engine/combat';
+import { seuilEffectif } from '../../../src/engine/pnj';
 import { computeAttack, desDegatsTouche, type PreparationAttaque } from '../../../src/engine/attaque';
 import { jetComplet, jetDegats, relanceExploit, touche, type JetComplet } from '../../../src/engine/dice';
 import { formaterProfil } from '../../../src/utils/format';
@@ -61,6 +63,14 @@ export default function CombatPage() {
   // que de repère visuel jusqu'au panneau adversaire.
   const seuil = typeOpposition === 'contact' ? derived.defense : derived.reaction;
 
+  // ─── Seuil effectif : adversaire (points faibles ÷2) ou saisie manuelle ──
+  const adversaire = useCharacterStore((s) => s.adversaire);
+  const frapperAdversaire = useCharacterStore((s) => s.frapperAdversaire);
+  const [violence, setViolence] = useState(0);
+  const seuilAdversaire = adversaire ? seuilEffectif(adversaire, prep?.base ?? (arme?.type === 'distance' ? 'tir' : 'combat'), arme?.type === 'distance') : null;
+  const seuilUtilise = jetLibre ? null : (seuilAdversaire ?? opposition);
+  const modeMj = adversaire?.modeMj === true;
+
   const lancer = () => {
     if (!arme) return;
     const p = computeAttack(character, arme, styleId, { sacrificeDes, comboTrait: comboOverride ?? undefined });
@@ -76,8 +86,8 @@ export default function CombatPage() {
       arme: arme.nom,
       des: j.des,
       total: j.total,
-      seuil: jetLibre ? 0 : opposition,
-      touche: !jetLibre && touche(j.total, opposition),
+      seuil: jetLibre ? 0 : (seuilUtilise ?? 0),
+      touche: !jetLibre && touche(j.total, seuilUtilise ?? 0),
       exploit: j.exploit,
       echecCritique: j.echecCritique,
       degats: jetLibre ? undefined : degatsToucheRef(j, p, arme),
@@ -87,19 +97,21 @@ export default function CombatPage() {
 
   /** Calcule les dégâts sans muter l'état (pour le journal) */
   const degatsToucheRef = (j: JetComplet, p: PreparationAttaque, a: Weapon): number | undefined => {
-    if (!touche(j.total, opposition)) return undefined;
+    if (!touche(j.total, seuilUtilise ?? 0)) return undefined;
     const prof = desDegatsTouche(a, p);
     const fixe = prof.fixe + (a.type === 'contact' ? character.traits.force : 0);
     return jetDegats(prof.nombreDes, fixe).total;
   };
 
   const appliquerDegats = (j: JetComplet, p: PreparationAttaque, a: Weapon) => {
-    if (touche(j.total, opposition)) {
+    if (touche(j.total, seuilUtilise ?? 0)) {
       const prof = desDegatsTouche(a, p);
       // annexe : la Force s'ajoute aux dégâts de contact (l'OD via computeAttack)
       const fixe = prof.fixe + (a.type === 'contact' ? character.traits.force : 0);
       const d = jetDegats(prof.nombreDes, fixe);
       setDegatsTouche(d.total);
+      // application à l'adversaire si défini (violence optionnelle pour les bandes)
+      frapperAdversaire(d.total, violence > 0 ? { violence } : undefined);
     }
   };
 
@@ -113,10 +125,11 @@ export default function CombatPage() {
       arme: `${arme.nom} (relance exploit)`,
       des: j.des,
       total: j.total,
-      seuil: opposition,
-      touche: touche(j.total, opposition),
+      seuil: jetLibre ? 0 : (seuilUtilise ?? 0),
+      touche: !jetLibre && touche(j.total, seuilUtilise ?? 0),
       exploit: j.exploit,
       echecCritique: j.echecCritique,
+      libre: jetLibre,
     });
   };
 
@@ -149,6 +162,9 @@ export default function CombatPage() {
 
   return (
     <div className="space-y-5">
+      {/* ─── Adversaire (prompt v7 §1) ───────────────────────────────── */}
+      <PanneauAdversaire />
+
       {/* ─── Valeurs défensives (lecture seule, moteur) ─────────────── */}
       <section>
         <div className="grid grid-cols-4 gap-1.5 text-center">
@@ -238,10 +254,14 @@ export default function CombatPage() {
           Jet libre (sans opposition — comparaison manuelle au MJ)
         </label>
 
-        {/* Opposition + type */}
+        {/* Opposition + type (masqués si adversaire défini — son seuil prime) */}
         <div className="mb-2 flex items-center justify-between gap-2">
-          <span className="text-xs text-zinc-400">Style : <span className="text-neon-cyan">{styleActif}</span></span>
-          {!jetLibre && (
+          <span className="text-xs text-zinc-400">
+            {adversaire
+              ? <>Cible : <span className="text-neon-gold">{adversaire.nom}</span>{modeMj && ' (MJ)'}</>
+              : <>Style : <span className="text-neon-cyan">{styleActif}</span></>}
+          </span>
+          {!jetLibre && !adversaire && (
             <button
               type="button"
               onClick={() => memoriserOpposition(opposition, typeOpposition === 'contact' ? 'tir' : 'contact')}
@@ -251,7 +271,7 @@ export default function CombatPage() {
             </button>
           )}
         </div>
-        {!jetLibre && (
+        {!jetLibre && !adversaire && (
         <div className="mb-2 flex items-center gap-2">
           <label htmlFor="opposition" className="w-32 text-xs text-zinc-400">Opposition (MJ)</label>
           <input
@@ -291,7 +311,7 @@ export default function CombatPage() {
         <button
           type="button"
           onClick={lancer}
-          disabled={!arme || (!jetLibre && opposition <= 0)}
+          disabled={!arme || (!jetLibre && !adversaire && opposition <= 0)}
           className="min-h-[56px] w-full rounded-lg bg-neon-cyan/20 text-base font-bold uppercase tracking-widest text-neon-cyan shadow-glow-cyan disabled:opacity-40 active:bg-neon-cyan/30"
         >
           Lancer les dés
@@ -303,14 +323,22 @@ export default function CombatPage() {
             <div className="rounded-xl border border-zinc-700 bg-zinc-950 p-3 text-center">
               <p className="text-xs text-zinc-500">{jet.des.length} dés · {jet.reussitesAuto} auto</p>
               <p className="my-1 text-4xl font-bold text-white">
-                {jet.total}
-                {!jetLibre && <span className="text-xl text-zinc-500"> vs {opposition}</span>}
+                {modeMj ? '???' : jet.total}
+                {!jetLibre && !modeMj && <span className="text-xl text-zinc-500"> vs {seuilUtilise}</span>}
               </p>
               {jetLibre ? (
                 <p className="text-sm text-zinc-400">
                   {jet.reussites} réussites (dés pairs) — à comparer à la valeur du MJ
                 </p>
-              ) : touche(jet.total, opposition) ? (
+              ) : modeMj ? (
+                // Mode MJ : seul TOUCHE/RATE est affiché (le MJ ne révèle pas
+                // défense/réaction — règle p.86)
+                touche(jet.total, seuilUtilise ?? 0) ? (
+                  <p className="text-2xl font-bold uppercase tracking-widest text-neon-cyan">Touche !</p>
+                ) : (
+                  <p className="text-2xl font-bold uppercase tracking-widest text-zinc-500">Rate</p>
+                )
+              ) : touche(jet.total, seuilUtilise ?? 0) ? (
                 <p className="text-2xl font-bold uppercase tracking-widest text-neon-cyan">Touche !</p>
               ) : (
                 <p className="text-2xl font-bold uppercase tracking-widest text-zinc-500">Rate</p>
