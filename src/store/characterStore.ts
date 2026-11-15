@@ -19,7 +19,35 @@ import { MODULES_INTERDITS_PALADIN } from '../data/modules';
 import type { ArmorModule, Character, Condition, DerivedStats } from '../types/character';
 
 /** Version du schéma de persistance — à incrémenter à chaque breaking change */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
+
+/** Entrée de l'historique des jets de la phase (prompt v5 livrable 5) */
+export interface JetLog {
+  id: number;
+  /** horodatage ISO lisible */
+  quand: string;
+  arme: string;
+  /** dés lancés (dérisés) */
+  des: number[];
+  total: number;
+  seuil: number;
+  touche: boolean;
+  exploit: boolean;
+  echecCritique: boolean;
+  /** dégâts infligés si touche */
+  degats?: number;
+}
+
+/** État de session de combat — persisté avec le personnage */
+export interface CombatSession {
+  /** opposition mémorisée du tour précédent (valeur MJ, prompt v5) */
+  opposition: number;
+  typeOpposition: 'contact' | 'tir';
+  /** historique des jets de la phase */
+  historique: JetLog[];
+}
+
+const SESSION_VIDE: CombatSession = { opposition: 0, typeOpposition: 'contact', historique: [] };
 export const STORAGE_KEY = 'knight-sheet-v1';
 
 /** Cibles de jauge modifiables par l'UI */
@@ -30,6 +58,14 @@ interface CharacterStore {
   character: Character;
   /** Stats dérivées recalculées à chaque mutation (jamais calculées côté UI) */
   derived: DerivedStats;
+  /** Session de combat : opposition mémorisée + historique des jets */
+  combatSession: CombatSession;
+  /** Mémorise l'opposition du tour (valeur MJ) — prompt v5 livrable 5 */
+  memoriserOpposition: (opposition: number, type: 'contact' | 'tir') => void;
+  /** Ajoute un jet à l'historique de la phase (max 20, FIFO) */
+  journaliserJet: (log: Omit<JetLog, 'id' | 'quand'>) => void;
+  /** Vide l'historique des jets (reset combat) */
+  viderHistorique: () => void;
 
   // ─── Actions ────────────────────────────────────────────────────────────
   /**
@@ -118,6 +154,27 @@ export const useCharacterStore = create<CharacterStore>()(
     (set, get) => ({
       character: personnageExemple,
       derived: computeDerived(personnageExemple),
+      combatSession: SESSION_VIDE,
+
+      memoriserOpposition: (opposition, typeOpposition) => {
+        set((s) => ({ combatSession: { ...s.combatSession, opposition, typeOpposition } }));
+      },
+
+      journaliserJet: (log) => {
+        set((s) => ({
+          combatSession: {
+            ...s.combatSession,
+            historique: [
+              { ...log, id: Date.now() + s.combatSession.historique.length, quand: new Date().toISOString() },
+              ...s.combatSession.historique,
+            ].slice(0, 20), // FIFO : les 20 derniers jets de la phase
+          },
+        }));
+      },
+
+      viderHistorique: () => {
+        set((s) => ({ combatSession: { ...s.combatSession, historique: [] } }));
+      },
 
       ajusterJauge: (cible, delta) => {
         const { character, derived } = get();
@@ -258,6 +315,8 @@ export const useCharacterStore = create<CharacterStore>()(
           agonieCoups: 0, // compteur d'agonie remis à zéro
           jauges,
         }));
+        // l'historique des jets de la phase est vidé
+        get().viderHistorique();
       },
 
       tirerBlessureAgonie: (deLigne, deColonne) => {
@@ -421,25 +480,33 @@ export const useCharacterStore = create<CharacterStore>()(
       storage: createJSONStorage(() => localStorage),
       // Le schéma est versionné : les migrations futures passeront par `migrate`
       migrate: (persisted, version) => {
-        // Migration v1 → v2 : normalisation du personnage (champs ajoutés it. 2)
-        const perso = (persisted as Partial<CharacterStore>)?.character;
+        // Migration → v3 : normalisation du personnage (champs ajoutés it. 2)
+        // + session de combat (v3) avec défauts sûrs
+        const p = persisted as Partial<CharacterStore>;
+        const perso = p?.character;
         if (!perso) return persisted as CharacterStore;
         const normalise: Character = {
           ...personnageExemple,
           ...perso,
-          // champs nouveaux en v2 avec valeurs par défaut sûres
           agonieCoups: perso.agonieCoups ?? 0,
           overdrives: perso.overdrives ?? [],
           conditions: perso.conditions ?? [],
           armes: (perso.armes ?? []).map((a) => ({ ...a, equipee: a.equipee === true })),
         };
-        return { ...(persisted as CharacterStore), character: normalise };
+        return {
+          ...(persisted as CharacterStore),
+          character: normalise,
+          combatSession: { ...SESSION_VIDE, ...(p?.combatSession ?? {}) },
+        };
       },
-      partialize: (state) => ({ character: state.character }) as unknown as CharacterStore,
+      partialize: (state) =>
+        ({ character: state.character, combatSession: state.combatSession }) as unknown as CharacterStore,
       merge: (persisted, current) => {
-        // Ne restaure que le personnage ; les dérivées sont recalculées au merge
-        const perso = (persisted as Partial<CharacterStore>).character ?? current.character;
-        return { ...current, ...recalcule(perso) };
+        // Restaure personnage + session ; les dérivées sont recalculées au merge
+        const p = persisted as Partial<CharacterStore>;
+        const perso = p.character ?? current.character;
+        const session: CombatSession = { ...SESSION_VIDE, ...(p.combatSession ?? {}) };
+        return { ...current, ...recalcule(perso), combatSession: session };
       },
     },
   ),

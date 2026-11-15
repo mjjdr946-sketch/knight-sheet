@@ -10,6 +10,7 @@ import { motion } from 'framer-motion';
 
 const ONGLETS = [
   { href: '/personnage/combat', label: 'Combat', icon: '⚔' },
+  { href: '/personnage/materiel', label: 'Matériel', icon: '⚒' },
   { href: '/personnage/attributs', label: 'Attributs', icon: '◆' },
   { href: '/personnage/meta-armure', label: 'Armure', icon: '◈' },
   { href: '/personnage/identite', label: 'Identité', icon: '⚜' },
