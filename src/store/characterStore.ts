@@ -36,6 +36,8 @@ export interface JetLog {
   echecCritique: boolean;
   /** dégâts infligés si touche */
   degats?: number;
+  /** jet libre (sans opposition — prompt v6 §1) */
+  libre?: boolean;
 }
 
 /** État de session de combat — persisté avec le personnage */
@@ -66,6 +68,8 @@ interface CharacterStore {
   journaliserJet: (log: Omit<JetLog, 'id' | 'quand'>) => void;
   /** Vide l'historique des jets (reset combat) */
   viderHistorique: () => void;
+  /** Bascule un favori générique (« type:id ») — prompt v6 §3, par personnage */
+  basculerFavori: (id: string) => void;
 
   // ─── Actions ────────────────────────────────────────────────────────────
   /**
@@ -174,6 +178,14 @@ export const useCharacterStore = create<CharacterStore>()(
 
       viderHistorique: () => {
         set((s) => ({ combatSession: { ...s.combatSession, historique: [] } }));
+      },
+
+      basculerFavori: (id) => {
+        const { character } = get();
+        const favoris = new Set(character.favoris ?? []);
+        if (favoris.has(id)) favoris.delete(id);
+        else favoris.add(id);
+        set(recalcule({ ...character, favoris: Array.from(favoris) }));
       },
 
       ajusterJauge: (cible, delta) => {
@@ -489,6 +501,7 @@ export const useCharacterStore = create<CharacterStore>()(
           ...personnageExemple,
           ...perso,
           agonieCoups: perso.agonieCoups ?? 0,
+          favoris: perso.favoris ?? [],
           overdrives: perso.overdrives ?? [],
           conditions: perso.conditions ?? [],
           armes: (perso.armes ?? []).map((a) => ({ ...a, equipee: a.equipee === true })),

@@ -279,6 +279,11 @@ export interface Character {
   armureDeployee: boolean;
   /** Compteur de coups reçus alors qu'à 0 PS (règle p.90 : 3e = mort) */
   agonieCoups?: number;
+  /**
+   * Favoris génériques (prompt v6 §3) — ids formatés « type:id » :
+   * arme:xxx, style:xxx, combo:base+combo, module:xxx. Par personnage.
+   */
+  favoris?: string[];
   /** PG et PX cumulés (totaux, ne bougent qu'entre missions) */
   gloire: number;
   experience: number;

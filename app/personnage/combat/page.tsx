@@ -16,7 +16,7 @@ import { computeAttack, desDegatsTouche, type PreparationAttaque } from '../../.
 import { jetComplet, jetDegats, relanceExploit, touche, type JetComplet } from '../../../src/engine/dice';
 import { formaterProfil } from '../../../src/utils/format';
 import type { DamageResult } from '../../../src/engine/damage';
-import type { Weapon } from '@/types/character';
+import type { TraitId, Weapon } from '@/types/character';
 
 export default function CombatPage() {
   const character = useCharacterStore((s) => s.character);
@@ -33,6 +33,13 @@ export default function CombatPage() {
   const historique = useCharacterStore((s) => s.combatSession.historique);
   const memoriserOpposition = useCharacterStore((s) => s.memoriserOpposition);
   const journaliserJet = useCharacterStore((s) => s.journaliserJet);
+  const basculerFavori = useCharacterStore((s) => s.basculerFavori);
+  const favoris = character.favoris ?? [];
+  const favorisArmes = favoris.filter((f) => f.startsWith('arme:')).map((f) => f.slice(5));
+  const favorisCombos = favoris.filter((f) => f.startsWith('combo:')).map((f) => f.slice(6));
+
+  // Jet libre (prompt v6 §1) : pas d'opposition — le joueur compare lui-même
+  const [jetLibre, setJetLibre] = useState(false);
 
   const styleActif = character.conditions.find((c) => c.id === 'style-combat')?.nom.replace('Style : ', '') ?? 'Standard';
   const styleId = STYLES_COMBAT.find((s) => s.nom === styleActif)?.id ?? 'standard';
@@ -42,6 +49,8 @@ export default function CombatPage() {
   const [armeId, setArmeId] = useState<string | null>(null);
   const arme: Weapon | undefined = armesEquipees.find((a) => a.id === armeId) ?? armesEquipees[0];
   const [sacrificeDes, setSacrificeDes] = useState(0);
+  // Combo surchargé via les favoris (« combo:base+combo »)
+  const [comboOverride, setComboOverride] = useState<TraitId | null>(null);
   const [jet, setJet] = useState<JetComplet | null>(null);
   const [prep, setPrep] = useState<PreparationAttaque | null>(null);
   const [degatsTouche, setDegatsTouche] = useState<number | null>(null);
@@ -54,7 +63,7 @@ export default function CombatPage() {
 
   const lancer = () => {
     if (!arme) return;
-    const p = computeAttack(character, arme, styleId, { sacrificeDes });
+    const p = computeAttack(character, arme, styleId, { sacrificeDes, comboTrait: comboOverride ?? undefined });
     setPrep(p);
     // Watchtower active : chaque tir coûte 1 PE (FAQ p.455)
     const watchtower = character.metaArmor.capacites.find((c) => c.id === 'watchtower');
@@ -62,16 +71,17 @@ export default function CombatPage() {
     const j = jetComplet(p.nbDes, p.reussitesAuto);
     setJet(j);
     setDegatsTouche(null);
-    appliquerDegats(j, p, arme);
+    if (!jetLibre) appliquerDegats(j, p, arme);
     journaliserJet({
       arme: arme.nom,
       des: j.des,
       total: j.total,
-      seuil: opposition,
-      touche: touche(j.total, opposition),
+      seuil: jetLibre ? 0 : opposition,
+      touche: !jetLibre && touche(j.total, opposition),
       exploit: j.exploit,
       echecCritique: j.echecCritique,
-      degats: degatsToucheRef(j, p, arme),
+      degats: jetLibre ? undefined : degatsToucheRef(j, p, arme),
+      libre: jetLibre,
     });
   };
 
@@ -171,6 +181,7 @@ export default function CombatPage() {
                 arme?.id === a.id ? 'border-neon-cyan text-neon-cyan shadow-glow-cyan' : 'border-zinc-700 text-zinc-400'
               }`}
             >
+              {favorisArmes.includes(a.id) && <span className="mr-1">★</span>}
               {a.nom}
             </button>
           ))}
@@ -179,17 +190,68 @@ export default function CombatPage() {
           )}
         </div>
 
+        {/* Favoris (replié par défaut — prompt v6 §3) */}
+        {(favorisArmes.length > 0 || favorisCombos.length > 0) && (
+          <details className="mb-2 rounded-lg border border-neon-gold/30 bg-zinc-950 p-2">
+            <summary className="min-h-[48px] cursor-pointer py-3 text-xs uppercase tracking-widest text-neon-gold">
+              ★ Favoris
+            </summary>
+            <div className="mt-1 space-y-1.5">
+              {favorisArmes.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {favorisArmes.map((id) => {
+                    const a = character.armes.find((w) => w.id === id);
+                    return a ? (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => { setArmeId(id); setJet(null); }}
+                        className="min-h-[48px] rounded-lg border border-neon-gold/40 px-2.5 text-xs text-neon-gold"
+                      >
+                        ★ {a.nom}
+                      </button>
+                    ) : null;
+                  })}
+                </div>
+              )}
+              {favorisCombos.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {favorisCombos.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setComboOverride(c as TraitId)}
+                      className="min-h-[48px] rounded-lg border border-zinc-600 px-2.5 text-xs text-zinc-300"
+                    >
+                      ★ combo {c}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </details>
+        )}
+
+        {/* Jet libre (prompt v6 §1) : pas d'opposition — le joueur compare lui-même */}
+        <label className="mb-2 flex min-h-[48px] items-center gap-2 rounded-lg bg-zinc-950 px-2 text-xs text-zinc-300">
+          <input type="checkbox" checked={jetLibre} onChange={(e) => setJetLibre(e.target.checked)} className="h-5 w-5 accent-cyan-400" />
+          Jet libre (sans opposition — comparaison manuelle au MJ)
+        </label>
+
         {/* Opposition + type */}
         <div className="mb-2 flex items-center justify-between gap-2">
           <span className="text-xs text-zinc-400">Style : <span className="text-neon-cyan">{styleActif}</span></span>
-          <button
-            type="button"
-            onClick={() => memoriserOpposition(opposition, typeOpposition === 'contact' ? 'tir' : 'contact')}
-            className="min-h-[48px] rounded-lg border border-zinc-700 px-2.5 text-xs text-zinc-300 active:bg-zinc-800"
-          >
-            {typeOpposition === 'contact' ? 'vs Défense' : 'vs Réaction'}
-          </button>
+          {!jetLibre && (
+            <button
+              type="button"
+              onClick={() => memoriserOpposition(opposition, typeOpposition === 'contact' ? 'tir' : 'contact')}
+              className="min-h-[48px] rounded-lg border border-zinc-700 px-2.5 text-xs text-zinc-300 active:bg-zinc-800"
+            >
+              {typeOpposition === 'contact' ? 'vs Défense' : 'vs Réaction'}
+            </button>
+          )}
         </div>
+        {!jetLibre && (
         <div className="mb-2 flex items-center gap-2">
           <label htmlFor="opposition" className="w-32 text-xs text-zinc-400">Opposition (MJ)</label>
           <input
@@ -212,14 +274,16 @@ export default function CombatPage() {
             </label>
           )}
         </div>
+        )}
 
         {/* Préparation affichée avant jet */}
         {arme && (
           <p className="mb-2 text-xs text-zinc-400">
-            {computeAttack(character, arme, styleId, { sacrificeDes }).nbDes} dés +{' '}
-            {computeAttack(character, arme, styleId, { sacrificeDes }).reussitesAuto} auto
+            {computeAttack(character, arme, styleId, { sacrificeDes, comboTrait: comboOverride ?? undefined }).nbDes} dés +{' '}
+            {computeAttack(character, arme, styleId, { sacrificeDes, comboTrait: comboOverride ?? undefined }).reussitesAuto} auto
             <span className="ml-2 text-zinc-600">
-              {arme.type === 'contact' ? 'Combat + Force' : 'Tir'} · p.76-78 · repère vs {seuil}
+              {arme.type === 'contact' ? 'Combat + Force' : 'Tir'}{comboOverride ? ` + combo ${comboOverride}` : ''} · p.76-78
+              {!jetLibre && ` · repère vs ${seuil}`}
             </span>
           </p>
         )}
@@ -227,7 +291,7 @@ export default function CombatPage() {
         <button
           type="button"
           onClick={lancer}
-          disabled={!arme || opposition <= 0}
+          disabled={!arme || (!jetLibre && opposition <= 0)}
           className="min-h-[56px] w-full rounded-lg bg-neon-cyan/20 text-base font-bold uppercase tracking-widest text-neon-cyan shadow-glow-cyan disabled:opacity-40 active:bg-neon-cyan/30"
         >
           Lancer les dés
@@ -239,9 +303,14 @@ export default function CombatPage() {
             <div className="rounded-xl border border-zinc-700 bg-zinc-950 p-3 text-center">
               <p className="text-xs text-zinc-500">{jet.des.length} dés · {jet.reussitesAuto} auto</p>
               <p className="my-1 text-4xl font-bold text-white">
-                {jet.total} <span className="text-xl text-zinc-500">vs {opposition}</span>
+                {jet.total}
+                {!jetLibre && <span className="text-xl text-zinc-500"> vs {opposition}</span>}
               </p>
-              {touche(jet.total, opposition) ? (
+              {jetLibre ? (
+                <p className="text-sm text-zinc-400">
+                  {jet.reussites} réussites (dés pairs) — à comparer à la valeur du MJ
+                </p>
+              ) : touche(jet.total, opposition) ? (
                 <p className="text-2xl font-bold uppercase tracking-widest text-neon-cyan">Touche !</p>
               ) : (
                 <p className="text-2xl font-bold uppercase tracking-widest text-zinc-500">Rate</p>
@@ -319,9 +388,20 @@ export default function CombatPage() {
                 styleActif === s.nom ? 'border-neon-cyan text-neon-cyan shadow-glow-cyan' : 'border-zinc-700 text-zinc-400'
               }`}
             >
+              {favoris.includes(`style:${s.id}`) && <span className="mr-1">★</span>}
               {s.nom}
             </button>
           ))}
+          <button
+            type="button"
+            aria-label="Basculer le favori du style actif"
+            onClick={() => basculerFavori(`style:${styleId}`)}
+            className={`min-h-[48px] shrink-0 rounded-lg border px-3 text-sm ${
+              favoris.includes(`style:${styleId}`) ? 'border-neon-gold text-neon-gold' : 'border-zinc-700 text-zinc-500'
+            }`}
+          >
+            ★
+          </button>
         </div>
       </section>
 
