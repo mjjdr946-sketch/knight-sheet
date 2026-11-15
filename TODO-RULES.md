@@ -5,8 +5,8 @@
 > chaque entrée pointe le fichier, la règle du digest manquante ou ambiguë,
 > et la page du livre quand elle est connue.
 >
-> État après **itération 4** (prompt v6 : jet libre, favoris, slots de
-> personnages, méta-armures, accès protégé). Hors scope reporté : PNJ
+> État après **itération 5** (prompt v7 : adversaires, environnement,
+> véhicules, automatisations combat). Hors scope reporté : PNJ
 > (bandes/salopards/colosses), tracker d'initiative, dégâts
 > environnementaux, véhicules.
 
@@ -82,29 +82,30 @@
 - ✅ **Tableau des blessures aléatoires (p.91)** — tirage injecté 2D6,
   application automatique en `Condition` + `Modifier` (moteur + store),
   accès UI depuis le mode encaissement à 0 PS.
-- 🔶 **Implant cybernétique (20 PG, −3 PEs) / thérapie (100 PG, p.91)** :
-  le retrait de condition existe (`retirerCondition`) mais pas d'action
-  dédiée qui applique le coût et le −3 PEs total.
-- ✅ **Test d'espoir (p.96)** — moteur (`appliquerTestEspoir`) + store
-  (`testerEspoir`). Reste : un bouton dédié dans l'UI (la fonction est
-  appelable, pas de widget).
+- ✅ **Implant cybernétique / thérapie (p.91)** — `poserImplant` (retire la
+  blessure, −3 PEs total, max 6) et `therapieReconstruction` (efface toutes
+  les blessures) ; UI « État & soins lourds » sur la page Identité.
+- ✅ **Test d'espoir (p.96)** — moteur + store + boutons UI (réussite/échec
+  1D6) dans le widget Héroïsme ; Esprit d'acier appliqué automatiquement.
 - ✅ **Héroïsme (p.96-97)** — les 5 usages + Cartes du Destin (3 points)
-  en moteur et store (`utiliserHeroisme`). Reste : l'UI des usages
-  (aujourd'hui : jauge +/− seule).
-- 🔶 **Points de contact (p.95)** : calculés et affichés (page Attributs),
-  pas de gestion de dépense par lieu (1/2/3/4/6 pts) ni de récupération.
+  en moteur, store ET UI (widget onglet Combat).
+- ✅ **Points de contact (p.95)** — dépense par lieu (1/2/3/4/6 pts) sur la
+  page Attributs, récupération au reset combat (retour Camelot).
 - ❌ **Initiative en phase de conflit (p.86)** : pas de tracker (3D6 +
   score, embuscade +10, bandes à initiative 1, retarder son tour) —
   **réservé itération 3**.
 - ❌ **Dégâts environnementaux (p.92)** : chute, feu, noyade, gaz/poisons,
   accidents — **réservé itération 3**.
-- ❌ **Côté PNJ** (bandes, salopards, patrons, colosses, points faibles,
-  boucliers) : le flag `colosse` existe dans `applyDamage` (tranches de
-  10, p.103) mais aucune UI de PNJ — **réservé itération 3**.
-- 🔶 **Styles à effets de dés** (akimbo cumul, pilonnage +1D6/tour, puissant
-  sacrifice de dés…) : les styles portent leurs modificateurs de stats
-  (défense/réaction, déclarés via `declarerStyle`) ; les mécaniques de dés
-  restent MJ/manuels.
+- ✅ **Côté PNJ** (prompt v7 §1) — `engine/pnj.ts` : types
+  hostile/salopard/patron/colosse/bande/allié, points faibles (défense/réaction
+  ÷2 une fois, p.103), colosses tranches de 10 + anti-véhicule, bandes
+  cohésion (violence seule)/débordement cumulé/initiative 1, boucliers/CdF ;
+  panneau adversaire branché sur le simulateur avec **mode MJ** (valeurs
+  masquées, seul TOUCHE/RATE affiché — p.86) et catalogue véhicules prérempli.
+- 🔶 **Styles à effets de dés** : akimbo AUTOMATISÉ (détecte la 2ᵉ arme
+  identique équipée, cumul des dés, bonus fixe une fois, malus jumelé −1 dé),
+  Pilonnage/Puissant câblés dans `computeAttack` (sacrifice, pile) ;
+  restent MJ : ambidextre 2 attaques, précis combo (option dispo).
 - ✅ **Dégâts des armes de contact avec OD** (annexe) — `bonusDegatsOD` :
   +3 par niveau d'OD de Force, +1 pour les autres traits comptés
   (Dextérité/Orfèvrerie, Tir/Précision) ; `degatsContactEffectifs`.
@@ -119,10 +120,10 @@
 - ✅ **Export/import de personnage** — page Identité : export JSON
   téléchargeable, import avec validation de format (via
   `remplacerPersonnage`).
-- 🔶 **Affichage des lames** : l'aspect d'une lame ajoutée depuis l'UI
-  n'est pas renseigné (mapping FR → id laissé au MJ à la création) ;
-  les avantages chiffrés autres que Dur à cuir / Forteresse spirituelle
-  ne créent pas de `Modifier` automatique (ex. Esprit d'acier, Vétéran).
+- 🔶 **Affichage des lames** : Esprit d'acier est AUTOMATISÉ (−1 PEs perdu
+  sur le test d'espoir) ; l'aspect d'une lame ajoutée depuis l'UI reste non
+  renseigné (mapping FR → id au MJ) ; Vétéran (plafonds d'aspects) et autres
+  avantages non chiffrés restent roleplay/MJ.
 
 ## 6. Ouverts — itérations 3-4 et au-delà
 
@@ -135,19 +136,25 @@
 - 🔶 **Relance d'exploit en cascade** : si la relance est elle-même un
   exploit, le livre ne précise pas — une seule relance appliquée
   (`relanceExploit`, `// RÈGLES: à compléter`).
-- 🔶 **Coût PE des tirs Watchtower** : 1 PE déduit par tir lancé quand le
-  mode est actif (FAQ p.455) — le premier tir gratuit du tour n'est pas
-  distingué (pas de notion de tour dans l'app).
+- ✅ **Coût PE des tirs Watchtower** — FAQ p.455 : le 1er tir du tour est
+  gratuit, les suivants coûtent 1 PE (compteur `tour`/`tirsCeTour` de la
+  session, bouton « Tour suivant »).
 - 🔶 **Combo de tir** : le combo pertinent d'une arme de tir n'est pas
   déduit automatiquement (option `comboTrait` manuelle ; défaut = Tir seul).
-- 🔶 **Akimbo en simulation** : le cumul des dés des 2 armes (p.87) n'est
-  pas calculé — une arme à la fois ; le malus jumelé (−1 dé) est appliqué.
 - ✅ **Ordre d'action** : gestion manuelle (choix validé prompt v5 — pas de
   tracker automatique).
-- 🔶 **Paliers d'OD à effets de règle** : non automatisés (cf. §3).
-- 🔶 **Niveaux de modules (achat progressif)** : non modélisé (cf. §2).
+- 🔶 **Paliers d'OD à effets de règle** — AUTOMATISÉS : OD Endurance niv 3
+  (+6 PS en armure), OD Aura niv 5 (+Aura à la défense), OD Instinct niv 3
+  (+3 initiative/niveau), OD Hargne niv 3 (combat la mort à 0 PS), OD Force
+  (+3 dégâts/niveau). Restent MJ/à câbler : Savoir niv 3 (soins +1D6),
+  Technique, Discrétion, Dextérité, Parole (effets de jets).
+- 🔶 **Niveaux de modules (achat progressif)** — `monterNiveauModule`
+  modélise la progression 1→2→3 (niveaux précédents requis, p.428) ;
+  les `Modifier` dédiés par palier de module restent à câbler au cas par
+  cas (ex. saut niv 2 : +9 dégâts).
 
 ---
-*Feuille de route itération 4 : PNJ/colosses, dégâts environnementaux,
-véhicules, UI des usages d'héroïsme, panneau adversaire (défense/réaction
-des cibles), achat progressif des modules, effets de paliers d'OD.*
+*Feuille de route itération 6 : profils des 8 méta-armures (pp.130-137),
+Modifier des paliers de modules, effets d'OD restants, ambiance/son.
+Édition 5 (prompt v7) : adversaires, environnement, véhicules, automatisations
+— tous fermés sauf mentions 🔶 ci-dessus.*
