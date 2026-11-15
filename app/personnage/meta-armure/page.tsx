@@ -13,6 +13,7 @@ import { useMemo, useState } from 'react';
 import ModuleCard from '../../../components/cards/ModuleCard';
 import Accordion from '../../../components/ui/Accordion';
 import { catalogueModules } from '../../../src/data/modules';
+import { NOMS_ARMURES } from '../../../src/data/meta-armures';
 import { useCharacterStore } from '@/store/characterStore';
 import type { ModuleCategory, SlotZone } from '@/types/character';
 
@@ -44,6 +45,7 @@ export default function MetaArmurePage() {
   const desinstallerModule = useCharacterStore((s) => s.desinstallerModule);
   const activerCapacite = useCharacterStore((s) => s.activerCapacite);
   const payerMaintenanceShrine = useCharacterStore((s) => s.payerMaintenanceShrine);
+  const changerArmure = useCharacterStore((s) => s.changerArmure);
 
   // Filtres du catalogue
   const [filtreCat, setFiltreCat] = useState<ModuleCategory | 'toutes'>('toutes');
@@ -68,6 +70,44 @@ export default function MetaArmurePage() {
 
   return (
     <div className="space-y-5">
+      {/* ─── Méta-armure portée (prompt v6 §4) ──────────────────────── */}
+      <section className="rounded-xl border border-neon-gold/30 bg-zinc-900/70 p-3">
+        <h2 className="font-display mb-1 text-xs uppercase tracking-widest text-neon-gold">
+          Méta-armure portée (étape 7, p.129-131)
+        </h2>
+        <p className="mb-2 text-[11px] text-zinc-600">
+          Une seule par personnage, personnelle et définitive — changement rare et soumis au MJ.
+          Seule la Paladin a un profil complet extrait ; les autres affichent des placeholders.
+        </p>
+        <div className="flex gap-1.5 overflow-x-auto pb-1">
+          {NOMS_ARMURES.map((a) => (
+            <button
+              key={a.id}
+              type="button"
+              onClick={() => changerArmure(a.id)}
+              className={`min-h-[48px] shrink-0 rounded-lg border px-3 text-xs ${
+                character.metaArmor.modele === a.id
+                  ? 'border-neon-gold text-neon-gold shadow-glow-gold'
+                  : 'border-zinc-700 text-zinc-400'
+              }`}
+            >
+              {a.nom}
+            </button>
+          ))}
+        </div>
+        <p className="mt-1 text-[11px] text-zinc-400">
+          {character.metaArmor.modele} · {character.metaArmor.generation}re génération ·{' '}
+          {character.metaArmor.paTotal} PA · {character.metaArmor.peTotal} PE · CdF {character.metaArmor.cdfTotal}
+        </p>
+        {character.metaArmor.handicaps.length > 0 && (
+          <ul className="mt-1 space-y-0.5">
+            {character.metaArmor.handicaps.map((h) => (
+              <li key={h} className="text-[11px] text-amber-300">⚠ {h}</li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       {/* ─── Capacités d'armure ─────────────────────────────────────── */}
       <section>
         <h2 className="font-display mb-2 text-xs uppercase tracking-widest text-zinc-500">Capacités</h2>

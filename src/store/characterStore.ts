@@ -16,6 +16,7 @@ import { appliquerTestEspoir, depenserHeroisme, type ResultatHeroisme, type Usag
 import { parseCoutPE, validerEquipement, validerSlotage } from '../engine/equipement';
 import { personnageExemple } from '../data/character';
 import { MODULES_INTERDITS_PALADIN } from '../data/modules';
+import { META_ARMURES } from '../data/meta-armures';
 import type { ArmorModule, Character, Condition, DerivedStats } from '../types/character';
 
 /** Version du schéma de persistance — à incrémenter à chaque breaking change */
@@ -85,6 +86,8 @@ interface CharacterStore {
   supprimerFiche: (id: string) => void;
   /** Charge une fiche (l'active courante est sauvegardée au passage) */
   chargerFiche: (id: string) => void;
+  /** Change de méta-armure (étape 7, p.129-131) — recalcul automatique via le moteur */
+  changerArmure: (modele: string) => void;
   /** Session de combat : opposition mémorisée + historique des jets */
   combatSession: CombatSession;
   /** Mémorise l'opposition du tour (valeur MJ) — prompt v5 livrable 5 */
@@ -241,6 +244,15 @@ export const useCharacterStore = create<CharacterStore>()(
           actifId: id,
           autresFiches: { ...autresFiches, [actifId]: character },
         });
+      },
+
+      changerArmure: (modele) => {
+        const { character } = get();
+        const nouvelle = META_ARMURES[modele];
+        if (!nouvelle) return;
+        // Le changement de méta-armure est rare et soumis au MJ (p.129) ;
+        // les modules installés restent (leurs slots sont revérifiés à l'activation).
+        set(recalcule({ ...character, metaArmor: structuredClone(nouvelle) }));
       },
       combatSession: SESSION_VIDE,
 
