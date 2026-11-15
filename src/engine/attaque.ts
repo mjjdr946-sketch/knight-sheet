@@ -17,7 +17,6 @@ export interface OptionsAttaque {
   /** Style Pilonnage : dés de dégâts cumulés des tours précédents (max 6, p.89) */
   pileDegats?: number;
 }
-
 export interface PreparationAttaque {
   /** Caractéristique de base du jet */
   base: TraitId;
@@ -75,6 +74,17 @@ export function computeAttack(character: Character, arme: Weapon, styleId: strin
     detail.push(`Style Précis : +${character.traits[t3]} (${t3}, OD ignorées pour ce trait)`);
   }
 
+  // Akimbo (p.87-88) : 2 armes IDENTIQUES en main → cumul des dés de dégâts,
+  // bonus fixe compté 1 FOIS. Détection automatique : une autre arme équipée
+  // avec le même id que l'arme attaquante.
+  const jumelle = styleId === 'akimbo'
+    ? character.armes.find((a) => a.id === arme.id && a !== arme && a.equipee)
+    : undefined;
+  if (jumelle) {
+    nbDes += jumelle.degats.nombre;
+    detail.push(`Akimbo : +${jumelle.degats.nombre} dés de la 2ᵉ ${arme.nom} (bonus fixe compté 1 fois, p.87)`);
+  }
+
   // Modificateurs de style sur les dés d'attaque (p.87-89)
   let bonusDesStyle = 0;
   let malusDesStyle = 0;
@@ -89,9 +99,12 @@ export function computeAttack(character: Character, arme: Weapon, styleId: strin
       detail.push('Style : −3 dés d\u2019attaque');
       break;
     case 'ambidextre':
+      malusDesStyle = 3; // ambidextre (2 armes NON identiques) : −3 dés (p.87)
+      detail.push('Style Ambidextre : −3 dés');
+      break;
     case 'akimbo':
-      malusDesStyle = 1; // jumelé (akimbo/ambidextrie) : malus réduit à 1 dé (annexe)
-      detail.push('Armes jumelées : −1 dé');
+      malusDesStyle = jumelle ? 1 : 0; // jumelé : malus réduit à 1 dé (annexe)
+      if (jumelle) detail.push('Armes jumelées : −1 dé');
       break;
     case 'pilonnage':
       malusDesStyle = 2;

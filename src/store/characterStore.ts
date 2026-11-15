@@ -63,9 +63,13 @@ export interface CombatSession {
   typeOpposition: 'contact' | 'tir';
   /** historique des jets de la phase */
   historique: JetLog[];
+  /** tour courant de la phase (1-based) — Watchtower : 1er tir gratuit/tour */
+  tour: number;
+  /** tirs déjà effectués ce tour (Watchtower : le 1er est gratuit — FAQ p.455) */
+  tirsCeTour: number;
 }
 
-const SESSION_VIDE: CombatSession = { opposition: 0, typeOpposition: 'contact', historique: [] };
+const SESSION_VIDE: CombatSession = { opposition: 0, typeOpposition: 'contact', historique: [], tour: 1, tirsCeTour: 0 };
 export const STORAGE_KEY = 'knight-sheet-v1';
 
 /** Cibles de jauge modifiables par l'UI */
@@ -104,6 +108,8 @@ interface CharacterStore {
   journaliserJet: (log: Omit<JetLog, 'id' | 'quand'>) => void;
   /** Vide l'historique des jets (reset combat) */
   viderHistorique: () => void;
+  /** Passe au tour suivant (Watchtower : 1er tir redevient gratuit — FAQ p.455) */
+  passerAuTourSuivant: () => void;
   /** Bascule un favori générique (« type:id ») — prompt v6 §3, par personnage */
   basculerFavori: (id: string) => void;
 
@@ -301,6 +307,12 @@ export const useCharacterStore = create<CharacterStore>()(
 
       viderHistorique: () => {
         set((s) => ({ combatSession: { ...s.combatSession, historique: [] } }));
+      },
+
+      passerAuTourSuivant: () => {
+        set((s) => ({
+          combatSession: { ...s.combatSession, tour: s.combatSession.tour + 1, tirsCeTour: 0 },
+        }));
       },
 
       basculerFavori: (id) => {

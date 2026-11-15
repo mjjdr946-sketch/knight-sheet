@@ -37,6 +37,9 @@ export default function CombatPage() {
   const memoriserOpposition = useCharacterStore((s) => s.memoriserOpposition);
   const journaliserJet = useCharacterStore((s) => s.journaliserJet);
   const basculerFavori = useCharacterStore((s) => s.basculerFavori);
+  const passerAuTourSuivant = useCharacterStore((s) => s.passerAuTourSuivant);
+  const utiliserHeroisme = useCharacterStore((s) => s.utiliserHeroisme);
+  const tour = useCharacterStore((s) => s.combatSession.tour);
   const favoris = character.favoris ?? [];
   const favorisArmes = favoris.filter((f) => f.startsWith('arme:')).map((f) => f.slice(5));
   const favorisCombos = favoris.filter((f) => f.startsWith('combo:')).map((f) => f.slice(6));
@@ -76,9 +79,17 @@ export default function CombatPage() {
     if (!arme) return;
     const p = computeAttack(character, arme, styleId, { sacrificeDes, comboTrait: comboOverride ?? undefined });
     setPrep(p);
-    // Watchtower active : chaque tir coûte 1 PE (FAQ p.455)
+    // Watchtower active : le 1er tir du tour est gratuit, les suivants
+    // coûtent 1 PE chacun (FAQ p.455) — notion de tour de la session
     const watchtower = character.metaArmor.capacites.find((c) => c.id === 'watchtower');
-    if (watchtower?.active && arme.type === 'distance') depenserPEUsage(1);
+    if (watchtower?.active && arme.type === 'distance') {
+      if (useCharacterStore.getState().combatSession.tirsCeTour > 0) {
+        if (!depenserPEUsage(1)) return; // PE insuffisant : tir refusé (p.130)
+      }
+      useCharacterStore.setState((s) => ({
+        combatSession: { ...s.combatSession, tirsCeTour: s.combatSession.tirsCeTour + 1 },
+      }));
+    }
     const j = jetComplet(p.nbDes, p.reussitesAuto);
     setJet(j);
     setDegatsTouche(null);
@@ -438,6 +449,50 @@ export default function CombatPage() {
           </button>
         </div>
       </section>
+
+      {/* ─── Tour suivant + Héroïsme (prompt v7 §4, p.96-97) ─────────── */}
+      <section className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => passerAuTourSuivant()}
+          className="min-h-[48px] flex-1 rounded-lg border border-zinc-700 text-xs text-zinc-300 active:bg-zinc-800"
+        >
+          ▶ Tour suivant (tour {tour})
+        </button>
+        <button
+          type="button"
+          onClick={() => utiliserHeroisme('carte-destin')}
+          disabled={character.jauges.heroisme.current < 3}
+          className="min-h-[48px] flex-1 rounded-lg border border-neon-gold/40 text-xs text-neon-gold disabled:opacity-40 active:bg-neon-gold/10"
+        >
+          ★ Carte du destin (3 pts)
+        </button>
+      </section>
+
+      <Accordion titre="Héroïsme — usages" compteur={character.jauges.heroisme.current} sousTitre="1 point chacun (p.96-97)" accent="gold">
+        <div className="space-y-1.5">
+          {(
+            [
+              { usage: 'ignorer-agonie', nom: 'Ignorer une mise à l\u2019agonie', desc: 'Conserve 1 PS exactement' },
+              { usage: 'garder-espoir', nom: 'Garder le dernier espoir', desc: 'Conserve 1 PEs exactement' },
+              { usage: 'relancer-jet', nom: 'Relancer un jet raté', desc: 'Sur l\u2019instant' },
+              { usage: 'degats-maximum', nom: 'Dégâts maximum', desc: 'Arme au max' },
+              { usage: 'combo-supplementaire', nom: 'Combo supplémentaire', desc: 'À déclarer avant le jet' },
+            ] as const
+          ).map((u) => (
+            <button
+              key={u.usage}
+              type="button"
+              disabled={character.jauges.heroisme.current < 1}
+              onClick={() => { const r = utiliserHeroisme(u.usage); if (r.ok) alert(r.effet); else alert(r.raison); }}
+              className="flex min-h-[48px] w-full items-center justify-between rounded-lg border border-zinc-800 bg-zinc-950 px-2.5 text-left text-xs disabled:opacity-40"
+            >
+              <span className="text-zinc-200">{u.nom}</span>
+              <span className="text-[11px] text-zinc-500">{u.desc}</span>
+            </button>
+          ))}
+        </div>
+      </Accordion>
 
       {/* ─── Mode 2 : LE PALADIN ENCAISSE ───────────────────────────── */}
       <section className="rounded-xl border border-red-900/40 bg-zinc-900/70 p-3">
