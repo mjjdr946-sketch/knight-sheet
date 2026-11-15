@@ -16,6 +16,11 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
+      # ⚠️ VÉRIFIÉ EMPIRIQUEMENT : pour cette version de Next, le middleware lit
+      # SHEET_PASSWORD à l'EXÉCUTION (le build ne l'inline pas). Sans cette
+      # variable, le site est ENTIÈREMENT OUVERT (fail-open) — d'où le `:?` qui
+      # fait échouer `docker compose up` si elle manque dans .env.
+      SHEET_PASSWORD: ${SHEET_PASSWORD:?définis SHEET_PASSWORD (>=16 car.) dans .env}
       PORT: 3000
       HOSTNAME: 0.0.0.0
       NEXT_TELEMETRY_DISABLED: 1

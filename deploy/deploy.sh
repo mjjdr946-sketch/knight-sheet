@@ -105,7 +105,12 @@ code="$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: applica
 echo "   /api/login mauvais mot de passe → $code (attendu 401)"
 [[ "$code" == "401" ]] || fail "mot de passe erroné accepté (code $code) — SÉCURITÉ"
 
-# d) bon mot de passe : cookie posé avec les bons attributs
+# d) la variable est bien injectée dans le conteneur (sinon fail-open prouvé)
+docker exec knight-app sh -c '[ -n "$SHEET_PASSWORD" ]' \
+  || fail "SHEET_PASSWORD absente de l'environnement du conteneur — le site serait ouvert"
+echo "   SHEET_PASSWORD présente dans le conteneur (${#PW} car.)"
+
+# e) bon mot de passe : cookie posé avec les bons attributs
 jar="$(mktemp)"
 resp="$(printf '{"password":"%s"}' "$PW" | curl -s -D - -o /dev/null -c "$jar" -X POST \
   -H 'Content-Type: application/json' --data-binary @- "http://127.0.0.1:${PORT}/api/login")"

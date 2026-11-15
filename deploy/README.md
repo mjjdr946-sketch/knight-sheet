@@ -51,19 +51,35 @@ Rollback = redéployer le SHA précédent (les images restent taguées par SHA).
 
 ## Accès protégé (mot de passe, itération 4)
 
-Le site est fermé par un middleware Next.js qui compare au **secret de build**
-`SHEET_PASSWORD` (inliné dans le middleware par Next — ce n'est pas une variable
-runtime : la changer exige un rebuild).
+Le site est fermé par un middleware Next.js qui compare à `SHEET_PASSWORD`.
 
-- Le mot de passe vit **uniquement** dans `/opt/knight/.env` (mode 600). Il n'est
-  jamais passé en `--build-arg` : `deploy.sh` l'écrit dans `.sheet_password`
-  (600, ignoré par git et par le contexte Docker), Compose le monte comme
-  **secret BuildKit**, et le fichier est supprimé à la fin du script.
-  → il n'apparaît ni dans `docker history`, ni dans `docker inspect`, ni dans
-  les labels de l'image.
+> ⚠️ **Correction après vérification sur le VPS** : le brief annonçait une
+> variable de **BUILD**. C'est faux pour cette version de Next — testé avec deux
+> conteneurs issus de la *même* image :
+> - image construite avec le mot de passe, conteneur lancé **sans** variable
+>   → page protégée en **200** : le site est **complètement ouvert** (fail-open) ;
+> - conteneur lancé avec une autre valeur → seule la valeur **runtime** est
+>   acceptée (401 avec celle du build).
+>
+> Conséquence : `SHEET_PASSWORD` est injectée **à l'exécution** par Compose
+> (`${SHEET_PASSWORD:?…}` → `docker compose up` échoue si elle manque). Le secret
+> de build reste en place (défense en profondeur + garde-fou : pas d'image sans
+> secret), mais il n'est pas ce qui protège le site.
+
+- Le mot de passe vit **uniquement** dans `/opt/knight/.env` (mode 600, root).
+  `deploy.sh` l'écrit aussi dans `.sheet_password` (600, ignoré par git et par le
+  contexte Docker) monté comme **secret BuildKit** le temps du build, puis
+  supprimé.
+- Il est donc présent dans la configuration du conteneur (`docker inspect` →
+  `Config.Env`), comme `BIBLIO_TOKEN` pour Biblio : lisible par root sur l'hôte
+  uniquement, jamais dans l'image ni dans le dépôt. C'est le prix d'un secret
+  runtime lu par le middleware.
+- `deploy.sh` vérifie explicitement que la variable est **présente dans le
+  conteneur** (`docker exec knight-app sh -c '[ -n "$SHEET_PASSWORD" ]'`) : c'est
+  le contrôle qui empêche le scénario fail-open.
 - **Fail-closed** : sans `SHEET_PASSWORD` (ou < 16 caractères) `deploy.sh`
-  s'arrête, et le `Dockerfile` échoue si le secret manque. Une image sans mot de
-  passe ne peut pas être produite par erreur.
+  s'arrête, Compose refuse de démarrer (`${SHEET_PASSWORD:?}`), et le build
+  échoue si le secret manque.
 - `deploy.sh` vérifie à chaque déploiement : `/login` → 200, page protégée sans
   cookie → 3xx, mauvais mot de passe → 401, bon mot de passe → cookie
   (`HttpOnly` + `Secure`) puis page protégée → 200, et le même parcours de bout
