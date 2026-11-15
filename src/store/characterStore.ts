@@ -16,7 +16,7 @@ import { appliquerTestEspoir, depenserHeroisme, type ResultatHeroisme, type Usag
 import { parseCoutPE, validerEquipement, validerSlotage } from '../engine/equipement';
 import { personnageExemple } from '../data/character';
 import { MODULES_INTERDITS_PALADIN } from '../data/modules';
-import type { Character, Condition, DerivedStats } from '../types/character';
+import type { ArmorModule, Character, Condition, DerivedStats } from '../types/character';
 
 /** Version du schéma de persistance — à incrémenter à chaque breaking change */
 export const SCHEMA_VERSION = 2;
@@ -89,11 +89,14 @@ interface CharacterStore {
   subirDegats: (input: DamageInput) => DamageResult;
   /** Change le choix d'une valeur dérivée (au choix, changeable entre missions — p.88) */
   setChoixDerive: (cle: 'defense' | 'reaction' | 'initiative' | 'sante', trait: string) => void;
-  /**
-   * Déclare le style de combat (p.87-89) — un seul à la fois, déclaré avant
-   * l'initiative. Remplace la condition de style existante.
-   */
+  /** Déclare le style de combat (p.87-89) — un seul à la fois, déclaré avant l'initiative. */
   declarerStyle: (styleId: string) => void;
+  /** Installe un module du catalogue (Camelot uniquement, p.130) : vérifie les slots */
+  installerModule: (module: ArmorModule) => boolean;
+  /** Désinstalle un module (Camelot uniquement) */
+  desinstallerModule: (id: string) => void;
+  /** Met à jour les champs textuels d'identité (haut fait, blason, serment…) */
+  majIdentite: (maj: Partial<Character['identite']>) => void;
   /** Charge un personnage complet (import futur) */
   remplacerPersonnage: (character: Character) => void;
 }
@@ -380,6 +383,34 @@ export const useCharacterStore = create<CharacterStore>()(
           ...(style.id !== 'standard' ? [styleVersCondition(style)] : []),
         ];
         set(recalcule({ ...character, conditions }));
+      },
+
+      installerModule: (module) => {
+        const { character } = get();
+        // Modules interdits à la Paladin (« Lente et lourde », p.140)
+        if (MODULES_INTERDITS_PALADIN.includes(module.id)) return false;
+        // Slots libres requis sur chaque zone concernée (p.130)
+        for (const [zone, requis] of Object.entries(module.slots)) {
+          const pris = character.modules
+            .filter((m) => m.etat === 'actif')
+            .reduce((total, m) => total + ((m.slots as Record<string, number | undefined>)[zone] ?? 0), 0);
+          const dispo = character.metaArmor.slots[zone as keyof Character['metaArmor']['slots']];
+          if (pris + (requis ?? 0) > dispo) return false;
+        }
+        // pas d'installation en double
+        if (character.modules.some((m) => m.id === module.id)) return false;
+        set(recalcule({ ...character, modules: [...character.modules, { ...module, etat: 'inactif' }] }));
+        return true;
+      },
+
+      desinstallerModule: (id) => {
+        const { character } = get();
+        set(recalcule({ ...character, modules: character.modules.filter((m) => m.id !== id) }));
+      },
+
+      majIdentite: (maj) => {
+        const { character } = get();
+        set(recalcule({ ...character, identite: { ...character.identite, ...maj } }));
       },
 
       remplacerPersonnage: (character) => set(recalcule(character)),
