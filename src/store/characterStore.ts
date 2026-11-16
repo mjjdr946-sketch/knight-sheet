@@ -53,6 +53,13 @@ export const THEME_PAR_MODELE: Record<string, string> = {
   paladin: 'paladin',
 };
 
+/** Pose data-theme sur <html> (DOCUMENT 3 règle 4 — le store est la source).
+ * Guard SSR : pas de DOM côté serveur. */
+export function poserTheme(modele: string): void {
+  if (typeof document === 'undefined') return;
+  document.documentElement.setAttribute('data-theme', THEME_PAR_MODELE[modele] ?? 'guerrier');
+}
+
 /** Couleur d'accent fixe par classe — pour l'accueil « Mes chevaliers »
  * (chaque carte porte la couleur d'accent de SA classe, DOCUMENT 3 règle 5). */
 export const ACCENT_PAR_MODELE: Record<string, string> = {
@@ -302,6 +309,7 @@ export const useCharacterStore = create<CharacterStore>()(
         if (!cible) return;
         // sauvegarde de l'active au passage
         set(recalcule(cible));
+        poserTheme(cible.metaArmor.modele);
         useCharacterStore.setState({
           actifId: id,
           autresFiches: { ...autresFiches, [actifId]: character },
@@ -315,6 +323,7 @@ export const useCharacterStore = create<CharacterStore>()(
         // Le changement de méta-armure est rare et soumis au MJ (p.129) ;
         // les modules installés restent (leurs slots sont revérifiés à l'activation).
         set(recalcule({ ...character, metaArmor: structuredClone(nouvelle) }));
+        poserTheme(nouvelle.modele);
       },
 
       adversaire: null,
@@ -736,7 +745,10 @@ export const useCharacterStore = create<CharacterStore>()(
         set(recalcule({ ...character, identite: { ...character.identite, ...maj } }));
       },
 
-      remplacerPersonnage: (character) => set(recalcule(character)),
+      remplacerPersonnage: (character) => {
+        set(recalcule(character));
+        poserTheme(character.metaArmor.modele);
+      },
     }),
     {
       name: STORAGE_KEY,
