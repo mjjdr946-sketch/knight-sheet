@@ -5,7 +5,9 @@
 > chaque entrée pointe le fichier, la règle du digest manquante ou ambiguë,
 > et la page du livre quand elle est connue.
 >
-> État après **itération 5** (prompt v7 : adversaires, environnement,
+> État après **itération 6** (prompt v8 : thèmes DOCUMENT 3, accueil,
+> wizard 10 étapes + scellement, onglet Dés, Feuille regroupée, XP,
+> capacités Priest/Barbarian, gyroscope) — détails ci-dessous. Précédent : itération 5 (prompt v7 : adversaires, environnement,
 > véhicules, automatisations combat). Hors scope reporté : PNJ
 > (bandes/salopards/colosses), tracker d'initiative, dégâts
 > environnementaux, véhicules.
@@ -148,6 +150,12 @@
   (+3 initiative/niveau), OD Hargne niv 3 (combat la mort à 0 PS), OD Force
   (+3 dégâts/niveau). Restent MJ/à câbler : Savoir niv 3 (soins +1D6),
   Technique, Discrétion, Dextérité, Parole (effets de jets).
+- 🔶 **Capacités non automatisées** (PARTIE 6) : Warrior types, Warlord
+  impulsions, Falcon, Ghost, Longbow/Vision, Changeling, Borealis/Oriflamme —
+  données complètes (texte + coûts PE pp.141-170) mais pas de `Modifier`
+  automatique. Priest nanoC/Mechanic (store `reparerPA`) et Barbarian Goliath
+  (`activerGoliath`, défense/réaction/CdF automatiques) sont automatisées.
+
 - 🔶 **Niveaux de modules (achat progressif)** — `monterNiveauModule`
   modélise la progression 1→2→3 (niveaux précédents requis, p.428) ;
   les `Modifier` dédiés par palier de module restent à câbler au cas par
@@ -158,3 +166,23 @@
 Modifier des paliers de modules, effets d'OD restants, ambiance/son.
 Édition 5 (prompt v7) : adversaires, environnement, véhicules, automatisations
 — tous fermés sauf mentions 🔶 ci-dessus.*
+
+## Itération 6 (v8) — nouveau journal
+
+- ✅ DOCUMENT 3 intégré telles quelles (globals.css = knight-themes.css) :
+  9 thèmes `data-theme`, tokens sémantiques de jauges, border alpha, glow,
+  script anti-flash avant hydration (layout.tsx).
+- ✅ Accueil « Mes chevaliers » coloré par armure (ACCENT_PAR_MODELE) ;
+  header affiche nom + armure du perso actif.
+- ✅ Wizard de création 10 étapes (p.109-174) : copie de travail, archétypes
+  17, 22 lames, 14 hauts faits, 10 blasons, motivations, 9 méta-armures,
+  5 sections, dérivées au choix ; mode boosté (+25 PG option MJ) et
+  SCELLEMENT 🔒 (fiche en lecture seule d'édition).
+- ✅ Onglet 🎲 Dés : jets de combo génériques (base+combo+OD, p.76-78),
+  difficulté, exploit/échec critique, favoris, historique.
+- ✅ Onglet 📜 Feuille : Attributs + Méta-armure + Identité en accordéons.
+- ✅ XP : journal des points, détection des paliers 150/200/250 (notification
+  réclamation d'évolution), widget PG sur la Feuille.
+- ✅ Gyroscope : secouer pour lancer les dés (permission iOS gérée).
+- 🔶 Étape 10 du wizard simplifiée : pas d'achat d'arsenal intégré (60 PG à
+  dépenser dans Matériel après création).

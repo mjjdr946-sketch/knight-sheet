@@ -236,6 +236,11 @@ interface CharacterStore {
   majIdentite: (maj: Partial<Character['identite']>) => void;
   /** Charge un personnage complet (import futur) */
   remplacerPersonnage: (character: Character) => void;
+  sceller: () => void;
+  deverrouiller: () => void;
+  ajouterXP: (points: number, note?: string) => number[];
+  reparerPA: (auContact: boolean, de?: () => number) => { ok: boolean; message: string };
+  activerGoliath: (metres: number) => { ok: boolean; message: string };
 }
 
 /**
@@ -743,6 +748,68 @@ export const useCharacterStore = create<CharacterStore>()(
       majIdentite: (maj) => {
         const { character } = get();
         set(recalcule({ ...character, identite: { ...character.identite, ...maj } }));
+      },
+
+      /** SCELLEMENT (prompt v8) : passe la fiche en lecture seule d'édition */
+      sceller: () => {
+        set(recalcule({ ...get().character, scelle: true }));
+      },
+      deverrouiller: () => {
+        set(recalcule({ ...get().character, scelle: false }));
+      },
+      /** XP (prompt v8) : gloire += points, journal, détection des paliers 150/200/250 */
+      ajouterXP: (points, note = '') => {
+        const character = get().character;
+        const gloireAvant = character.gloire;
+        const gloire = gloireAvant + points;
+        const paliers = [150, 200, 250].filter((seuil) => gloireAvant < seuil && gloire >= seuil);
+        useCharacterStore.setState((s) => ({
+          character: {
+            ...s.character,
+            gloire,
+            xpJournal: [
+              ...(s.character.xpJournal ?? []),
+              { quand: new Date().toISOString(), points, note, paliers },
+            ],
+          },
+          derived: computeDerived({ ...s.character, gloire }),
+        }));
+        return paliers;
+      },
+      /** Priest — Mode Mechanic (p.144) : restaure 3D6+6 (contact) ou 2D6+6 (distance) PA, coût 4/6 PE */
+      reparerPA: (auContact: boolean, de: () => number = Math.random) => {
+        const jauge = get().character.jauges.pe;
+        const cout = auContact ? 4 : 6;
+        if (jauge.current < cout) return { ok: false, message: `Pas assez d'énergie (${cout} PE requis, p.144)` };
+        const dice = auContact ? 3 : 2;
+        const pa = Array.from({ length: dice }, () => 1 + Math.floor(de() * 6)).reduce((a, b) => a + b, 0) + 6;
+        useCharacterStore.setState((s) => ({
+          character: {
+            ...s.character,
+            jauges: {
+              ...s.character.jauges,
+              pe: { ...s.character.jauges.pe, current: s.character.jauges.pe.current - cout },
+              pa: { ...s.character.jauges.pa, current: Math.min(s.character.metaArmor.paTotal, s.character.jauges.pa.current + pa) },
+            },
+          },
+        }));
+        return { ok: true, message: `+${pa} PA restaurés (−${cout} PE, p.144)` };
+      },
+      /** Barbarian — Mode Goliath (p.168) : mètres gagnés, 2 PE/mètre */
+      activerGoliath: (metres: number) => {
+        const m = Math.max(0, Math.min(6, metres));
+        const cout = m * 2;
+        const jauge = get().character.jauges.pe;
+        if (m > 0 && jauge.current < cout) return { ok: false, message: `Pas assez d'énergie (${cout} PE pour ${m} m, p.168)` };
+        useCharacterStore.setState((s) => ({
+          character: {
+            ...s.character,
+            goliathMetres: m,
+            jauges: m > 0 ? { ...s.character.jauges, pe: { ...s.character.jauges.pe, current: s.character.jauges.pe.current - cout } } : s.character.jauges,
+          },
+          derived: computeDerived({ ...s.character, goliathMetres: m }),
+        }));
+        return { ok: true, message: m > 0 ? `Goliath ${m} m (−${cout} PE) — +${m} CdF, défense −${m}, réaction −${m * 2}, +${m}D6 contact` : 'Goliath désactivé' };
       },
 
       remplacerPersonnage: (character) => {

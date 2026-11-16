@@ -266,6 +266,15 @@ export interface Character {
     serment?: string;
     motivations: Motivation[];
   };
+  /** Fiche scellée : en lecture seule d'édition (jauges restent jouables) */
+  scelle?: boolean;
+  /** Drafts de création (assistant) */
+  archetypeId?: string;
+  sectionId?: string;
+  /** Barbarian mode Goliath : mètres gagnés (0 = inactif, max 6/8/10 selon évolution) */
+  goliathMetres?: number;
+  /** Journal des XP — paliers franchis = réclamations d'évolutions (prompt v8) */
+  xpJournal?: { quand: string; points: number; note: string; paliers: number[] }[];
   /** Jauges — score actuel uniquement ; le max vient du moteur */
   jauges: {
     ps: Gauge;
@@ -306,4 +315,6 @@ export interface DerivedStats {
   malusDesespoir: number;
   /** PS perdus par tranche de 5 PA encaissés — recalculé au moment des dégâts */
   etatAgonie: boolean;
+  /** Goliath actif : CdF bonus par mètre gagné (p.168) */
+  cdfGoliath: number;
 }

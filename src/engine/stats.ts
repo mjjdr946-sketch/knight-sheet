@@ -276,11 +276,12 @@ export function computeDerived(character: Character): DerivedStats {
     pe: { current: Math.min(character.jauges.pe.current, peMax), max: peMax },
     cdf,
     pes: { current: Math.min(character.jauges.pes.current, pesMax), max: pesMax },
-    defense: computeDefense(character),
-    reaction: computeReaction(character),
+    defense: Math.max(0, computeDefense(character) - (character.goliathMetres ?? 0)), // Goliath p.168 : −1 défense/m (figée à évolution 200 — RÈGLES: à compléter)
+    reaction: Math.max(0, computeReaction(character) - (character.goliathMetres ?? 0) * 2), // Goliath p.168 : −2 réaction/m
     initiative: computeInitiative(character),
     contacts: computeContacts(character),
     malusDesespoir: computeMalusDesespoir(character.jauges.pes.current),
     etatAgonie: character.jauges.ps.current <= 0, // règle p.90 : à 0 PS, agonie
+    cdfGoliath: (character.goliathMetres ?? 0), // Goliath p.168 : +1 CdF par mètre (utilisé par le simulateur)
   };
 }
