@@ -1,29 +1,185 @@
+/* ============================================================
+   KNIGHT SHEET — Thèmes d'armure (9 classes) + tokens sémantiques
+   v2 — intègre les corrections validées par NunnuN (2026-11-15) :
+   • Wizard ajouté (9e classe)                      • contraste Barbare réparé
+   • glow = teinte primaire +8-15% de lumière       • Voleur identité argent/acier
+   • Rôdeur : secondary plus lumineux               • tokens de jauges SÉMANTIQUES fixes
+   • --bg-elevated pour drawers/modals              • color-scheme + transitions de thème
+   Mapping ClassId (store) → data-theme :
+     Warrior→guerrier · Warmaster→maitre-de-guerre · Rogue→voleur · Ranger→rodeur
+     Bard→barde · Wizard→sorcier · Barbarian→barbare · Priest→pretre · Paladin→paladin
+   ============================================================ */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Base mobile-first — fond sombre, texte neutre clair (pas de teinte verte) */
-:root {
-  color-scheme: dark;
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  /* ---------- Tokens sémantiques IDENTIQUES pour toutes les armures ----------
+     Règle UX : l'armure colore l'ACCENT (bordures, titres, glow, actifs),
+     mais une jauge garde TOUJOURS la même couleur quelque soit la classe.
+     Le joueur apprend une fois : rouge=santé, acier=armure, cyan=énergie,
+     or=espoir, blanc=héroïsme. */
+
+  :root, :root[data-theme="guerrier"], [data-theme="paladin"], [data-theme="pretre"],
+  [data-theme="rodeur"], [data-theme="barbare"], [data-theme="barde"],
+  [data-theme="maitre-de-guerre"], [data-theme="voleur"], [data-theme="sorcier"] {
+    --gauge-ps: 0 85% 58%;          /* Points de Santé — rouge vie */
+    --gauge-ps-low: 0 95% 45%;      /* PS ≤ 25% : rouge alarme + pulse */
+    --gauge-pa: 210 15% 65%;        /* Points d'Armure — acier */
+    --gauge-pe: 185 90% 50%;        /* Points d'Énergie — cyan énergétique */
+    --gauge-espoir: 45 95% 58%;     /* Espoir — or */
+    --gauge-heroisme: 0 0% 98%;     /* Héroïsme — blanc éclatant */
+    --danger: 0 85% 55%;            /* malus, échec, agonie */
+    --success: 145 70% 50%;         /* bonus, réussite, TOUCHE */
+    --warning: 35 95% 55%;          /* alerte (PE bas, modules endommagés) */
+  }
+
+  /* ---------- Thème par défaut — WARRIOR : Rouge & Acier ---------- */
+  :root, :root[data-theme="guerrier"] {
+    --bg-main: 240 10% 4%;
+    --bg-surface: 240 10% 9%;
+    --bg-elevated: 240 10% 13%;
+    --primary: 0 84% 58%;
+    --primary-glow: 0 95% 66%;
+    --secondary: 210 15% 60%;       /* acier */
+    --text-main: 0 0% 95%;
+    --text-muted: 240 5% 62%;
+    --border-color: 0 84% 58%;
+  }
+
+  /* ---------- PALADIN : Or, Blanc & Bleu Sacré ---------- */
+  :root[data-theme="paladin"] {
+    --bg-main: 220 25% 4%;
+    --bg-surface: 220 25% 9%;
+    --bg-elevated: 220 25% 14%;
+    --primary: 45 93% 50%;
+    --primary-glow: 45 100% 62%;
+    --secondary: 210 100% 62%;
+    --text-main: 0 0% 100%;
+    --text-muted: 210 20% 72%;
+    --border-color: 45 93% 50%;
+  }
+
+  /* ---------- PRIEST : Soins, Bleu Céruléen & Blanc ---------- */
+  :root[data-theme="pretre"] {
+    --bg-main: 210 30% 5%;
+    --bg-surface: 210 30% 9%;
+    --bg-elevated: 210 30% 14%;
+    --primary: 190 95% 52%;
+    --primary-glow: 190 100% 64%;
+    --secondary: 210 100% 80%;
+    --text-main: 0 0% 100%;
+    --text-muted: 210 20% 75%;
+    --border-color: 190 95% 52%;
+  }
+
+  /* ---------- RANGER (Rôdeur) : Vert Néon & Noir Furtif ---------- */
+  :root[data-theme="rodeur"] {
+    --bg-main: 150 15% 4%;
+    --bg-surface: 150 15% 8%;
+    --bg-elevated: 150 15% 13%;
+    --primary: 142 75% 48%;
+    --primary-glow: 142 90% 58%;
+    --secondary: 160 45% 45%;       /* remonté : lisible en texte secondaire */
+    --text-main: 150 10% 92%;
+    --text-muted: 150 5% 62%;
+    --border-color: 142 75% 48%;
+  }
+
+  /* ---------- BARD (Barde) : Hologrammes, Magenta & Cyan ---------- */
+  :root[data-theme="barde"] {
+    --bg-main: 280 20% 4%;
+    --bg-surface: 280 20% 8%;
+    --bg-elevated: 280 20% 13%;
+    --primary: 295 95% 58%;
+    --primary-glow: 295 100% 68%;
+    --secondary: 190 100% 55%;
+    --text-main: 280 10% 96%;
+    --text-muted: 280 10% 68%;
+    --border-color: 295 95% 58%;
+  }
+
+  /* ---------- BARBARIAN (Barbare) : Rouge Sang & Charbon ----------
+     Contraste réparé : primary remonté à 50% L, glow incandescent à 62%. */
+  :root[data-theme="barbare"] {
+    --bg-main: 0 15% 4%;
+    --bg-surface: 0 15% 8%;
+    --bg-elevated: 0 15% 13%;
+    --primary: 0 85% 50%;
+    --primary-glow: 0 100% 62%;
+    --secondary: 0 0% 45%;          /* charbon plus visible que 25% */
+    --text-main: 0 10% 92%;
+    --text-muted: 0 10% 58%;
+    --border-color: 0 85% 50%;
+  }
+
+  /* ---------- WARMASTER (Maître de Guerre) : Ambre & Cuivre ---------- */
+  :root[data-theme="maitre-de-guerre"] {
+    --bg-main: 30 15% 4%;
+    --bg-surface: 30 15% 8%;
+    --bg-elevated: 30 15% 13%;
+    --primary: 35 100% 52%;
+    --primary-glow: 35 100% 60%;
+    --secondary: 25 85% 48%;        /* cuivre remonté */
+    --text-main: 40 10% 96%;
+    --text-muted: 30 10% 64%;
+    --border-color: 35 100% 52%;
+  }
+
+  /* ---------- ROGUE (Voleur) : Ombre, Bleu Nuit & Argent ----------
+     Identité renforcée : bleu nuit + acier argenté (fini le quasi-monochrome). */
+  :root[data-theme="voleur"] {
+    --bg-main: 230 18% 3%;
+    --bg-surface: 230 18% 7%;
+    --bg-elevated: 230 18% 12%;
+    --primary: 225 70% 62%;
+    --primary-glow: 225 85% 72%;
+    --secondary: 218 12% 68%;       /* argent */
+    --text-main: 230 10% 88%;
+    --text-muted: 230 10% 56%;
+    --border-color: 225 70% 62%;
+  }
+
+  /* ---------- WIZARD (Sorcier) : Indigo Arcanique & Or ---------- */
+  :root[data-theme="sorcier"] {
+    --bg-main: 260 25% 4%;
+    --bg-surface: 260 22% 9%;
+    --bg-elevated: 260 22% 14%;
+    --primary: 265 85% 60%;
+    --primary-glow: 265 90% 68%;
+    --secondary: 45 90% 60%;        /* or arcanique */
+    --text-main: 260 10% 95%;
+    --text-muted: 260 8% 64%;
+    --border-color: 265 85% 60%;
+  }
+
+  /* ---------- Application globale ---------- */
+  body {
+    background-color: hsl(var(--bg-main));
+    color: hsl(var(--text-main));
+    transition: background-color 0.4s ease, color 0.4s ease;
+  }
+
+  /* Le glow suit toujours le thème actif — appliqué via la classe .glow-accent
+     sur les éléments actifs (jamais sur le texte courant : lisibilité). */
+  .glow-accent {
+    box-shadow: 0 0 10px hsl(var(--primary-glow) / 0.5),
+                0 0 20px hsl(var(--primary-glow) / 0.2);
+  }
 }
 
-html,
-body {
-  @apply h-full bg-zinc-950 text-zinc-100 antialiased;
-  overscroll-behavior-y: none;
-}
-
-/* Police display pour les titres (system, pas de dépendance réseau) */
+/* ---------- Utilitaires maison (conservés de l'itération 1) ---------- */
 .font-display {
   font-family: 'Segoe UI', 'Inter', system-ui, sans-serif;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
-
-/* Zone de sûreté iOS (thumb zone / encoches) */
-.safe-bottom {
-  padding-bottom: max(0.25rem, env(safe-area-inset-bottom));
-}
-.safe-top {
-  padding-top: max(0.25rem, env(safe-area-inset-top));
-}
+.safe-bottom { padding-bottom: max(0.25rem, env(safe-area-inset-bottom)); }
+.safe-top { padding-top: max(0.25rem, env(safe-area-inset-top)); }
+html, body { height: 100%; }
+body { overscroll-behavior-y: none; }

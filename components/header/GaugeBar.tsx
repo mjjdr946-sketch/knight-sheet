@@ -13,41 +13,44 @@ export default function GaugeBar() {
   const ajusterJauge = useCharacterStore((s) => s.ajusterJauge);
 
   return (
-    <header className="safe-top sticky top-0 z-40 border-b border-zinc-800 bg-zinc-950/95 backdrop-blur">
+    <header className="safe-top sticky top-0 z-40 border-b border bg-zinc-950/95 backdrop-blur">
+      <p className="text-center text-[11px] uppercase tracking-widest text-zinc-500">
+        {character.nom} · {character.metaArmor.modele}
+      </p>
       <div className="mx-auto flex max-w-md items-stretch gap-1.5 overflow-x-auto px-2 py-2">
         <Gauge
           nom="PS"
           current={character.jauges.ps.current}
           max={derived.ps.max}
-          accent="cyan"
+          jauge="ps"
           onDelta={(d) => ajusterJauge('ps', d)}
         />
         <Gauge
           nom="PA"
           current={character.jauges.pa.current}
           max={derived.pa.max}
-          accent="cyan"
+          jauge="pa"
           onDelta={(d) => ajusterJauge('pa', d)}
         />
         <Gauge
           nom="PE"
           current={character.jauges.pe.current}
           max={derived.pe.max}
-          accent="cyan"
+          jauge="pe"
           onDelta={(d) => ajusterJauge('pe', d)}
         />
         <Gauge
           nom="Espoir"
           current={character.jauges.pes.current}
           max={derived.pes.max}
-          accent="gold"
+          jauge="espoir"
           onDelta={(d) => ajusterJauge('pes', d)}
         />
         <Gauge
           nom="Héroïsme"
           current={character.jauges.heroisme.current}
           max={6}
-          accent="gold"
+          jauge="heroisme"
           onDelta={(d) => ajusterJauge('heroisme', d)}
         />
       </div>

@@ -13,31 +13,56 @@ export interface GaugeProps {
   current: number;
   /** Maximum calculé par le moteur */
   max: number;
-  /** Couleur néon : cyan (primaire) ou doré (secondaire, Paladin) */
-  accent: 'cyan' | 'gold';
+  /**
+   * Jauge SÉMANTIQUE (DOCUMENT 3 règle 1) : couleur FIXE sur toutes les
+   * classes — PS rouge, PA acier, PE cyan, Espoir or, Héroïsme blanc.
+   * L'armure colore l'ACCENT, jamais les jauges.
+   */
+  jauge: 'ps' | 'pa' | 'pe' | 'espoir' | 'heroisme';
   /** Callback +/− — le store applique et recalcule */
   onDelta: (delta: number) => void;
 }
 
-const accentClasses = {
-  cyan: {
-    text: 'text-neon-cyan',
-    border: 'border-neon-cyan/40',
-    bar: 'bg-neon-cyan',
+const jaugeClasses = {
+  ps: {
+    text: 'text-gauge-ps',
+    border: 'border-gauge-ps/40',
+    bar: 'bg-gauge-ps',
     glow: 'shadow-glow-cyan',
-    flash: 'bg-neon-cyan/25',
+    flash: 'bg-gauge-ps/25',
   },
-  gold: {
-    text: 'text-neon-gold',
-    border: 'border-neon-gold/40',
-    bar: 'bg-neon-gold',
-    glow: 'shadow-glow-gold',
-    flash: 'bg-neon-gold/25',
+  pa: {
+    text: 'text-gauge-pa',
+    border: 'border-gauge-pa/40',
+    bar: 'bg-gauge-pa',
+    glow: '',
+    flash: 'bg-gauge-pa/25',
+  },
+  pe: {
+    text: 'text-gauge-pe',
+    border: 'border-gauge-pe/40',
+    bar: 'bg-gauge-pe',
+    glow: '',
+    flash: 'bg-gauge-pe/25',
+  },
+  espoir: {
+    text: 'text-gauge-espoir',
+    border: 'border-gauge-espoir/40',
+    bar: 'bg-gauge-espoir',
+    glow: '',
+    flash: 'bg-gauge-espoir/25',
+  },
+  heroisme: {
+    text: 'text-gauge-heroisme',
+    border: 'border-gauge-heroisme/40',
+    bar: 'bg-gauge-heroisme',
+    glow: '',
+    flash: 'bg-gauge-heroisme/25',
   },
 } as const;
 
-export default function Gauge({ nom, current, max, accent, onDelta }: GaugeProps) {
-  const a = accentClasses[accent];
+export default function Gauge({ nom, current, max, jauge, onDelta }: GaugeProps) {
+  const a = jaugeClasses[jauge];
   const [flash, setFlash] = useState(0);
 
   // Compteur à ressort (Framer Motion, sobre)

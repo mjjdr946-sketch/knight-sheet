@@ -37,6 +37,41 @@ const SLOTS_INITIAUX: SlotsPersonnages = {
   fiches: { principal: personnageExemple },
 };
 
+/**
+ * Table centralisée modèle de méta-armure → data-theme (DOCUMENT 3, règle 4).
+ * Une seule source de vérité — utilisée par le script anti-flash et le layout.
+ */
+export const THEME_PAR_MODELE: Record<string, string> = {
+  warrior: 'guerrier',
+  warmaster: 'maitre-de-guerre',
+  rogue: 'voleur',
+  ranger: 'rodeur',
+  bard: 'barde',
+  wizard: 'sorcier',
+  barbarian: 'barbare',
+  priest: 'pretre',
+  paladin: 'paladin',
+};
+
+/** Couleur d'accent fixe par classe — pour l'accueil « Mes chevaliers »
+ * (chaque carte porte la couleur d'accent de SA classe, DOCUMENT 3 règle 5). */
+export const ACCENT_PAR_MODELE: Record<string, string> = {
+  warrior: 'hsl(0 84% 58%)',          // Rouge & Acier
+  paladin: 'hsl(45 93% 50%)',         // Or, Blanc & Bleu Sacré
+  priest: 'hsl(190 95% 52%)',         // Bleu Céruléen
+  ranger: 'hsl(142 75% 48%)',         // Vert Néon
+  bard: 'hsl(295 95% 58%)',           // Magenta & Cyan
+  barbarian: 'hsl(0 85% 50%)',        // Rouge Sang
+  warmaster: 'hsl(35 100% 52%)',      // Ambre & Cuivre
+  rogue: 'hsl(225 70% 62%)',          // Bleu Nuit & Argent
+  wizard: 'hsl(265 85% 60%)',         // Indigo Arcanique
+};
+
+/** data-theme d'une fiche (avec repli Warrior = thème par défaut) */
+export function themeDeFiche(fiche: Character): string {
+  return THEME_PAR_MODELE[fiche.metaArmor.modele] ?? 'guerrier';
+}
+
 /** Entrée de l'historique des jets de la phase (prompt v5 livrable 5) */
 export interface JetLog {
   id: number;

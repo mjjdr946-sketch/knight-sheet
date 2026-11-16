@@ -1,5 +1,16 @@
 import type { Config } from 'tailwindcss';
 
+/**
+ * Config — DOCUMENT 3 (prompt v8) :
+ * - border DEFAULT = hsl(var(--border-color) / <alpha-value>) — l'alpha est
+ *   appliqué dans les composants (ex. border/40).
+ * - Tokens sémantiques de jauges (identiques pour toutes les classes) +
+ *   danger/success/warning (ne jamais dériver de --primary).
+ * - Les anciennes classes neon-cyan/neon-gold deviennent des ACCENTS THÉMATIQUES :
+ *   cyan → --primary, gold → --secondary. Tout l'existant suit le thème actif.
+ * - Glow = teinte primaire (règle 2 : jamais sur le texte courant, via
+ *   .glow-accent ou shadow-glow-* sur les éléments interactifs actifs).
+ */
 const config: Config = {
   content: ['./app/**/*.{ts,tsx}', './components/**/*.{ts,tsx}'],
   theme: {
@@ -16,16 +27,30 @@ const config: Config = {
         '3xl': ['2.25rem', { lineHeight: '1.2' }],
       },
       colors: {
-        // Identité visuelle : fond sombre, néon cyan primaire + doré (Paladin)
+        // Accents thématiques (suitent data-theme sur <html>)
         neon: {
-          cyan: '#22d3ee',
-          gold: '#fbbf24',
+          cyan: 'hsl(var(--primary) / <alpha-value>)',
+          gold: 'hsl(var(--secondary) / <alpha-value>)',
         },
+        // Jauges SÉMANTIQUES — fixes sur toutes les classes (règle 1)
+        gauge: {
+          ps: 'hsl(var(--gauge-ps) / <alpha-value>)',
+          pa: 'hsl(var(--gauge-pa) / <alpha-value>)',
+          pe: 'hsl(var(--gauge-pe) / <alpha-value>)',
+          espoir: 'hsl(var(--gauge-espoir) / <alpha-value>)',
+          heroisme: 'hsl(var(--gauge-heroisme) / <alpha-value>)',
+        },
+        danger: 'hsl(var(--danger) / <alpha-value>)',
+        success: 'hsl(var(--success) / <alpha-value>)',
+        warning: 'hsl(var(--warning) / <alpha-value>)',
+      },
+      borderColor: {
+        DEFAULT: 'hsl(var(--border-color) / <alpha-value>)',
       },
       boxShadow: {
-        // Glow discret sur l'élément actif
-        'glow-cyan': '0 0 8px 1px rgba(34, 211, 238, 0.45)',
-        'glow-gold': '0 0 8px 1px rgba(251, 191, 36, 0.45)',
+        // Glow suit le thème actif (teinte primaire +8-15 % de lumière)
+        'glow-cyan': '0 0 10px hsl(var(--primary-glow) / 0.5), 0 0 20px hsl(var(--primary-glow) / 0.2)',
+        'glow-gold': '0 0 10px hsl(var(--primary-glow) / 0.35), 0 0 20px hsl(var(--primary-glow) / 0.15)',
       },
     },
   },

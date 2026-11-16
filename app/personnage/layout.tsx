@@ -9,7 +9,7 @@
 import { useEffect, useState } from 'react';
 import GaugeBar from '../../components/header/GaugeBar';
 import TabBar from '../../components/navigation/TabBar';
-import { useCharacterStore } from '@/store/characterStore';
+import { useCharacterStore, themeDeFiche } from '@/store/characterStore';
 import { computeDerived } from '@/engine/stats';
 
 export default function PersonnageLayout({ children }: { children: React.ReactNode }) {
@@ -19,8 +19,10 @@ export default function PersonnageLayout({ children }: { children: React.ReactNo
   useEffect(() => {
     // Reprise du persist : recalcul des dérivées à partir du personnage restauré
     useCharacterStore.persist.rehydrate();
-    const character = useCharacterStore.getState().character;
-    useCharacterStore.setState({ derived: computeDerived(character) });
+    const state = useCharacterStore.getState();
+    useCharacterStore.setState({ derived: computeDerived(state.character) });
+    // DOCUMENT 3 règle 4 : data-theme suit la classe du personnage actif
+    document.documentElement.setAttribute('data-theme', themeDeFiche(state.character));
     setHydrate(true);
   }, [remplacerPersonnage]);
 
