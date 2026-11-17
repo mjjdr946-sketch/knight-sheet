@@ -186,3 +186,32 @@ Modifier des paliers de modules, effets d'OD restants, ambiance/son.
 - ✅ Gyroscope : secouer pour lancer les dés (permission iOS gérée).
 - 🔶 Étape 10 du wizard simplifiée : pas d'achat d'arsenal intégré (60 PG à
   dépenser dans Matériel après création).
+
+## Itération 7 (v9) — consolidation & fiabilité
+
+- 🔴 **Bug 1 corrigé** : le wizard part d'une fiche NEUVE (`ajouterFiche`) —
+  la fiche active n'est jamais écrasée ; validation = jauges courant==max,
+  `xpJournal` initialisé, scellement 🔒, retour accueil. Test non-régression.
+- 🔴 **Bug 2 corrigé** : scellement RÉEL — `editionBloquee()` bloque
+  l'édition de feuille (armure, modules, slots, identité, dérivées, implants)
+  ; jauges de jeu, combat et jets restent actifs ; badge 🔒 dans le header,
+  bouton « Déverrouiller » avec confirmation sur la Feuille. Tests store.
+- 🔴 **Bug 3 corrigé** : le bouton « Créer » de l'accueil pointe vers le
+  wizard ; textes obsolètes supprimés.
+- 🔴 **Bug 4 corrigé** : INVARIANT « l'active n'est jamais dans autresFiches »
+  (chargerFiche retire la cible du map) ; supprimerFiche choisit une clé ≠ id
+  ; état « aucune fiche » propre (actifId null, fiche vierge, pas de crash).
+- 🟠 **Bug 5 corrigé** : akimbo détecte la jumelle par NOM de catalogue
+  (2 instances distinctes du même modèle cumulent les dés, p.87-88).
+- 🟠 **Bug 6 corrigé** : historique en mode MJ affiche « ??? vs ??? »
+  (JetLog.masque posé à la journalisation).
+- 🟠 **Bug 7 corrigé** : cookie = token signé HMAC-SHA256 (lib/session.ts,
+  secret dérivé du mot de passe) — le mot de passe n'est plus dans le cookie ;
+  rotation → sessions invalidées. Tests dédiés.
+- ✅ **Règle tranchée figée** : le CdF ne se consomme pas (p.131-133,
+  FAQ p.449-464) — comportement inchangé, couvert par les tests existants.
+- ✅ **Header sticky mobile** : layout h-dvh + main scroll interne,
+  GaugeBar shrink-0 ; **desktop (≥1024px)** : dérivées (Défense/Réaction/
+  Initiative/Contacts/CdF) affichées dans le header sans accordéon.
+- ✅ **Test d'intégration du parcours complet** : créer → jouer → sceller →
+  déverrouiller → dupliquer → supprimer (parcours.test.ts).

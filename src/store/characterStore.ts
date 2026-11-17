@@ -26,8 +26,8 @@ export const SCHEMA_VERSION = 4;
 
 /** Slots de personnages (prompt v6 §2) : plusieurs fiches sauvegardées */
 export interface SlotsPersonnages {
-  /** id de la fiche active */
-  actif: string;
+  /** id de la fiche active — null = aucune fiche (it. 7) */
+  actif: string | null;
   /** fiches par id */
   fiches: Record<string, Character>;
 }
@@ -36,6 +36,20 @@ const SLOTS_INITIAUX: SlotsPersonnages = {
   actif: 'principal',
   fiches: { principal: personnageExemple },
 };
+
+/**
+ * CORRECTIF it. 7 (bug 2 🔴) : la fiche scellée est en LECTURE SEULE d'édition.
+ * Retourne true (et bloque) si l'action d'édition est interdite. Les jauges de
+ * jeu (PS/PE/Espoir/Héroïsme), le combat et les jets RESTENT actifs.
+ */
+function editionBloquee(s: { character: Character }): boolean {
+  return s.character.scelle === true;
+}
+
+/** Fiche vierge pour l'état « aucune fiche » (it. 7, bug 4) — ne crash jamais l'UI */
+function ficheVierge(): Character {
+  return { ...structuredClone(personnageExemple), id: 'aucune', nom: '—', scelle: true };
+}
 
 /**
  * Table centralisée modèle de méta-armure → data-theme (DOCUMENT 3, règle 4).
@@ -96,6 +110,9 @@ export interface JetLog {
   degats?: number;
   /** jet libre (sans opposition — prompt v6 §1) */
   libre?: boolean;
+  /** CORRECTIF it. 7 (bug 6) : jet contre adversaire en mode MJ — total et seuil
+   * masqués dans l'historique (le MJ ne révèle pas défense/réaction, p.86) */
+  masque?: boolean;
 }
 
 /** État de session de combat — persisté avec le personnage */
@@ -124,12 +141,14 @@ interface CharacterStore {
   character: Character;
   /** Stats dérivées recalculées à chaque mutation (jamais calculées côté UI) */
   derived: DerivedStats;
-  /** id de la fiche active (prompt v6 §2 : slots de personnages) */
-  actifId: string;
+  /** id de la fiche active (prompt v6 §2) — null = état « aucune fiche » (it. 7) */
+  actifId: string | null;
   /** Fiches NON actives (l'active vit dans `character`) */
   autresFiches: Record<string, Character>;
   /** Crée une nouvelle fiche (à partir du modèle d'exemple) */
   creerFiche: (nom: string) => string;
+  /** Ajoute une fiche FINIE (wizard it. 6/7) sans toucher à l'active (bug 1) */
+  ajouterFiche: (fiche: Character) => string;
   /** Duplique une fiche existante */
   dupliquerFiche: (id: string) => string | null;
   /** Supprime une fiche (la dernière restante est conservée) */
@@ -264,6 +283,12 @@ export const useCharacterStore = create<CharacterStore>()(
       autresFiches: {},
 
       // ─── Slots de personnages (prompt v6 §2) ──────────────────────────
+      ajouterFiche: (fiche) => {
+        const id = fiche.id && !get().autresFiches[fiche.id] ? fiche.id : `fiche-${Date.now()}`;
+        useCharacterStore.setState((s) => ({ autresFiches: { ...s.autresFiches, [id]: { ...fiche, id } } }));
+        return id;
+      },
+
       creerFiche: (nom) => {
         const id = `fiche-${Date.now()}`;
         const nouvelle: Character = {
@@ -289,19 +314,24 @@ export const useCharacterStore = create<CharacterStore>()(
 
       supprimerFiche: (id) => {
         const { actifId, autresFiches, character } = get();
+        const reste = { ...autresFiches };
         if (id === actifId) {
-          // supprimer l'active : basculer sur la première autre fiche, sinon garder
-          const premiere = Object.keys(autresFiches)[0];
-          if (!premiere) return; // au moins une fiche doit rester
-          const reste = { ...autresFiches };
-          delete reste[id];
-          const nouvelleActive = reste[premiere]!;
-          delete reste[premiere];
+          // CORRECTIF it. 7 (bug 4) : nouvelle active = première clé ≠ id supprimé ;
+          // l'invariant garantit que la clé ≠ actifId, pas de TypeError choixDerivees.
+          const nouvelleId = Object.keys(reste).find((k) => k !== id);
+          if (!nouvelleId) {
+            // état « aucune fiche » propre : fiche vierge, actifId null (prompt v9 §0.4)
+            const vierge = ficheVierge();
+            set({ character: vierge, derived: computeDerived(vierge), actifId: null, autresFiches: {} });
+            return;
+          }
+          const nouvelleActive = reste[nouvelleId]!;
+          delete reste[nouvelleId];
           set(recalcule(nouvelleActive));
-          useCharacterStore.setState({ actifId: premiere, autresFiches: reste });
+          poserTheme(nouvelleActive.metaArmor.modele);
+          useCharacterStore.setState({ actifId: nouvelleId, autresFiches: reste });
           return;
         }
-        const reste = { ...autresFiches };
         delete reste[id];
         void character;
         set({ autresFiches: reste });
@@ -309,19 +339,22 @@ export const useCharacterStore = create<CharacterStore>()(
 
       chargerFiche: (id) => {
         const { actifId, autresFiches, character } = get();
-        if (id === actifId) return;
+        if (id === actifId) return; // actifId null : on peut charger (état « aucune fiche »)
         const cible = autresFiches[id];
         if (!cible) return;
-        // sauvegarde de l'active au passage
+        // INVARIANT (correctif it. 7, bug 4) : l'active n'est jamais dans le map.
+        // Sauvegarde de l'active + retrait de la cible (qui devient active).
+        const reste = { ...autresFiches };
+        if (actifId !== null) reste[actifId] = character; // sauvegarde de l'active
+        delete reste[id];
         set(recalcule(cible));
         poserTheme(cible.metaArmor.modele);
-        useCharacterStore.setState({
-          actifId: id,
-          autresFiches: { ...autresFiches, [actifId]: character },
-        });
+        useCharacterStore.setState({ actifId: id, autresFiches: reste });
       },
 
       changerArmure: (modele) => {
+        // scellement (bug 2) : édition de feuille bloquée
+        if (editionBloquee(get())) return;
         const { character } = get();
         const nouvelle = META_ARMURES[modele];
         if (!nouvelle) return;
@@ -386,6 +419,8 @@ export const useCharacterStore = create<CharacterStore>()(
       },
 
       monterNiveauModule: (id) => {
+        // scellement (bug 2) : édition de feuille bloquée
+        if (editionBloquee(get())) return false;
         const { character } = get();
         const module = character.modules.find((m) => m.id === id);
         if (!module) return false;
@@ -403,6 +438,8 @@ export const useCharacterStore = create<CharacterStore>()(
       },
 
       poserImplant: (conditionId) => {
+        // scellement (bug 2) : édition de feuille bloquée
+        if (editionBloquee(get())) return false;
         const { character } = get();
         // p.91 : 20 PG (pose entre missions), −3 PEs TOTAL par implant, max 6
         const implants = character.conditions.filter((c) => c.nom.startsWith('Implant cybernétique')).length;
@@ -428,6 +465,8 @@ export const useCharacterStore = create<CharacterStore>()(
       },
 
       therapieReconstruction: () => {
+        // scellement (bug 2) : édition de feuille bloquée
+        if (editionBloquee(get())) return false;
         const { character } = get();
         // p.91 : 100 PG (gloire dépensée par le MJ), 3 h — efface TOUTES les blessures
         const blessures = character.conditions.filter((c) => c.categorie === 'blessure');
@@ -533,6 +572,8 @@ export const useCharacterStore = create<CharacterStore>()(
       },
 
       equiperArme: (id, equiper) => {
+        // scellement (bug 2) : édition de feuille bloquée (le déséquipement est permis — voir FAQ)
+        if (equiper && editionBloquee(get())) return false;
         const { character } = get();
         const arme = character.armes.find((a) => a.id === id);
         if (!arme) return false;
@@ -554,6 +595,8 @@ export const useCharacterStore = create<CharacterStore>()(
       },
 
       retirerCondition: (id) => {
+        // scellement (bug 2) : édition de feuille bloquée
+        if (editionBloquee(get())) return;
         const { character } = get();
         set(recalcule({
           ...character,
@@ -671,6 +714,8 @@ export const useCharacterStore = create<CharacterStore>()(
       },
 
       sloterArme: (armeId, bras) => {
+        // scellement (bug 2) : édition de feuille bloquée
+        if (editionBloquee(get())) return false;
         const { character } = get();
         const arme = character.armes.find((a) => a.id === armeId);
         if (!arme) return false;
@@ -684,6 +729,8 @@ export const useCharacterStore = create<CharacterStore>()(
       },
 
       desloterArme: (armeId) => {
+        // scellement (bug 2) : édition de feuille bloquée
+        if (editionBloquee(get())) return;
         const { character } = get();
         const armes = character.armes.map((a) =>
           a.id === armeId ? { ...a, slotee: undefined } : a,
@@ -704,6 +751,8 @@ export const useCharacterStore = create<CharacterStore>()(
       },
 
       setChoixDerive: (cle, trait) => {
+        // scellement (bug 2) : édition de feuille bloquée
+        if (editionBloquee(get())) return;
         const { character } = get();
         set(recalcule({
           ...character,
@@ -723,6 +772,8 @@ export const useCharacterStore = create<CharacterStore>()(
       },
 
       installerModule: (module) => {
+        // scellement (bug 2) : édition de feuille bloquée
+        if (editionBloquee(get())) return false;
         const { character } = get();
         // Modules interdits à la Paladin (« Lente et lourde », p.140)
         if (MODULES_INTERDITS_PALADIN.includes(module.id)) return false;
@@ -741,11 +792,15 @@ export const useCharacterStore = create<CharacterStore>()(
       },
 
       desinstallerModule: (id) => {
+        // scellement (bug 2) : édition de feuille bloquée
+        if (editionBloquee(get())) return;
         const { character } = get();
         set(recalcule({ ...character, modules: character.modules.filter((m) => m.id !== id) }));
       },
 
       majIdentite: (maj) => {
+        // scellement (bug 2) : édition de feuille bloquée
+        if (editionBloquee(get())) return;
         const { character } = get();
         set(recalcule({ ...character, identite: { ...character.identite, ...maj } }));
       },

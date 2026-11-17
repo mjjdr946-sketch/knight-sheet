@@ -13,10 +13,19 @@ export default function GaugeBar() {
   const ajusterJauge = useCharacterStore((s) => s.ajusterJauge);
 
   return (
-    <header className="safe-top sticky top-0 z-40 border-b border bg-zinc-950/95 backdrop-blur">
+    <header className="safe-top sticky top-0 z-40 shrink-0 border-b border bg-zinc-950/95 backdrop-blur">
       <p className="text-center text-[11px] uppercase tracking-widest text-zinc-500">
         {character.nom} · {character.metaArmor.modele}
+        {character.scelle && <span className="ml-1 text-neon-gold" title="Fiche scellée — édition bloquée">🔒</span>}
       </p>
+      {/* Desktop (≥1024px) : dérivées affichées en dur dans le header, sans drill-down (prompt v9 §2) */}
+      <div className="hidden justify-center gap-4 border-b border/50 py-1 text-xs lg:flex">
+        <span className="text-zinc-400">Défense <b className="text-white">{derived.defense}</b></span>
+        <span className="text-zinc-400">Réaction <b className="text-white">{derived.reaction}</b></span>
+        <span className="text-zinc-400">Initiative <b className="text-white">{derived.initiative}</b></span>
+        <span className="text-zinc-400">Contacts <b className="text-white">{derived.contacts}</b></span>
+        <span className="text-zinc-400">CdF <b className="text-white">{derived.cdf}</b></span>
+      </div>
       <div className="mx-auto flex max-w-md items-stretch gap-1.5 overflow-x-auto px-2 py-2">
         <Gauge
           nom="PS"

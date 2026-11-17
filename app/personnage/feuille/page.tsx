@@ -13,6 +13,8 @@ import { useCharacterStore } from '@/store/characterStore';
 
 /** Widget XP (prompt v8 livrable 5) : ajouter des points, journal, paliers franchis = réclamations */
 function XpWidget() {
+  const scelle = useCharacterStore((s) => s.character.scelle);
+  const deverrouiller = useCharacterStore((s) => s.deverrouiller);
   const gloire = useCharacterStore((s) => s.character.gloire);
   const journalRef = useCharacterStore((s) => s.character.xpJournal); // selector STABLE (zustand v5 : pas de ?? [] dans le selector)
   const journal = journalRef ?? [];
@@ -54,9 +56,22 @@ function XpWidget() {
 }
 
 export default function FeuillePage() {
+  const scelle = useCharacterStore((s) => s.character.scelle);
+  const deverrouiller = useCharacterStore((s) => s.deverrouiller);
   return (
     <main className="mx-auto max-w-md px-3 pb-24 pt-4">
-      <h1 className="font-display mb-3 text-xl text-neon-cyan">Feuille</h1>
+      <h1 className="font-display mb-3 text-xl text-neon-cyan">
+        Feuille {scelle && <span className="text-sm text-neon-gold">🔒 scellée</span>}
+      </h1>
+      {scelle && (
+        <button
+          type="button"
+          onClick={() => { if (confirm('Déverrouiller la fiche pour édition ? Le MJ devra valider les modifications.')) deverrouiller(); }}
+          className="mb-3 min-h-[48px] w-full rounded-lg border border-neon-gold/50 text-xs text-neon-gold active:bg-neon-gold/10"
+        >
+          🔓 Déverrouiller l'édition
+        </button>
+      )}
       <XpWidget />
       {/* Chaque section existante est réutilisée telle quelle — repliées par défaut */}
       <div className="space-y-3">

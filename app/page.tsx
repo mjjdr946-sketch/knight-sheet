@@ -18,14 +18,12 @@ export default function AccueilPage() {
   const character = useCharacterStore((s) => s.character);
   const actifId = useCharacterStore((s) => s.actifId);
   const autresFiches = useCharacterStore((s) => s.autresFiches);
-  const creerFiche = useCharacterStore((s) => s.creerFiche);
   const dupliquerFiche = useCharacterStore((s) => s.dupliquerFiche);
   const supprimerFiche = useCharacterStore((s) => s.supprimerFiche);
   const chargerFiche = useCharacterStore((s) => s.chargerFiche);
   const remplacerPersonnage = useCharacterStore((s) => s.remplacerPersonnage);
 
   const [hydrate, setHydrate] = useState(false);
-  const [nomNouvelle, setNomNouvelle] = useState('');
   const [importOuvert, setImportOuvert] = useState(false);
 
   useEffect(() => {
@@ -66,9 +64,9 @@ export default function AccueilPage() {
     reader.readAsText(fichier);
   };
 
-  // Toutes les fiches : l'active + les autres
+  // Toutes les fiches : l'active (si elle existe — état « aucune fiche » propre) + les autres
   const fiches: { id: string; fiche: Character; active: boolean }[] = [
-    { id: actifId, fiche: character, active: true },
+    ...(actifId ? [{ id: actifId, fiche: character, active: true }] : []),
     ...Object.entries(autresFiches).map(([id, f]) => ({ id, fiche: f, active: false })),
   ];
 
@@ -141,33 +139,19 @@ export default function AccueilPage() {
         })}
       </ul>
 
-      {/* ─── Créer ────────────────────────────────────────────────────── */}
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/80 p-3">
-        <p className="mb-2 text-xs uppercase tracking-widest text-zinc-500">Nouveau chevalier</p>
-        <div className="flex gap-2">
-          <input
-            value={nomNouvelle}
-            onChange={(e) => setNomNouvelle(e.target.value)}
-            placeholder="Nom…"
-            className="min-h-[48px] flex-1 rounded-lg border border-zinc-700 bg-zinc-950 px-2 text-sm text-white outline-none"
-          />
-          <button
-            type="button"
-            onClick={() => { creerFiche(nomNouvelle.trim() || 'Nouveau chevalier'); setNomNouvelle(''); }}
-            className="min-h-[48px] rounded-lg bg-neon-cyan/20 px-4 text-sm font-semibold text-neon-cyan active:bg-neon-cyan/30"
-          >
-            Créer
-          </button>
-        </div>
-        <p className="mt-1 text-[11px] text-zinc-600">
-          L'assistant de création (10 étapes) arrive au livrable 2 — les fiches créées démarrent sur le modèle Paladin.
-        </p>
-      </div>
+      {/* ─── Créer → wizard 10 étapes (CORRECTIF it. 7, bug 3 🔴) ────── */}
+      <button
+        type="button"
+        onClick={() => router.push('/personnage/creation')}
+        className="min-h-[48px] w-full rounded-xl border border-neon-cyan/40 bg-neon-cyan/10 text-sm font-bold text-neon-cyan active:bg-neon-cyan/20"
+      >
+        + Nouveau chevalier (assistant 10 étapes)
+      </button>
 
       {/* ─── Importer ─────────────────────────────────────────────────── */}
       <button
         type="button"
-        onClick={() => setImportOuvert((o) => !o)}
+        onClick={() => setImportOuvert((o: boolean) => !o)}
         className="min-h-[48px] w-full rounded-lg border border-zinc-700 text-xs text-zinc-300 active:bg-zinc-800"
       >
         Importer un personnage (JSON)

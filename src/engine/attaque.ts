@@ -75,10 +75,11 @@ export function computeAttack(character: Character, arme: Weapon, styleId: strin
   }
 
   // Akimbo (p.87-88) : 2 armes IDENTIQUES en main → cumul des dés de dégâts,
-  // bonus fixe compté 1 FOIS. Détection automatique : une autre arme équipée
-  // avec le même id que l'arme attaquante.
+  // bonus fixe compté 1 FOIS. CORRECTIF it. 7 (bug 5) : détection par NOM de
+  // catalogue (2 instances distinctes du même modèle ont des ids d'instance
+  // différents — l'UI n'invente jamais de doublon d'id).
   const jumelle = styleId === 'akimbo'
-    ? character.armes.find((a) => a.id === arme.id && a !== arme && a.equipee)
+    ? character.armes.find((a) => a.nom === arme.nom && a !== arme && a.equipee)
     : undefined;
   if (jumelle) {
     nbDes += jumelle.degats.nombre;

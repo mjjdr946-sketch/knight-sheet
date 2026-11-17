@@ -73,10 +73,15 @@ describe('Slots de personnages — prompt v6 §2', () => {
     expect(S().character.nom).toBe('Gauvain');
   });
 
-  it('impossible de supprimer la dernière fiche', () => {
+  it('v9 (bug 4) : supprimer la dernière fiche → état « aucune fiche » propre', () => {
     S().supprimerFiche('principal');
-    expect(S().actifId).toBe('principal');
-    expect(S().character.nom).toBe('Seraphine « Ambre » Vasseur');
+    expect(S().actifId).toBeNull();
+    expect(S().character.id).toBe('aucune'); // fiche vierge : pas de crash
+    // le store redevient utilisable : créer une nouvelle fiche
+    const id = S().creerFiche('Rebond');
+    expect(S().actifId).toBeNull(); // creerFiche ajoute sans toucher l'active
+    S().chargerFiche(id);
+    expect(S().actifId).toBe(id);
   });
 
   it('SCHEMA_VERSION = 4 (slots)', () => {

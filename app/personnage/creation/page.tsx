@@ -7,11 +7,12 @@
  */
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useCharacterStore, THEME_PAR_MODELE } from '@/store/characterStore';
+import { useCharacterStore } from '@/store/characterStore';
 import { computeDerived } from '@/engine/stats';
 import { LAMES_TAROT } from '@/data/tarot';
 import { ARCHETYPES, HAUTS_FATS, BLASONS } from '@/data/creation';
 import { META_ARMURES } from '@/data/meta-armures';
+import { personnageExemple } from '@/data/character';
 import type { Character, AspectId, TraitId } from '@/types/character';
 
 const ETAPES = [
@@ -35,20 +36,25 @@ export default function CreationPage() {
   const actifId = useCharacterStore((s) => s.actifId);
   const creerFiche = useCharacterStore((s) => s.creerFiche);
   const chargerFiche = useCharacterStore((s) => s.chargerFiche);
-  const remplacerPersonnage = useCharacterStore((s) => s.remplacerPersonnage);
-  const setChoixDerive = useCharacterStore((s) => s.setChoixDerive);
+  const ajouterFiche = useCharacterStore((s) => s.ajouterFiche);
 
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<Character | null>(null); // copie de travail
   const [booste, setBooste] = useState(false);
 
-  /** Commence l'assistant sur une copie de la fiche active (ou nouvelle) */
+  /**
+   * CORRECTIF it. 7 (bug 1 🔴) : l'assistant part d'une fiche NEUVE vierge
+   * (jamais du personnage actif). L'active reste intacte ; à la validation
+   * la nouvelle fiche est AJOUTÉE à la liste (pas de remplacement).
+   */
   const demarrer = () => {
-    const base: Character = structuredClone(character);
-    base.scelle = false;
+    const base: Character = { ...structuredClone(personnageExemple), id: `fiche-${Date.now()}`, nom: '', scelle: false };
+    base.favoris = [];
+    base.xpJournal = [];
     // étape 1 : reset des scores de base (aspects 2, caractéristiques 1, p.110)
     (Object.keys(base.aspects) as AspectId[]).forEach((a) => { base.aspects[a] = 2; });
     (Object.keys(base.traits) as TraitId[]).forEach((t) => { base.traits[t] = 1; });
+    base.conditions = []; // fiche neuve : aucune blessure
     setDraft(base);
     setStep(0);
   };
@@ -62,22 +68,24 @@ export default function CreationPage() {
     });
   };
 
-  /** Applique le draft : remplace la fiche active par la copie de travail */
-  const appliquer = () => {
-    if (!draft) return;
-    remplacerPersonnage(draft);
-    useCharacterStore.setState({ derived: computeDerived(draft) });
-  };
-
   const valider = () => {
     if (!draft) return;
-    // le scellement marque la fiche « officielle » (édition bloquée)
     const finie: Character = { ...structuredClone(draft), scelle: true };
     if (booste) finie.gloire = (finie.gloire ?? 0) + 25; // mode boosté (option MJ)
-    remplacerPersonnage(finie);
-    useCharacterStore.setState({ derived: computeDerived(finie) });
-    document.documentElement.setAttribute('data-theme', THEME_PAR_MODELE[finie.metaArmor.modele] ?? 'guerrier');
-    router.push('/personnage/combat');
+    // scellement propre (prompt v9 §3) : jauges courantes == max, journal initialisé
+    const derivees = computeDerived(finie);
+    finie.jauges = {
+      ps: { current: derivees.ps.max },
+      pa: { current: derivees.pa.max },
+      pe: { current: derivees.pe.max },
+      cdf: { current: derivees.cdf },
+      pes: { current: derivees.pes.max },
+      heroisme: { current: 0 },
+    };
+    finie.xpJournal = finie.xpJournal ?? [];
+    // CORRECTIF bug 1 : la fiche finie est AJOUTÉE à la liste — l'active reste intacte
+    ajouterFiche(finie);
+    router.push('/');
   };
 
   // ─── Écrans par étape ──────────────────────────────────────────────────
@@ -259,7 +267,7 @@ export default function CreationPage() {
         <div className="fixed inset-x-0 bottom-0 z-40 flex gap-2 border-t border bg-zinc-950/95 p-3 backdrop-blur safe-bottom">
           <button type="button" disabled={step === 0} onClick={() => setStep((s) => Math.max(0, s - 1))} className="min-h-[48px] flex-1 rounded-lg border border-zinc-700 text-sm text-zinc-300 disabled:opacity-30">←</button>
           {step < 9 ? (
-            <button type="button" onClick={() => { appliquer(); setStep((s) => s + 1); }} className="min-h-[48px] flex-[3] rounded-lg bg-neon-cyan/20 text-sm font-bold text-neon-cyan">Étape suivante</button>
+            <button type="button" onClick={() => setStep((s) => s + 1)} className="min-h-[48px] flex-[3] rounded-lg bg-neon-cyan/20 text-sm font-bold text-neon-cyan">Étape suivante</button>
           ) : null}
         </div>
       )}
@@ -273,8 +281,9 @@ function AvantDemarrage({ onDemarrer, nomActuel }: { onDemarrer: () => void; nom
   return (
     <div className="space-y-3">
       <p className="text-sm text-zinc-300">
-        L'assistant applique les 10 étapes du chapitre 5 sur une <b>copie de travail</b> de la fiche active
-        ({nomActuel}). À la fin, la fiche est <b>scellée</b> (édition bloquée) — ses jauges restent jouables.
+        L'assistant applique les 10 étapes du chapitre 5 sur une <b>fiche neuve</b> — la fiche
+        active ({nomActuel}) reste intacte. À la fin, la nouvelle fiche est <b>scellée</b>
+        (édition bloquée) et ajoutée à « Mes chevaliers ».
       </p>
       <button type="button" onClick={onDemarrer} className="min-h-[48px] w-full rounded-lg bg-neon-cyan/20 text-sm font-bold text-neon-cyan">Démarrer la création</button>
     </div>

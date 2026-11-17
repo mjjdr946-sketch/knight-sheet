@@ -100,6 +100,7 @@ export default function CombatPage() {
       des: j.des,
       total: j.total,
       seuil: jetLibre ? 0 : (seuilUtilise ?? 0),
+      masque: modeMj,
       touche: !jetLibre && touche(j.total, seuilUtilise ?? 0),
       exploit: j.exploit,
       echecCritique: j.echecCritique,
@@ -139,6 +140,7 @@ export default function CombatPage() {
       des: j.des,
       total: j.total,
       seuil: jetLibre ? 0 : (seuilUtilise ?? 0),
+      masque: modeMj,
       touche: !jetLibre && touche(j.total, seuilUtilise ?? 0),
       exploit: j.exploit,
       echecCritique: j.echecCritique,
@@ -601,7 +603,7 @@ export default function CombatPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-white">{j.arme}</span>
                   <span className={j.touche ? 'text-neon-cyan font-bold' : 'text-zinc-500'}>
-                    {j.total} vs {j.seuil} — {j.touche ? 'TOUCHE' : 'rate'}
+                    {j.masque ? '??? vs ???' : `${j.total} vs ${j.seuil}`} — {j.touche ? 'TOUCHE' : 'rate'}
                   </span>
                 </div>
                 <p className="text-[11px] text-zinc-500">

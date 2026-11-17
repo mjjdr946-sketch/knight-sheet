@@ -36,7 +36,7 @@ export default function FichesSection() {
           </div>
           <button
             type="button"
-            onClick={() => dupliquerFiche(actifId)}
+            onClick={() => actifId && dupliquerFiche(actifId)}
             className="min-h-[48px] rounded-lg border border-zinc-700 px-2.5 text-[11px] text-zinc-300 active:bg-zinc-800"
           >
             Dupliquer
