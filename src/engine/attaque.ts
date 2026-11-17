@@ -16,6 +16,11 @@ export interface OptionsAttaque {
   sacrificeDes?: number;
   /** Style Pilonnage : dés de dégâts cumulés des tours précédents (max 6, p.89) */
   pileDegats?: number;
+  /** ROGUE — Ghost : attaque qui brise l'invisibilité (1re attaque du tour, p.152) :
+   * bonus en dés + bonus fixe aux dégâts = Discrétion (OD inclus). */
+  ghostSurprise?: boolean;
+  /** WARMASTER — impulsion Guerre (p.148) : +1D6 aux dégâts et violence */
+  impulsionGuerre?: boolean;
 }
 export interface PreparationAttaque {
   /** Caractéristique de base du jet */
@@ -33,6 +38,12 @@ export interface PreparationAttaque {
   desSacrifies: number;
   /** Dés de dégâts supplémentaires (style Pilonnage, max +6) */
   desDegatsPile: number;
+  /** Ghost (p.152) : +dés dégâts de l'attaque surprise */
+  desDegatsGhost?: number;
+  /** Ghost (p.152) : +fixe dégâts de l'attaque surprise */
+  fixeDegatsGhost?: number;
+  /** Impulsion Guerre (p.148) : +1D6 dégâts/violence */
+  desDegatsImpulsion?: number;
   /** Mode de tir (akimbo/ambidextre gérés côté UI selon les armes en main) */
   detail: string[];
 }
@@ -130,6 +141,24 @@ export function computeAttack(character: Character, arme: Weapon, styleId: strin
     detail.push(`Pilonnage cumulé : +${desDegatsPile} dés de dégâts`);
   }
 
+  // ROGUE — Ghost (p.152) : attaque qui brise l'invisibilité = +Discrétion dés et fixe aux dégâts
+  let desDegatsGhost = 0;
+  let fixeGhost = 0;
+  if (options.ghostSurprise) {
+    const od = character.overdrives.filter((o) => o.trait === 'discretion').reduce((a, o) => a + o.niveau, 0);
+    const discretion = character.traits['discretion'] + od;
+    desDegatsGhost = discretion;
+    fixeGhost = discretion;
+    detail.push(`Ghost — attaque surprise : +${discretion} dés et +${discretion} fixe aux dégâts (Discrétion, p.152)`);
+  }
+
+  // WARMASTER — impulsion Guerre (p.148) : +1D6 aux dégâts et violence
+  let desDegatsImpulsion = 0;
+  if (options.impulsionGuerre) {
+    desDegatsImpulsion = 1;
+    detail.push('Impulsion Guerre : +1D6 dégâts et violence (p.148)');
+  }
+
   const effectif = Math.max(0, nbDes + bonusDesStyle - malusDesStyle - desSacrifies);
 
   return {
@@ -141,6 +170,9 @@ export function computeAttack(character: Character, arme: Weapon, styleId: strin
     malusDesStyle,
     desSacrifies,
     desDegatsPile,
+    desDegatsGhost,
+    fixeDegatsGhost: fixeGhost,
+    desDegatsImpulsion,
     detail,
   };
 }
@@ -155,7 +187,8 @@ export function desDegatsTouche(arme: Weapon, prep: PreparationAttaque): { nombr
   // degatsContactEffectifs côté affichage)
   const fixe = typeof arme.degats.bonus === 'number' ? arme.degats.bonus : 0;
   return {
-    nombreDes: arme.degats.nombre + prep.desDegatsPile + prep.desSacrifies,
-    fixe,
+    nombreDes: arme.degats.nombre + prep.desDegatsPile + prep.desSacrifies
+      + (prep.desDegatsGhost ?? 0) + (prep.desDegatsImpulsion ?? 0),
+    fixe: fixe + (prep.fixeDegatsGhost ?? 0),
   };
 }

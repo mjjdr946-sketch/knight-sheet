@@ -100,18 +100,19 @@ export const META_ARMURES: Record<string, MetaArmor> = {
   // ─── Les 6 autres : profil chiffré complet, capacités en description ──────
   warrior: gabarit(
     'warrior', 1,
-    { pa: 100, pe: 40, cdf: 8, slots: [5, 8, 5, 5, 5, 5] },
-    ['combat', 'tir', 'savoir', 'aura'], // RÈGLES: à compléter — 5 types (Soldier/Hunter/Scholar/Herald/Scout), OD hors limite de 5 (p.141)
+    { pa: 100, pe: 40, cdf: 8, slots: [7, 12, 10, 10, 7, 7] }, // PARTIE 6 p.135-138 PDF : Tête 7 · Bras 10/10 · Torse 12 · Jambes 7/7
+    ['combat', 'deplacement', 'tir', 'dexterite'],
     [
       {
         id: 'types-warrior',
         nom: 'Types Warrior',
         description:
-          'RÈGLES: à compléter — 5 types (Soldier/Hunter/Scholar/Herald/Scout) donnant 1 OD par caractéristique de ' +
-          'l\u2019aspect, hors limite de 5 OD. pp.141-142.',
-        coutPE: undefined as unknown as string, // RÈGLES: à compléter — pas de coût PE pour les types Warrior
-        activation: 'aucune',
-        duree: '',
+          '5 types (Soldier Chair · Hunter Bête · Scholar Machine · Herald Dame · Scout Masque) : 1 niveau d\u2019OD dans ' +
+          'les 3 caractéristiques de l\u2019aspect, HORS limite de 5. Un seul actif ; activation 1 action de déplacement, ' +
+          'jusqu\u2019au début du prochain tour. 1 PE/tour en conflit, 6 PE par scène hors conflit. (p.136)',
+        coutPE: '1/tour (6/scène hors conflit)',
+        activation: 'action-deplacement',
+        duree: 'jusqu\u2019au début du prochain tour',
         effets: [],
         active: false,
       },
@@ -162,11 +163,13 @@ export const META_ARMURES: Record<string, MetaArmor> = {
         id: 'ghost',
         nom: 'Mode Ghost',
         description:
-          'Invisibilité + bonus Discrétion en dés et dégâts sur la 1re attaque ; disparaît à chaque attaque jusqu\u2019à 250 PG. ' +
-          'RÈGLES: à compléter — coûts PE et durée exacts pp.151-153.',
-        coutPE: 'RÈGLES: à compléter',
-        activation: 'action-deplacement',
-        duree: 'RÈGLES: à compléter',
+          'Invisible et inaudible : +3 réussites auto aux jets pour passer inaperçu (déplacement/acrobatie/course, pas les ' +
+          'attaques) ; jet base Discrétion opposé à Machine/2 contre un ennemi sur le qui-vive. Toute attaque désactive le mode ; ' +
+          'la 1re attaque du tour qui brise l\u2019invisibilité gagne bonus en dés + bonus fixe aux dégâts = Discrétion (OD inclus). ' +
+          'Pas de désactivation+réactivation dans le même tour. (p.152)',
+        coutPE: '2 PE/tour (6 PE/minute hors conflit)',
+        activation: 'aucune',
+        duree: '1 tour ou 1 minute',
         effets: [],
         active: false,
       },
@@ -176,27 +179,32 @@ export const META_ARMURES: Record<string, MetaArmor> = {
 
   ranger: gabarit(
     'ranger', 2,
-    { pa: 50, pe: 70, cdf: 12, slots: [5, 8, 5, 5, 5, 5] },
-    ['deplacement', 'instinct', 'perception', 'tir'],
+    { pa: 50, pe: 70, cdf: 12, slots: [4, 6, 4, 4, 4, 4] }, // PARTIE 6 p.155-158 : Tête 4 · Torse 6 · Bras 4/4 · Jambes 4/4
+    ['deplacement', 'dexterite', 'discretion', 'tir'],
     [
       {
         id: 'longbow',
         nom: 'Fusil Longbow modulable',
         description:
-          'Choix dégâts/violence + 3 effets payés en PE, jusqu\u2019à 14D6. RÈGLES: à compléter — coûts exacts pp.155-157.',
-        coutPE: 'RÈGLES: à compléter',
+          'Profil de base 3D6 dégâts / 1D6 violence / portée moyenne · lourd, deux mains, assistance à l\u2019attaque. ' +
+          'Le chevalier choisit dégâts/violence et jusqu\u2019à 3 effets par tir : 1 PE = +1D6 dégâts ou violence (max 6D6 ' +
+          'générés) ou portée +1 · 2 PE = dégâts continus 3, silencieux, choc 1, perce armure 40, ultraviolence, désignation · ' +
+          '3 PE = lumière 4, dispersion 3, artillerie, pénétrant 6, perce armure 60, anti-véhicule. (p.156)',
+        coutPE: '1 à 3 PE par effet',
         activation: 'aucune',
-        duree: '',
+        duree: '1 attaque',
         effets: [],
         active: false,
       },
       {
         id: 'vision',
-        nom: 'Vision (perception de l\u2019invisible)',
-        description: 'RÈGLES: à compléter — 5-10 PE, pp.155-157.',
-        coutPE: '5-10',
+        nom: 'Vision (voir l\u2019invisible)',
+        description:
+          'Voir gaz, vent, maladies, respiration, ondes radio, l\u2019Anathème, pensées… — et les créatures invisibles ' +
+          '(mode Ghost inclus). Jet base Perception, difficulté faisable (2) à très difficile (9) au MJ. (p.157)',
+        coutPE: '5 à 10 PE (au MJ)',
         activation: 'action-deplacement',
-        duree: '',
+        duree: '6 secondes',
         effets: [],
         active: false,
       },
@@ -213,10 +221,12 @@ export const META_ARMURES: Record<string, MetaArmor> = {
         id: 'changeling',
         nom: 'Mode Changeling',
         description:
-          'Imitation totale + 4 faux êtres de nanoM (percé à Machine 6 / Perception 3). RÈGLES: à compléter — coûts/durée pp.159-161.',
-        coutPE: 'RÈGLES: à compléter',
-        activation: 'action-deplacement',
-        duree: 'RÈGLES: à compléter',
+          'L\u2019armure prend n\u2019importe quelle apparence ; jusqu\u2019à 3 m de rayon et 4 faux êtres de nanoM intangibles ' +
+          '(max 3 m du chevalier, aucune action complexe). Percer : PNJ test Machine difficulté 6, PJ test Perception normale 3 — ' +
+          'jamais automatique ; Ranger/Vision le détecte sans test. (p.160)',
+        coutPE: '6 PE (transformation) · 8 PE (taille étendue) · 3 PE par faux être',
+        activation: 'tour-complet',
+        duree: 'une scène / phase / heure',
         effets: [],
         active: false,
       },

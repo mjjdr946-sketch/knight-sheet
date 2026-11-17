@@ -10,6 +10,8 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { applyDamage, type DamageInput, type DamageResult } from '../engine/damage';
 import { computeDerived } from '../engine/stats';
+import { effetsDeNiveau } from '../data/paliers-modules';
+import { odDuType, coutTypeWarrior, coutImpulsion, coutGhost, coutLongbow, profilLongbow, coutVision, coutChangeling, coutBenedictionArmes, ATTAQUE_PLASMA, UTILITAIRE_PLASMA, ORIFLAMME, conditionImpulsion } from '../engine/capacites';
 import { STYLE_CONDITION_ID, getStyle, styleVersCondition } from '../engine/combat';
 import { appliquerBlessure, suiteAgonie } from '../engine/blessures';
 import { appliquerTestEspoir, depenserHeroisme, type ResultatHeroisme, type UsageHeroisme } from '../engine/heroisme';
@@ -258,6 +260,12 @@ interface CharacterStore {
   sceller: () => void;
   deverrouiller: () => void;
   ajouterXP: (points: number, note?: string) => number[];
+  /** Capacités de classe (prompt v10 §1) : débit PE + application via le moteur */
+  activerTypeWarrior: (typeId: string, enConflit: boolean) => { ok: boolean; message: string };
+  basculerGhost: (enConflit: boolean) => { ok: boolean; message: string };
+  configurerLongbow: (armeId: string, cfg: Parameters<typeof coutLongbow>[0]) => { ok: boolean; message: string };
+  utiliserImpulsion: (impulsionId: string, nbAllies: number, inclutPorteur: boolean) => { ok: boolean; message: string };
+  utiliserCapacitePE: (coutPE: number, nom: string, note?: string) => { ok: boolean; message: string };
   reparerPA: (auContact: boolean, de?: () => number) => { ok: boolean; message: string };
   activerGoliath: (metres: number) => { ok: boolean; message: string };
 }
@@ -427,12 +435,14 @@ export const useCharacterStore = create<CharacterStore>()(
         const niveauActuel = module.niveau ?? 1;
         // p.428 : niveaux 1→3, les niveaux précédents sont requis
         if (niveauActuel >= 3) return false;
+        const nouveauNiveau = niveauActuel + 1;
+        // Prompt v10 §3 : les Modifier des paliers s'ajoutent au cas par cas
+        // (paliers-modules.ts). L'achat PG reste à l'arbitrage MJ (p.428).
         const modules = character.modules.map((m) =>
-          m.id === id ? { ...m, niveau: niveauActuel + 1 } : m,
+          m.id === id
+            ? { ...m, niveau: nouveauNiveau, effets: effetsDeNiveau(m.id, nouveauNiveau, m.effets) }
+            : m,
         );
-        // RÈGLES: à compléter — les effets du niveau suivant sont décrits dans
-        // les données (description) mais nécessitent des Modifier dédiés par
-        // module (ex. saut niv 2 : +9 dégâts). L'achat PG est à l'arbitrage MJ.
         set(recalcule({ ...character, modules }));
         return true;
       },
@@ -682,7 +692,12 @@ export const useCharacterStore = create<CharacterStore>()(
 
       utiliserNod: (type, de1, de2, de3) => {
         // Nods (annexe) : 3D6 restaurés ; 1 action de déplacement ; sur soi ou autrui
-        const restaure = de1 + de2 + de3;
+        // OD Savoir niv 3 (prompt v10 §2, p.77+) : +1D6 aux SOINS
+        const odSavoir = get().character.overdrives
+          .filter((o) => o.trait === 'savoir')
+          .reduce((a, o) => a + o.niveau, 0);
+        const bonusSavoir = type === 'soin' && odSavoir >= 3 ? 1 + Math.floor(Math.random() * 6) : 0;
+        const restaure = de1 + de2 + de3 + bonusSavoir;
         const { character, derived } = get();
         const jauges = { ...character.jauges };
         if (type === 'soin') {
@@ -693,7 +708,7 @@ export const useCharacterStore = create<CharacterStore>()(
           jauges.pe = { current: Math.min(derived.pe.max, jauges.pe.current + restaure) };
         }
         set(recalcule({ ...character, jauges }));
-        return restaure;
+        return restaure; // restaure inclut déjà le +1D6 de Savoir niv 3
       },
 
       depenserPEUsage: (cout) => {
@@ -831,6 +846,80 @@ export const useCharacterStore = create<CharacterStore>()(
         }));
         return paliers;
       },
+      /** WARRIOR — Types (p.136) : 1 OD dans les 3 traits de l'aspect, HORS limite de 5 */
+      activerTypeWarrior: (typeId, enConflit) => {
+        const { character } = get();
+        const cout = coutTypeWarrior(enConflit);
+        if (character.jauges.pe.current < cout) return { ok: false, message: `Pas assez d'énergie (${cout} PE, p.136)` };
+        // retirer les OD du type précédent puis poser les nouvelles
+        const sansAnciennes = character.overdrives.filter((o) => (o as { origine?: string }).origine !== 'type-warrior');
+        const nouvelles = odDuType(typeId);
+        set(recalcule({
+          ...character,
+          overdrives: [...sansAnciennes, ...nouvelles.map((n) => ({ trait: n.trait, niveau: n.niveau, origine: 'type-warrior' }))],
+          jauges: { ...character.jauges, pe: { ...character.jauges.pe, current: character.jauges.pe.current - cout } },
+        }));
+        return { ok: true, message: `Type activé (−${cout} PE) : +1 OD dans les 3 traits de l'aspect, hors limite de 5 (p.136)` };
+      },
+      /** ROGUE — Ghost (p.152) : 2 PE/tour (6 PE/minute hors conflit) */
+      basculerGhost: (enConflit) => {
+        const { character } = get();
+        if (character.ghostActif) {
+          set(recalcule({ ...character, ghostActif: false }));
+          return { ok: true, message: 'Ghost désactivé (p.152)' };
+        }
+        const cout = coutGhost(enConflit);
+        if (character.jauges.pe.current < cout) return { ok: false, message: `Pas assez d'énergie (${cout} PE, p.152)` };
+        set(recalcule({ ...character, ghostActif: true, jauges: { ...character.jauges, pe: { ...character.jauges.pe, current: character.jauges.pe.current - cout } } }));
+        return { ok: true, message: `Ghost activé (−${cout} PE) : +3 réussites pour passer inaperçu (p.152)` };
+      },
+      /** RANGER — Longbow (p.156) : configure le profil du tir, débit PE, modifie l'arme */
+      configurerLongbow: (armeId, cfg) => {
+        const { character } = get();
+        const arme = character.armes.find((a) => a.id === armeId);
+        if (!arme) return { ok: false, message: 'Longbow introuvable' };
+        const cout = coutLongbow(cfg);
+        if (character.jauges.pe.current < cout) return { ok: false, message: `Pas assez d'énergie (${cout} PE, p.156)` };
+        const profil = profilLongbow(cfg);
+        if (!profil.valide) return { ok: false, message: profil.erreur ?? 'Configuration invalide' };
+        const portees = ['contact', 'courte', 'moyenne', 'longue', 'lointaine'] as const;
+        const armes = character.armes.map((a) => a.id === armeId
+          ? { ...a, degats: { ...a.degats, nombre: profil.degats }, violence: { ...a.violence, nombre: profil.violence }, portee: portees[profil.portee], effets: profil.effets }
+          : a);
+        set(recalcule({ ...character, armes, jauges: { ...character.jauges, pe: { ...character.jauges.pe, current: character.jauges.pe.current - cout } } }));
+        return { ok: true, message: `Longbow : ${profil.degats}D6 / ${profil.violence}D6 (−${cout} PE, p.156)` };
+      },
+      /** WARMASTER — impulsions de Warlord sur SOI (p.148) : condition temporaire */
+      utiliserImpulsion: (impulsionId, nbAllies, inclutPorteur) => {
+        const { character } = get();
+        const cout = coutImpulsion(impulsionId, nbAllies, inclutPorteur);
+        if (cout > 0 && character.jauges.pe.current < cout) return { ok: false, message: `Pas assez d'énergie (${cout} PE, p.148)` };
+        const cond = conditionImpulsion(impulsionId);
+        if (!cond) return { ok: true, message: 'Impulsion ciblée alliés (résolu à la table, p.148)' };
+        // ajouté comme condition temporaire (effets par cible — le moteur les lit)
+        const condition = {
+          id: `${cond.id}-${Date.now()}`,
+          nom: cond.nom,
+          categorie: 'autre' as const,
+          description: cond.effets.map((e) => `${e.cible} ${e.valeur > 0 ? '+' : ''}${e.valeur}`).join(' · '),
+          effets: cond.effets.map((e) => ({ source: cond.nom, target: e.cible as never, valeur: e.valeur, type: e.type as never })),
+          permanente: false,
+        };
+        set(recalcule({
+          ...character,
+          conditions: [...character.conditions, condition],
+          jauges: cout > 0 ? { ...character.jauges, pe: { ...character.jauges.pe, current: character.jauges.pe.current - cout } } : character.jauges,
+        }));
+        return { ok: true, message: `${cond.nom} appliquée (−${cout} PE, p.148)` };
+      },
+      /** Coût PE générique (Borealis bénédiction, Oriflamme, Vision, Changeling, nanoC…) */
+      utiliserCapacitePE: (coutPE, nom, note) => {
+        const { character } = get();
+        if (character.jauges.pe.current < coutPE) return { ok: false, message: `Pas assez d'énergie (${coutPE} PE requis)` };
+        set(recalcule({ ...character, jauges: { ...character.jauges, pe: { ...character.jauges.pe, current: character.jauges.pe.current - coutPE } } }));
+        return { ok: true, message: `${nom} (−${coutPE} PE)${note ? ' — ' + note : ''}` };
+      },
+
       /** Priest — Mode Mechanic (p.144) : restaure 3D6+6 (contact) ou 2D6+6 (distance) PA, coût 4/6 PE */
       reparerPA: (auContact: boolean, de: () => number = Math.random) => {
         const jauge = get().character.jauges.pe;

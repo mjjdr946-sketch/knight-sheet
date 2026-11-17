@@ -215,3 +215,32 @@ Modifier des paliers de modules, effets d'OD restants, ambiance/son.
   Initiative/Contacts/CdF) affichées dans le header sans accordéon.
 - ✅ **Test d'intégration du parcours complet** : créer → jouer → sceller →
   déverrouiller → dupliquer → supprimer (parcours.test.ts).
+
+## Itération 8 (v10) — capacités des 6 classes + wizard finalisé
+
+- ✅ **Warrior** : 5 types (Soldier/Hunter/Scholar/Herald/Scout p.136) —
+  1 OD dans les 3 traits de l'aspect, HORS limite de 5, 1 PE/tour (6/scène) ;
+  slots réels 7/10/10/12/7/7, OD de base corrigées (PARTIE 6 mise à jour).
+- ✅ **Warmaster** : impulsions Warlord (p.148) — coûts/allié + surcoût
+  porteur (Action 4+10), esquive/force/guerre sur soi en conditions 1 tour ;
+  Falcon/alliés distants = résolu à la table (MJ).
+- ✅ **Rogue** : Ghost (p.152) — 2 PE/tour, +3 réussites inaperçu, attaque
+  surprise = +Discrétion dés et fixe (option `ghostSurprise` de
+  `computeAttack`, 1re attaque du tour).
+- ✅ **Ranger** : Longbow (p.156) — profil configurable (dés/portée/effets
+  par palier de PE, bornes 6D6 générés, 3 effets max), Vision (p.157) ;
+  slots réels 4/4/4/6/4/4.
+- ✅ **Bard** : Changeling (p.160) — coûts 6/8/3 PE, percée Machine 6 /
+  Perception 3 ; vision alternative détecte sans test (FAQ).
+- ✅ **Wizard** : Borealis (bénédiction 6+2 PE, plasma 4D6 2 PE, utilitaire
+  6 PE) + Oriflamme (6D6+6, 12 PE, anti-Anathème) (p.164-165).
+- ✅ **OD restants** : Savoir niv 3 = soins +1D6 (câblé sur les nods de
+  soin) ; onglet 🎲 Dés : OD activables/désactivables par trait avant le jet.
+- ✅ **Paliers de modules** : `paliers-modules.ts` (blindage drone niv 2 :
+  +4 CdF/+3 défense cumulable Shrine…) — `monterNiveauModule` applique les
+  Modifier par niveau ; modules sans effet décrit = TODO-RULES 🔶.
+- ✅ **Étape 10 du wizard** : mini-catalogue 60 PG (85 boosté) — armes
+  standards filtrées, budget restant, achats appliqués à la fiche AVANT
+  scellement ; ajustable ensuite dans ⚒ Matériel (même source de vérité).
+- ✅ **Tranchage §0 figé** : relance d'exploit = 1 seule, jamais de cascade
+  (`relancesAutorisees`, test dédié, p.78).

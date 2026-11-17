@@ -201,6 +201,8 @@ export interface ArmorModule {
 export interface Overdrive {
   trait: TraitId;
   niveau: number; // 1..5
+  /** 'type-warrior' : fournie par un type de Warrior (hors limite de 5, p.136) */
+  origine?: string;
 }
 
 // ─── Identité ────────────────────────────────────────────────────────────────
@@ -268,6 +270,8 @@ export interface Character {
   };
   /** Fiche scellée : en lecture seule d'édition (jauges restent jouables) */
   scelle?: boolean;
+  /** Rogue — mode Ghost actif (p.152) */
+  ghostActif?: boolean;
   /** Drafts de création (assistant) */
   archetypeId?: string;
   sectionId?: string;

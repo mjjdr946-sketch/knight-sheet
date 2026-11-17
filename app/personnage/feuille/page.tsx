@@ -9,6 +9,7 @@ import AttributsPage from '../attributs/page';
 import MetaArmurePage from '../meta-armure/page';
 import IdentitePage from '../identite/page';
 import Accordion from '../../../components/ui/Accordion';
+import CapacitesClasse from '../capacites-classe';
 import { useCharacterStore } from '@/store/characterStore';
 
 /** Widget XP (prompt v8 livrable 5) : ajouter des points, journal, paliers franchis = réclamations */
@@ -73,6 +74,7 @@ export default function FeuillePage() {
         </button>
       )}
       <XpWidget />
+      <CapacitesClasse />
       {/* Chaque section existante est réutilisée telle quelle — repliées par défaut */}
       <div className="space-y-3">
         <Accordion titre="Caractéristiques & dérivées" accent="cyan">

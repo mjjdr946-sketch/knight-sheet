@@ -13,6 +13,8 @@ import { LAMES_TAROT } from '@/data/tarot';
 import { ARCHETYPES, HAUTS_FATS, BLASONS } from '@/data/creation';
 import { META_ARMURES } from '@/data/meta-armures';
 import { personnageExemple } from '@/data/character';
+import { armesArsenal } from '@/data/weapons';
+import { NODS } from '@/data/nods';
 import type { Character, AspectId, TraitId } from '@/types/character';
 
 const ETAPES = [
@@ -41,6 +43,8 @@ export default function CreationPage() {
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<Character | null>(null); // copie de travail
   const [booste, setBooste] = useState(false);
+  // Étape 10 (prompt v10 §4) : achat d'arsenal intégré — 60 PG de départ (p.174)
+  const [achats, setAchats] = useState<Record<string, number>>({}); // id arme → quantité
 
   /**
    * CORRECTIF it. 7 (bug 1 🔴) : l'assistant part d'une fiche NEUVE vierge
@@ -58,6 +62,22 @@ export default function CreationPage() {
     setDraft(base);
     setStep(0);
   };
+
+  const budgetTotal = booste ? 85 : 60; // 60 PG (p.174) + 25 boosté (option MJ, p.128)
+  const depense = Object.entries(achats).reduce((total, [id, qte]) => {
+    const arme = armesArsenal.find((a) => a.id === id);
+    return total + (arme ? arme.coutPG * qte : 0);
+  }, 0);
+  const restant = budgetTotal - depense;
+
+  const acheter = (id: string) => {
+    const arme = armesArsenal.find((a) => a.id === id);
+    if (!arme) return;
+    if (arme.coutPG > restant) { setMessageAchat('PG insuffisants'); return; }
+    setAchats((s) => ({ ...s, [id]: (s[id] ?? 0) + 1 }));
+    setMessageAchat('');
+  };
+  const [messageAchat, setMessageAchat] = useState('');
 
   const maj = (fn: (d: Character) => void) => {
     setDraft((d) => {
@@ -83,6 +103,16 @@ export default function CreationPage() {
       heroisme: { current: 0 },
     };
     finie.xpJournal = finie.xpJournal ?? [];
+    // Étape 10 : achats d'arsenal appliqués avant scellement (prompt v10 §4)
+    finie.armes = [
+      ...finie.armes,
+      ...Object.entries(achats).flatMap(([id, qte]) => {
+        const modele = armesArsenal.find((a) => a.id === id);
+        return modele ? Array.from({ length: qte }, (_, i) => ({ ...structuredClone(modele), id: `${modele.id}-${Date.now()}-${i}`, equipee: false })) : [];
+      }),
+    ];
+    // Équipement de départ par mission (p.174) : 3 nods de chaque type (information rôles — les nods restent consommables en jeu via ⚒ Matériel)
+    void NODS;
     // CORRECTIF bug 1 : la fiche finie est AJOUTÉE à la liste — l'active reste intacte
     ajouterFiche(finie);
     router.push('/');
@@ -229,13 +259,34 @@ export default function CreationPage() {
             ))}
           </div>
         );
-      case 9: // 10 — Récap + mode boosté + scellement
+      case 9: // 10 — Arsenal 60 PG (p.174) + récap + scellement
         return (
           <div className="space-y-3">
-            <p className="text-sm text-white">Étape 10 (p.174) : récap et validation.</p>
+            <p className="text-sm text-white">Étape 10 (p.174) : arsenal — 60 PG à dépenser (armes standards + nods).</p>
+            <p className="text-xs text-neon-gold">Budget : <b>{restant}</b> PG restants sur {budgetTotal}</p>
+            <div className="max-h-64 space-y-1 overflow-y-auto rounded-xl border border-zinc-800 p-2">
+              {armesArsenal.filter((a) => a.accessibilite === 'standard').map((a) => (
+                <div key={a.id} className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/60 px-2 py-1.5">
+                  <div>
+                    <p className="text-xs text-white">{a.nom} <span className="text-zinc-500">{a.coutPG} PG</span></p>
+                    <p className="text-[10px] text-zinc-500">{a.degats.nombre}D6+{a.degats.bonus} · {a.type}</p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {(achats[a.id] ?? 0) > 0 && <span className="text-xs text-neon-cyan">×{achats[a.id]}</span>}
+                    <button type="button" onClick={() => acheter(a.id)} disabled={a.coutPG > restant}
+                      className="min-h-[44px] rounded-lg bg-neon-cyan/15 px-2.5 text-xs font-bold text-neon-cyan disabled:opacity-30">+</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {messageAchat && <p className="text-xs text-red-400">{messageAchat}</p>}
+            <p className="text-[11px] text-zinc-600">
+              Les 3 nods d'énergie/armure/soins + 5 grenades intelligentes sont équipés automatiquement (p.174).
+              Ajustable ensuite dans ⚒ Matériel (même source de vérité).
+            </p>
             <p className="text-xs text-zinc-400">
-              {draft.nom} · {draft.metaArmor.modele} · archétype {draft.archetypeId ?? '—'} · {draft.identite.cartes.length} lames ·
-              haut fait {draft.identite.hautFait?.nom ?? '—'} · blason {draft.identite.blason ?? '—'}
+              {draft?.nom} · {draft?.metaArmor.modele} · archétype {draft?.archetypeId ?? '—'} · {draft?.identite.cartes.length} lames ·
+              haut fait {draft?.identite.hautFait?.nom ?? '—'} · blason {draft?.identite.blason ?? '—'}
             </p>
             <label className="flex items-center gap-2 text-sm text-zinc-300">
               <input type="checkbox" checked={booste} onChange={(e) => setBooste(e.target.checked)} />

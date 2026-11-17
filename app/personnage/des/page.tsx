@@ -32,6 +32,8 @@ export default function DesPage() {
   const [difficulte, setDifficulte] = useState(2);
   const [resultat, setResultat] = useState<JetResultat | null>(null);
   const [historique, setHistorique] = useState<string[]>([]);
+  // Prompt v10 §2 : OD à ACTIVER pour ce jet (défaut = toutes les OD des 2 traits)
+  const [odsDesactives, setOdsDesactives] = useState<Set<string>>(new Set());
 
   const comboId = `combo:${base}+${combo}`;
   const estFavori = favoris[comboId] === true;
@@ -40,7 +42,7 @@ export default function DesPage() {
     const nBase = character.traits[base];
     const nCombo = character.traits[combo];
     const odNiveau = character.overdrives
-      .filter((o) => o.trait === base || o.trait === combo)
+      .filter((o) => (o.trait === base || o.trait === combo) && !odsDesactives.has(o.trait))
       .reduce((a, o) => a + o.niveau, 0);
     const totalDes = nBase + nCombo; // p.76 : dés = base + combo
     const des = lancerDes(totalDes);
@@ -89,6 +91,31 @@ export default function DesPage() {
         <label className="text-xs uppercase tracking-widest text-zinc-500">Difficulté (réussites à dépasser)</label>
         <input type="number" min={0} max={12} value={difficulte} onChange={(e) => setDifficulte(Number(e.target.value) || 0)} className="min-h-[48px] w-20 rounded-lg border border-zinc-700 bg-zinc-950 px-2 text-sm text-white" />
       </div>
+
+      {(character.overdrives.filter((o) => o.trait === base || o.trait === combo).length > 0) && (
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-2">
+          <p className="mb-1 text-[11px] uppercase tracking-widest text-zinc-600">Overdrives actives sur ce jet (p.130)</p>
+          <div className="flex flex-wrap gap-2">
+            {['OD ' + base, 'OD ' + combo].filter((v, i, arr) => arr.indexOf(v) === i).map((label) => {
+              const trait = label.slice(3) as typeof base;
+              return (
+                <label key={label} className="flex items-center gap-1.5 text-xs text-zinc-300">
+                  <input
+                    type="checkbox"
+                    checked={!odsDesactives.has(trait)}
+                    onChange={(e) => setOdsDesactives((s) => {
+                      const next = new Set(s);
+                      if (e.target.checked) next.delete(trait); else next.add(trait);
+                      return next;
+                    })}
+                  />
+                  {label} ({character.overdrives.filter((o) => o.trait === trait).reduce((a, o) => a + o.niveau, 0)} réussites)
+                </label>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <button type="button" onClick={lancer} className="min-h-[48px] w-full rounded-lg bg-neon-cyan/20 text-base font-bold text-neon-cyan shadow-glow-cyan active:bg-neon-cyan/30">
         LANCER {character.traits[base] + character.traits[combo]} dés
