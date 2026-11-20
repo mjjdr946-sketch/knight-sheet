@@ -23,7 +23,12 @@ export default function LoginPage() {
         body: JSON.stringify({ password }),
       });
       if (res.ok) {
-        router.push('/personnage/combat');
+        // CORRECTIF ops (it. 11) : sans compte choisi, le layout ne charge rien du
+        // serveur (compteActif() = null) et l'app reste sur le cache local →
+        // la recette de persistance ne peut pas démarrer. On passe par « Qui joue ? »
+        // au premier login, puis direct à l'accueil.
+        const dejaCompte = typeof window !== 'undefined' ? window.localStorage.getItem('knight-compte') : null;
+        router.push(dejaCompte ? '/' : '/quijoue');
         router.refresh();
       } else {
         setErreur(true);
