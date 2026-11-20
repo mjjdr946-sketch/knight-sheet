@@ -136,6 +136,20 @@ case " $MOUNTS " in
   *" /data "*) ;;
   *) fail "aucun volume monté sur /data — la base serait perdue au rebuild (SÉCURITÉ DONNÉES)";;
 esac
+
+# La base est créée paresseusement au premier appel qui touche SQLite : on
+# déclenche /api/comptes (qui liste les 4 comptes seed) AVANT de vérifier le fichier.
+jar3="$(mktemp)"
+printf '{"password":"%s"}' "$PW" | curl -s -o /dev/null -c "$jar3" -X POST \
+  -H 'Content-Type: application/json' --data-binary @- "http://127.0.0.1:${PORT}/api/login"
+comptes="$(curl -s -b "$jar3" --max-time 10 "http://127.0.0.1:${PORT}/api/comptes" || true)"
+rm -f "$jar3"
+echo "   /api/comptes → $(printf '%s' "$comptes" | head -c 150)"
+printf '%s' "$comptes" | grep -q 'nuncyco' \
+  || fail "l'API /api/comptes ne renvoie pas les comptes seed (réponse : $(printf '%s' "$comptes" | head -c 120))"
+rc="$(docker inspect -f '{{.RestartCount}}' knight-app)"
+[[ "$rc" == "0" ]] || fail "le conteneur a redémarré $rc fois pendant les vérifications (crash d'un handler API)"
+
 docker exec knight-app test -s /data/knight.db \
   || fail "base absente (/data/knight.db) — le conteneur n'a pas pu l'initialiser"
 docker exec knight-app node -e "
