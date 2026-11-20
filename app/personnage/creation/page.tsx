@@ -90,6 +90,7 @@ export default function CreationPage() {
 
   const valider = () => {
     if (!draft) return;
+    if (!draft.nom.trim()) { alert('Le nom du chevalier est requis (prompt v12 §0.4)'); return; }
     const finie: Character = { ...structuredClone(draft), scelle: true };
     if (booste) finie.gloire = (finie.gloire ?? 0) + 25; // mode boosté (option MJ)
     // scellement propre (prompt v9 §3) : jauges courantes == max, journal initialisé

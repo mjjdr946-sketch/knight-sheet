@@ -48,7 +48,8 @@ export default function CombatPage() {
 
   // Jet libre (prompt v6 §1) : pas d'opposition — le joueur compare lui-même
   // Prompt v10 §2 : contrôle « Jet avec opposition » COCHÉ par défaut (sens inversé it. 9)
-  const [avecOpposition, setAvecOpposition] = useState(true);
+  // CORRECTIF it.10 §0.1 : décochée par défaut — jet libre par défaut, la cocher exige une valeur
+  const [avecOpposition, setAvecOpposition] = useState(false);
 // Prompt v11 §2 : l'Opposition n'est plus un onglet — bouton qui ouvre la vue dédiée
   const [adversaireOuvert, setAdversaireOuvert] = useState(false);
   const [cinematique] = useCinematique(); // prompt v11 §3
@@ -269,7 +270,7 @@ export default function CombatPage() {
         {/* Jet libre (prompt v6 §1) : pas d'opposition — le joueur compare lui-même */}
         <label className="mb-2 flex min-h-[48px] items-center gap-2 rounded-lg bg-zinc-950 px-2 text-xs text-zinc-300">
           <input type="checkbox" checked={avecOpposition} onChange={(e) => setAvecOpposition(!e.target.checked)} className="h-5 w-5 accent-cyan-400" />
-          Jet avec opposition (décocher = comparaison manuelle au MJ)
+          Jet avec opposition (cocher pour saisir la valeur du MJ)
         </label>
 
         {/* Opposition + type (masqués si adversaire défini — son seuil prime) */}

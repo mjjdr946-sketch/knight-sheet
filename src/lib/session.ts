@@ -30,24 +30,31 @@ async function hmac(secret: string, message: string): Promise<string> {
   return Array.from(new Uint8Array(sig), (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-/** Crée un token de session signé (timestamp + HMAC). */
-export async function creerTokenSession(): Promise<string> {
+/** Crée un token de session signé (timestamp + accountId + HMAC).
+ * Prompt v12 §1 : accountId en payload — le compte actif voyage dans le cookie
+ * signé (impossible à falsifier sans le secret dérivé). */
+export async function creerTokenSession(accountId?: string): Promise<string> {
   const ts = Date.now().toString(36);
-  const sig = await hmac(await secretDerive(), ts);
-  return `${ts}.${sig}`;
+  const payload = accountId ? `${ts}.${accountId}` : ts;
+  const sig = await hmac(await secretDerive(), payload);
+  return `${payload}.${sig}`;
 }
 
 /** Vérifie un token : signature valide ET non expiré. */
 export async function verifierTokenSession(token: string): Promise<boolean> {
   if (!token || !token.includes('.')) return false;
-  const [ts, sig] = token.split('.');
+  const parties = token.split('.');
+  if (parties.length < 2) return false;
+  const ts = parties[0]!;
+  const sig = parties[parties.length - 1]!;
+  const payload = parties.slice(0, -1).join('.'); // ts[.accountId] signé
   if (!ts || !sig) return false;
-  const attendue = await hmac(await secretDerive(), ts);
+  const attendue = await hmac(await secretDerive(), payload);
   // comparaison à temps constant basique (longueur + XOR)
   if (sig.length !== attendue.length) return false;
   let diff = 0;
   for (let i = 0; i < sig.length; i++) diff |= sig.charCodeAt(i) ^ attendue.charCodeAt(i);
   if (diff !== 0) return false;
   const age = Date.now() - parseInt(ts, 36);
-  return age >= 0 && age < DELIVRANCE_MS;
+  return Number.isFinite(age) && age >= 0 && age < DELIVRANCE_MS;
 }

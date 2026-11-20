@@ -12,7 +12,7 @@ import { paladin as paladinArmure } from './meta-armor';
 /** Gabarit : profil chiffré PARTIE 6 + capacités (automatisées ou en texte) */
 function gabarit(
   modele: string,
-  generation: 1 | 2,
+  generation: 1 | 2 | 3,
   profil: { pa: number; pe: number; cdf: number; slots: [number, number, number, number, number, number] },
   odBase: string[],
   capacites: MetaArmor['capacites'],
@@ -266,6 +266,139 @@ export const META_ARMURES: Record<string, MetaArmor> = {
     ],
     ['Aucun handicap formalisé — fragilité structurelle : PA 40 (p.163)', 'RÈGLES: à compléter — évolutions (portées, −3 PE min 1)'],
   ),
+
+  // ─── 2038 (PARTIE 7 du digest) — 3e gén. : lien synaptique, CdF excellent ──
+  psion: gabarit(
+    'psion', 3,
+    { pa: 50, pe: 60, cdf: 14, slots: [7, 12, 10, 10, 7, 7] }, // p.8 : Tête 7 · Torse 12 · Bras 10/10 · Jambes 7/7
+    ['instinct', 'savoir', 'perception', 'sangfroid'],
+    [
+      {
+        id: 'flux',
+        nom: 'Le Flux (ressource propre)',
+        description:
+          'Récolte uniquement contre Anathème/désespérés : +2 flux au début de phase (+1/tour suivant) ; hostile tué +2, ' +
+          'salopard +3, patron +4 ; hors conflit +1 par créature à portée moyenne (max 10/scène, 1×/scène). Tout flux ' +
+          'non dépensé en fin de scène est perdu. (2038 p.8)',
+        coutPE: '—',
+        activation: 'aucune',
+        duree: 'perdu en fin de scène',
+        effets: [],
+        active: false,
+      },
+      {
+        id: 'puppet-master',
+        nom: 'Mode Puppet Master',
+        description:
+          'Ordre simple (1-3 mots) à une créature hostile (Anathème ou désespéré) à portée moyenne ; elle l\u2019exécute ' +
+          'avec toutes ses actions. +3 PE/+1 flux par créature supplémentaire (max 3). (2038 p.8)',
+        coutPE: '2 PE + 1 flux',
+        activation: 'action-deplacement',
+        duree: '1 tour / 10 s',
+        effets: [],
+        active: false,
+      },
+      {
+        id: 'discord',
+        nom: 'Mode Discord',
+        description:
+          'Tous les hostiles de la scène : −2 dés aux actions, −2 réaction, −2 défense (non cumulable). ' +
+          'Flux 1 (1 tour) ou 3 (scène) ; PE 2/tour ou 6 pour la scène. (2038 p.8)',
+        coutPE: '2/tour ou 6 (scène) + flux',
+        activation: 'action-deplacement',
+        duree: '1 tour / scène',
+        effets: [],
+        active: false,
+      },
+      {
+        id: 'windtalker',
+        nom: 'Mode Windtalker',
+        description:
+          'Connaît les tactiques d\u2019un type de créature présent ; le MJ annonce la prochaine action de chaque ' +
+          'créature à portée moyenne. (2038 p.9)',
+        coutPE: '4 PE + 2 flux',
+        activation: 'action-deplacement',
+        duree: 'instantanée',
+        effets: [],
+        active: false,
+      },
+    ],
+    ['RÈGLES: à compléter — évolutions 150/200/250 PG (Puppet Master sur salopards/bandes, Discord renforcé) — 2038 p.9'],
+  ),
+
+  monk: gabarit(
+    'monk', 3,
+    { pa: 60, pe: 50, cdf: 14, slots: [7, 10, 8, 8, 6, 6] }, // p.9 : Tête 7 · Torse 10 · Bras 8/8 · Jambes 6/6
+    ['hargne', 'tir', 'combat', 'sangfroid'],
+    [
+      {
+        id: 'cea',
+        nom: 'Mode Céa (3 propulsions)',
+        description:
+          'Vague (3D6/3D6 contact-courte, parasitage 2/dispersion 3/destructeur/choc 2) · Salve (3D6/3D6 moyenne, ' +
+          'ultraviolence/meurtrier/dispersion 3/parasitage 1) · Rayon (4D6/2D6 moyenne, perce armure 40/parasitage 1, ' +
+          '+1D6 par tour de maintien). Jet Tir (portée+) ou Combat (contact). Deux gantelets = ambidextre/akimbo. ' +
+          'COUT : 1 point d’espoir IRRÉDUCTIBLE par utilisation. (2038 p.9)',
+        coutPE: '3 PE/utilisation + 1 espoir',
+        activation: 'action-combat',
+        duree: 'instantanée',
+        effets: [],
+        active: false,
+      },
+      {
+        id: 'zen',
+        nom: 'Mode Zen',
+        description:
+          'Après une phase de conflit : 1 h de méditation + test Hargne combo Sang-Froid difficulté ardu (5) → ' +
+          'récupère ½ (arrondi sup.) des espoirs perdus via Céa ; +1 espoir par réussite au-delà. Zen non activé ' +
+          'dans la scène suivante = pertes définitives. (2038 p.9)',
+        coutPE: '—',
+        activation: 'aucune',
+        duree: 'scène suivante',
+        effets: [],
+        active: false,
+      },
+    ],
+    ['RÈGLES: à compléter — évolutions 150/200/250 PG (+2D6 propulsions, Zen global, effets renforcés) — 2038 p.9'],
+  ),
+
+  // ─── 4e gén. (projet Trinity) : pas de PS, sensibilité IEM, armure vivante ──
+  sorcerer: gabarit(
+    'sorcerer', 3,
+    { pa: 60, pe: 80, cdf: 14, slots: [7, 10, 8, 8, 6, 6] },
+    ['instinct', 'dexterite', 'endurance', 'sangfroid'],
+    [
+      {
+        id: 'morph',
+        nom: 'Mode Morph (3 capacités parmi 6)',
+        description:
+          'Vol en nuée (module vol niv 1 gratuit) · Phase (module phase niv 1) · Étirement (~10 m, contact→courte, ' +
+          '+3 réussites immobiliser) · Corps de métal (+2 CdF) · Corps fluide (+2 déf/réaction) · Polymorphie de ' +
+          'guerre (1 module gratuit/tour : griffes/lame/canon de bras niv 1). Changer de configuration = réactiver ' +
+          '+ 10 PE. COUT : 1 point d’espoir IRRÉDUCTIBLE par activation. (2038 p.15)',
+        coutPE: '10 PE + 1 espoir',
+        activation: 'aucune',
+        duree: 'une scène / phase',
+        effets: [],
+        active: false,
+      },
+      {
+        id: 'energie-deficiente',
+        nom: 'Énergie déficiente (spécial 4e gén.)',
+        description:
+          'Pas de recharge par repos : uniquement nods d’énergie ou siphon sur un allié consentant (contact + ' +
+          'action de déplacement, jet 1-3D6 → gagne autant de PE que l’allié en perd). Modules payés +5/+10/+15 PG. ' +
+          'Pas de PS : à 0 PA, agonie — jet Sang-Froid combo Hargne (4), échec = mort. (2038 p.15)',
+        coutPE: '—',
+        activation: 'aucune',
+        duree: 'permanent',
+        effets: [],
+        active: false,
+      },
+    ],
+    ['RÈGLES: à compléter — évolutions 150/250 PG (capacités renforcées, les 6 actives) — 2038 p.15',
+     'Handicaps 4e gén. : sensibilité IEM (parasitage auto), armure vivante (pas de fold), insensible poisons/chute'],
+  ),
 };
 
 /** Libellés lisibles pour le sélecteur */
@@ -279,4 +412,7 @@ export const NOMS_ARMURES: { id: string; nom: string; generation: string }[] = [
   { id: 'bard', nom: 'Bard', generation: '2e — infiltrateur' },
   { id: 'wizard', nom: 'Wizard', generation: '2e — anti-Anathème' },
   { id: 'barbarian', nom: 'Barbarian', generation: '2e — contact' },
+  { id: 'psion', nom: 'Psion', generation: '3e — le Flux' },
+  { id: 'monk', nom: 'Monk', generation: '3e — Céa/Zen' },
+  { id: 'sorcerer', nom: 'Sorcerer', generation: '4e — projet Trinity' },
 ];

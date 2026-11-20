@@ -67,6 +67,9 @@ export const THEME_PAR_MODELE: Record<string, string> = {
   barbarian: 'barbare',
   priest: 'pretre',
   paladin: 'paladin',
+  psion: 'psion',
+  monk: 'monk',
+  sorcerer: 'sorcerer',
 };
 
 /** Pose data-theme sur <html> (DOCUMENT 3 règle 4 — le store est la source).
@@ -298,11 +301,12 @@ export const useCharacterStore = create<CharacterStore>()(
       },
 
       creerFiche: (nom) => {
+        const nomFinal = nom.trim() || 'Nouveau chevalier'; // it.10 §0.4 : pas de fiche anonyme
         const id = `fiche-${Date.now()}`;
         const nouvelle: Character = {
           ...structuredClone(personnageExemple),
           id,
-          nom,
+          nom: nomFinal,
           favoris: [],
         };
         set((s) => ({ autresFiches: { ...s.autresFiches, [id]: nouvelle } }));

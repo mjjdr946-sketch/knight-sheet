@@ -273,3 +273,35 @@ Modifier des paliers de modules, effets d'OD restants, ambiance/son.
 - ✅ **Palier de puissance** (PARTIE 7) : badge Écuyer/Chevalier/Champion/
   Table Ronde sur l'accueil (cartes) + header (`palierPuissance`, test
   dédié — seuils 100/300/500 PG).
+
+## Itération 10 (v12) — comptes, serveur, 2038 (EN COURS, lots livrés)
+
+- ✅ **Correctifs reportés §0** : « Jet avec opposition » décochée par défaut
+  (jet libre par défaut) ; nom vide refusé dans le wizard ET `creerFiche` ;
+  test unitaire du remplacement d'OD au changement d'armure (Paladin→Wizard +
+  purge des OD de type Warrior) — point devops clos.
+- 🔶 **Scellement côté API** : garde implémentée dans `PUT /api/chevaliers`
+  (403 si champs hors jauges modifiés sur fiche scellée). La migration
+  réelle du store vers l'API (lot 2) est en attente — à finir.
+- ✅ **Comptes** : seed 4 comptes (nuncyco=mj, bigboy/xcypher/albatar=joueur),
+  cookie re-signé avec accountId en payload HMAC, écran « Qui joue ? »
+  (`/quijoue`), API `GET/POST /api/comptes`.
+- ✅ **SQLite** : `src/lib/db.ts` (better-sqlite3, WAL, schéma v1, volume
+  `/data/knight.db`, seed au premier lancement) ; tables accounts /
+  chevaliers / adversaires / sessions_combat ; `DEVOPS.md` (variables,
+  volume, sauvegarde). Le store n'écrit PAS encore le serveur (lot 2).
+- ✅ **2038** : Psion (50/60/14, Flux + Puppet Master/Discord/Windtalker),
+  Monk (60/50/14, Céa 3 propulsions à 1 espoir irrenducible + Zen),
+  Sorcerer (60/80/14, 4e gén. Trinity : pas de PS, sensibilité IEM, armure
+  vivante, Morph 3/6, énergie déficiente) — profils complets + capacités
+  détaillées + thèmes CSS violet/teal/rose distincts (Sorcerer ≠ Wizard).
+- ✅ **Équipement 2038** : 7 armes de prestige (Wyvern, Typhon, Pulseur
+  alpha, Fenrir, Chimère, Nova, Seth) + effets Ténébricide/Espérance/
+  Oblitération + 3 reliques d'espoir (`arsenal-2038.ts`).
+- 🔶 **Necromancer/Sarcophage** (80/100/12, transition chevalier mort,
+  dotation modules par palier 0-300+ PG) : placeholder, à implémenter.
+- 🔶 **Générateur d'arme de prestige** (150 PG, ~40 effets à coûts,
+  PARTIE 7 G) : non implémenté — livrable séparé à la demande.
+- 🔶 **Migration localStorage → serveur** : au premier login, proposer
+  l'import JSON des fiches locales ; bandeau « non sauvegardé » en cas
+  d'échec réseau — à implémenter avec le lot 2.

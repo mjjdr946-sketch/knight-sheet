@@ -158,6 +158,45 @@
     --border-color: 265 85% 60%;
   }
 
+  /* ---------- PSION : thème 2038 ---------- */
+  [data-theme="psion"] {
+    --bg-main: 280 15% 4%;
+    --bg-surface: 280 10% 9%;
+    --bg-elevated: 280 10% 13%;
+    --primary: 280 80% 62%;
+    --primary-glow: 288 85% 70%;
+    --secondary: 190 80% 55%;
+    --text-main: 0 0% 95%;
+    --text-muted: 280 5% 62%;
+    --border-color: 280 80% 62%;
+  }
+
+  /* ---------- MONK : thème 2038 ---------- */
+  [data-theme="monk"] {
+    --bg-main: 180 15% 4%;
+    --bg-surface: 180 10% 9%;
+    --bg-elevated: 180 10% 13%;
+    --primary: 180 90% 50%;
+    --primary-glow: 182 95% 60%;
+    --secondary: 160 70% 55%;
+    --text-main: 0 0% 95%;
+    --text-muted: 180 5% 62%;
+    --border-color: 180 90% 50%;
+  }
+
+  /* ---------- SORCERER : thème 2038 ---------- */
+  [data-theme="sorcerer"] {
+    --bg-main: 350 15% 4%;
+    --bg-surface: 350 10% 9%;
+    --bg-elevated: 350 10% 13%;
+    --primary: 350 85% 55%;
+    --primary-glow: 352 90% 63%;
+    --secondary: 260 60% 60%;
+    --text-main: 0 0% 95%;
+    --text-muted: 350 5% 62%;
+    --border-color: 350 85% 55%;
+  }
+
   /* ---------- Application globale ---------- */
   body {
     background-color: hsl(var(--bg-main));
@@ -172,6 +211,7 @@
                 0 0 20px hsl(var(--primary-glow) / 0.2);
   }
 }
+
 
 /* ---------- Utilitaires maison (conservés de l'itération 1) ---------- */
 .font-display {
