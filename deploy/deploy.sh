@@ -71,6 +71,10 @@ PW_HASH="$(printf '%s' "$PW" | sha256sum | cut -d' ' -f1)"
 docker compose build --build-arg GIT_SHA="$FULL_SHA" --build-arg SHEET_PASSWORD_HASH="$PW_HASH" app
 
 echo "== 4/6 démarrage stack knight =="
+# Le conteneur (uid 1000) écrit ses sauvegardes dans /backup → dossier hôte dédié.
+mkdir -p deploy/backups
+chown 1000:1000 deploy/backups 2>/dev/null || true
+chmod 750 deploy/backups
 PORT="$(envval KNIGHT_PORT)"; PORT="${PORT:-8011}"
 TLS_MODE="$(envval KNIGHT_TLS_MODE)"; TLS_MODE="${TLS_MODE:-host}"
 COMPOSE=(docker compose)
@@ -123,6 +127,26 @@ rm -f "$jar"
 echo "   ${CHECK_PATH} avec cookie (http local) → $code"
 [[ "$code" == "200" ]] || echo "   ↳ normal en local : l'attribut Secure empêche l'envoi du cookie en http, parcours complet testé en HTTPS"
 
+
+# f) DONNÉES (it. 10) : le volume est-il réellement monté ? Sans lui, tout est
+#    perdu au prochain rebuild — c'est le risque n°1 de cette architecture.
+MOUNTS="$(docker inspect knight-app --format '{{range .Mounts}}{{.Destination}} {{end}}')"
+echo "   montages conteneur : ${MOUNTS:-aucun}"
+case " $MOUNTS " in
+  *" /data "*) ;;
+  *) fail "aucun volume monté sur /data — la base serait perdue au rebuild (SÉCURITÉ DONNÉES)";;
+esac
+docker exec knight-app test -s /data/knight.db \
+  || fail "base absente (/data/knight.db) — le conteneur n'a pas pu l'initialiser"
+docker exec knight-app node -e "
+const Database = require('better-sqlite3');
+const db = new Database('/data/knight.db', { readonly: true });
+const integ = Object.values(db.prepare('PRAGMA integrity_check').get())[0];
+const n = (t) => db.prepare('SELECT count(*) AS n FROM ' + t).get().n;
+console.log('   DB integrity : ' + integ + ' | comptes : ' + n('accounts') + ' | chevaliers : ' + n('chevaliers') + ' | adversaires : ' + n('adversaires'));
+if (integ !== 'ok') process.exit(1);
+if (n('accounts') < 4) { console.error('   ❌ comptes seed manquants (attendu 4)'); process.exit(1); }
+" || fail "vérification de la base échouée (intégrité ou comptes seed)"
 
 DOMAIN="$(envval KNIGHT_DOMAIN)"
 if [[ -n "$DOMAIN" && "$DOMAIN" != "localhost" && "$TLS_MODE" == "host" ]]; then

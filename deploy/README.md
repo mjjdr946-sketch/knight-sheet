@@ -49,6 +49,37 @@ cd /opt/knight && ./deploy/deploy.sh <sha>      # commit précis
 
 Rollback = redéployer le SHA précédent (les images restent taguées par SHA).
 
+## Données & sauvegardes (itération 10)
+
+Depuis l'itération 10, les comptes et les fiches vivent **côté serveur**, dans un
+fichier SQLite (`/data/knight.db`, mode WAL), et non plus dans le navigateur.
+
+- **Volume obligatoire** : `knight-data:/data` (déclaré dans `docker-compose.yml`).
+  Sans lui, chaque `--build` repart d'une base vide. `deploy.sh` **échoue** si
+  `/data` n'est pas monté, ou si la base n'a pas ses 4 comptes seed.
+  ⚠️ `docker compose down -v` **détruit la base** — interdit sans sauvegarde.
+- **Le dossier `/data` est créé dans l'image avec le propriétaire `node` (uid 1000)** :
+  un volume nommé monté sur un chemin inexistant naîtrait en root et le conteneur
+  non-root ne pourrait pas écrire la base.
+- **Sauvegarde** : `./deploy/backup.sh` → `deploy/backups/knight-<stamp>.db`.
+  Instantané cohérent pris **dans le conteneur** via `VACUUM INTO` (jamais un `cp`
+  d'une base WAL), `integrity_check` sur la source **et** sur la copie, rétention
+  des 14 derniers jeux, droits 640.
+- **Cron** : `./deploy/install-cron.sh` (03:30, marqueur `# knight-backup`,
+  idempotent). Journal : `deploy/backups/cron.log`.
+- **Restauration** : `./deploy/restore.sh deploy/backups/knight-<stamp>.db --yes`
+  (confirmation explicite, sauvegarde de sécurité automatique de l'état courant,
+  purge des `-wal`/`-shm`, vérifications après redémarrage).
+
+```bash
+ssh biblio-vps 'cd /opt/knight && ./deploy/backup.sh'          # manuelle
+ssh biblio-vps 'cd /opt/knight && ./deploy/install-cron.sh'    # quotidienne
+ls -1t /opt/knight/deploy/backups/ | head -3
+```
+
+Sauvegarde sur le même disque ≠ sauvegarde : prévoir une copie hors site
+(`rsync`/`restic`) de `deploy/backups/`.
+
 ## Accès protégé (mot de passe, itération 4)
 
 Le site est fermé par un middleware Next.js qui compare à `SHEET_PASSWORD`.

@@ -24,7 +24,14 @@ services:
       PORT: 3000
       HOSTNAME: 0.0.0.0
       NEXT_TELEMETRY_DISABLED: 1
-    # Aucun volume : app 100 % front, l'état vit dans le localStorage du navigateur.
+      # Base SQLite (it. 10) — DOIT être sur le volume, sinon tout est perdu au rebuild.
+      KNIGHT_DB_PATH: /data/knight.db
+    # ⚠️ it. 10 : les comptes et les fiches vivent dans `knight-data`.
+    # Sans ce volume, chaque `docker compose up --build` recrée une base vide.
+    # Les sauvegardes sont écrites dans ./deploy/backups (cron sur l'hôte).
+    volumes:
+      - knight-data:/data
+      - ./deploy/backups:/backup
     # 8000 = honcho-api, 8010 = biblio → 8011. Jamais 0.0.0.0 : localhost uniquement.
     ports:
       - "${KNIGHT_BIND_IP:-127.0.0.1}:${KNIGHT_PORT:-8011}:3000"
@@ -77,6 +84,7 @@ services:
       - no-new-privileges:true
 
 volumes:
+  knight-data:        # ⚠️ NE JAMAIS supprimer (comptes + fiches). `down -v` = perte totale.
   knight-caddy-data:
   knight-caddy-config:
 
