@@ -89,7 +89,11 @@ export function tousComptes(): { id: string; nom: string; role: string }[] {
 // ─── Chevaliers ─────────────────────────────────────────────────────────────
 
 export function chevaliersDuCompte(accountId: string): { id: string; nom: string; fiche: string }[] {
-  return getDb().prepare('SELECT id, nom, fiche_json FROM chevaliers WHERE account_id = ? ORDER BY nom').all(accountId) as never;
+  // CORRECTIF ops (it. 10) : la colonne est `fiche_json` mais les appelants
+  // (app/api/chevaliers/route.ts) lisent `r.fiche` → JSON.parse(undefined) → 500
+  // dès qu'un compte possède une fiche. Alias explicite ; à upstreamer proprement
+  // par le dev (renommer le champ dans le type si préféré).
+  return getDb().prepare('SELECT id, nom, fiche_json AS fiche FROM chevaliers WHERE account_id = ? ORDER BY nom').all(accountId) as never;
 }
 
 export function sauverChevalier(accountId: string, fiche: { id: string; nom: string }): void {
