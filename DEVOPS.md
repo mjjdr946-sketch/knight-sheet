@@ -47,3 +47,15 @@ SQLite ; export/import JSON reste disponible en secours (page Identité).
 - Migration réelle localStorage → serveur au premier login (import JSON proposé).
 - Sauvegarde de la session de combat (debounce) + adversaires.
 - ` Necromancer/Sarcophage` + générateur d'arme de prestige.
+
+
+## Recette standard de déploiement (8 points — prompt v13 §2)
+
+1. Login → « Qui joue ? » → l'accueil n'affiche que LES fiches du compte.
+2. Écriture (PS −1) visible dans `GET /api/chevaliers?accountId=X`.
+3. Recharge (F5) → état revenu du serveur.
+4. Rebuild `deploy.sh` → fiche survit (volume).
+5. Session de combat persistée (`sessions_combat`) — historique après reload.
+6. Isolation : compte A ne voit jamais les fiches de B.
+7. Bandeau « non sauvegardé » sur coupure API.
+8. `./backup.sh` → `integrity ok`.

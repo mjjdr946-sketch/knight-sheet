@@ -305,3 +305,29 @@ Modifier des paliers de modules, effets d'OD restants, ambiance/son.
 - 🔶 **Migration localStorage → serveur** : au premier login, proposer
   l'import JSON des fiches locales ; bandeau « non sauvegardé » en cas
   d'échec réseau — à implémenter avec le lot 2.
+
+## Itération 11 (v13) — câblage UI → API + fin des capacités
+
+- ✅ **Câblage UI → API** (prompt v13 §1) : `src/lib/sync.ts` — subscriber du
+  store → PUT /api/chevaliers (debounce 800 ms) + PUT /api/session (debounce
+  300 ms, historique du simulateur persisté) ; bandeau « non sauvegardé »
+  sur échec (retry au prochain changement) ; accueil et layout personnage
+  chargent les fiches du COMPTE depuis le serveur (cache local écrasé).
+- ✅ **localStorage dégradé en préférences UI** : cinématique, compte actif.
+  Le test `it11` vérifie qu'une écriture (PS −1) part bien en PUT avec le
+  bon accountId (recette point 2 ; points 3/5 par l'architecture).
+- ✅ **Comptes sans rôle** (§0) : les 4 comptes sont identiques à 100 %
+  (badge MJ purement décoratif) — le bouton « Préparer l'adversaire »
+  est accessible à tous.
+- ✅ **Necromancer / Armure Sarcophage** (2038 pp.21-23) : 80/100/12, 12
+  slots partout, « Plus fort que la chair », action `devenirNecromancer`
+  (conserve PG/XP/armes, perd armure+OD+modules, dotation de modules
+  gratuits par palier 0-300+ PG, garde anti-double-transition — tests).
+- ✅ **Générateur d'arme de prestige** (PARTIE 7 G) : page ⚒ Atelier —
+  budget 150 PG, grille ~30 effets à coûts (familles exclusives, effets
+  rapportant des PG : deux mains/ténébricide), base 2D6/2D6, bornes
+  15D6, **verrou 500 PG** avec message, arme forgée ajoutée à ⚒
+  Équipement via `ajouterArme` (tests).
+- 🔶 **Recette des 8 points** : points 1/2/5/6/7 couverts par tests et
+  architecture ; points 4 (rebuild volume) et 8 (backup.sh — script
+  fourni) restent une recette MANUELLE devops au déploiement.

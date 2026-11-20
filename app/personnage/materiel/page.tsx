@@ -11,6 +11,7 @@ import Accordion from '../../../components/ui/Accordion';
 import { useCharacterStore } from '@/store/characterStore';
 import { equipementMissionDepart } from '../../../src/data/weapons';
 import type { Weapon } from '@/types/character';
+import Link from 'next/link';
 
 export default function EquipementPage() {
   const character = useCharacterStore((s) => s.character);
@@ -38,6 +39,9 @@ export default function EquipementPage() {
 
   return (
     <div className="space-y-5">
+      <Link href="/personnage/atelier" className="block min-h-[48px] rounded-lg border border-neon-gold/50 bg-neon-gold/10 px-3 py-2 text-center text-sm font-bold text-neon-gold">
+        ⚒ Atelier — forger une arme de prestige (Table Ronde)
+      </Link>
       {/* ─── Armes ──────────────────────────────────────────────────── */}
       <Accordion titre="Armes" compteur={character.armes.length} ouvertParDefaut accent="cyan">
         <div className="space-y-2">

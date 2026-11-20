@@ -61,7 +61,7 @@ describe('§3 — contenu 2038 (PARTIE 7)', () => {
     expect(NOMS_ARMURES.map((n) => n.id)).toContain('psion');
     expect(NOMS_ARMURES.map((n) => n.id)).toContain('monk');
     expect(NOMS_ARMURES.map((n) => n.id)).toContain('sorcerer');
-    expect(NOMS_ARMURES.length).toBe(12); // Necromancer/Sarcophage = it. 10 lot 6 (TODO-RULES)
+    expect(NOMS_ARMURES.length).toBe(13); // 9 + 3 armures 2038 + Necromancer/Sarcophage (it. 11)
   });
 
   it('7 armes de prestige + 3 reliques + 3 effets exclusifs', () => {

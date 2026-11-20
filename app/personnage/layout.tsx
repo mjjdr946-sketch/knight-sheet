@@ -11,13 +11,29 @@ import GaugeBar from '../../components/header/GaugeBar';
 import TabBar from '../../components/navigation/TabBar';
 import { useCharacterStore, themeDeFiche } from '@/store/characterStore';
 import { computeDerived } from '@/engine/stats';
+import { brancherSync, compteActif, chargerFichesServeur, syncEnRetard, surSync } from '@/lib/sync';
 
 export default function PersonnageLayout({ children }: { children: React.ReactNode }) {
   const [hydrate, setHydrate] = useState(false);
   const remplacerPersonnage = useCharacterStore((s) => s.remplacerPersonnage);
 
   useEffect(() => {
-    // Reprise du persist : recalcul des dérivées à partir du personnage restauré
+    // Prompt v13 §1 : le SERVEUR est la source de vérité — les fiches du compte
+    // écrasent le cache local au chargement, puis toute écriture est poussée.
+    brancherSync();
+    const accountId = compteActif();
+    if (accountId) {
+      chargerFichesServeur(accountId).then((fiches) => {
+        if (fiches && fiches.length > 0) {
+          const serveur = fiches.map((f) => f as never);
+          useCharacterStore.setState({
+            character: serveur.find((f) => (f as { id: string }).id === useCharacterStore.getState().actifId) ?? serveur[0],
+            autresFiches: Object.fromEntries(serveur.map((f) => [(f as { id: string }).id, f])),
+          } as never);
+        }
+      });
+    }
+    // Reprise du persist (cache UI) : recalcul des dérivées à partir du personnage restauré
     useCharacterStore.persist.rehydrate();
     const state = useCharacterStore.getState();
     useCharacterStore.setState({ derived: computeDerived(state.character) });
@@ -37,9 +53,26 @@ export default function PersonnageLayout({ children }: { children: React.ReactNo
 
   return (
     <div className="flex h-dvh flex-col">
+      <BandeauSync />
       <GaugeBar />
       <main className="flex-1 overflow-y-auto px-3 pb-24 pt-3">{children}</main>
       <TabBar />
+    </div>
+  );
+}
+
+
+/** Bandeau « non sauvegardé » (prompt v13 §1) — retry au prochain changement. */
+function BandeauSync() {
+  const [retard, setRetard] = useState(syncEnRetard());
+  useEffect(() => {
+    const off = surSync(setRetard);
+    return () => { off(); };
+  }, []);
+  if (!retard) return null;
+  return (
+    <div className="sticky top-0 z-50 bg-red-900/90 px-3 py-1.5 text-center text-xs font-semibold text-white">
+      ⚠ Non sauvegardé — connexion au serveur perdue, nouvelle tentative au prochain jet/action.
     </div>
   );
 }

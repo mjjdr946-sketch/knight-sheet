@@ -17,7 +17,7 @@ import { appliquerBlessure, suiteAgonie } from '../engine/blessures';
 import { appliquerTestEspoir, depenserHeroisme, type ResultatHeroisme, type UsageHeroisme } from '../engine/heroisme';
 import { parseCoutPE, validerEquipement, validerSlotage } from '../engine/equipement';
 import { personnageExemple } from '../data/character';
-import { MODULES_INTERDITS_PALADIN } from '../data/modules';
+import { MODULES_INTERDITS_PALADIN, catalogueModules } from '../data/modules';
 import { META_ARMURES } from '../data/meta-armures';
 import { subirDegatsPNJ } from '../engine/pnj';
 import type { Adversaire } from '../engine/pnj';
@@ -154,6 +154,7 @@ interface CharacterStore {
   creerFiche: (nom: string) => string;
   /** Ajoute une fiche FINIE (wizard it. 6/7) sans toucher à l'active (bug 1) */
   ajouterFiche: (fiche: Character) => string;
+  ajouterArme: (arme: Character['armes'][number]) => void;
   /** Duplique une fiche existante */
   dupliquerFiche: (id: string) => string | null;
   /** Supprime une fiche (la dernière restante est conservée) */
@@ -271,6 +272,8 @@ interface CharacterStore {
   utiliserCapacitePE: (coutPE: number, nom: string, note?: string) => { ok: boolean; message: string };
   reparerPA: (auContact: boolean, de?: () => number) => { ok: boolean; message: string };
   activerGoliath: (metres: number) => { ok: boolean; message: string };
+  /** 2038 (PARTIE 7) : transition chevalier mort → Armure Sarcophage (p.21) */
+  devenirNecromancer: () => { ok: boolean; message: string };
 }
 
 /**
@@ -298,6 +301,12 @@ export const useCharacterStore = create<CharacterStore>()(
         const id = fiche.id && !get().autresFiches[fiche.id] ? fiche.id : `fiche-${Date.now()}`;
         useCharacterStore.setState((s) => ({ autresFiches: { ...s.autresFiches, [id]: { ...fiche, id } } }));
         return id;
+      },
+
+      /** Ajoute une arme forgée/achetée (générateur prestige, prompt v13 §4) */
+      ajouterArme: (arme) => {
+        const { character } = get();
+        set(recalcule({ ...character, armes: [...character.armes, arme] }));
       },
 
       creerFiche: (nom) => {
@@ -966,6 +975,36 @@ export const useCharacterStore = create<CharacterStore>()(
           derived: computeDerived({ ...s.character, goliathMetres: m }),
         }));
         return { ok: true, message: m > 0 ? `Goliath ${m} m (−${cout} PE) — +${m} CdF, défense −${m}, réaction −${m * 2}, +${m}D6 contact` : 'Goliath désactivé' };
+      },
+
+      /** NECROMANCER — Armure Sarcophage (2038 pp.21-23) : garde anti-double-transition.
+       * Conserve nom/PG/XP/armes ; perd ancienne armure + capacités + OD ;
+       * applique la dotation de modules gratuits selon les PG (coût PG ignoré). */
+      devenirNecromancer: () => {
+        const { character } = get();
+        if (character.metaArmor.modele === 'necromancer') return { ok: false, message: 'Transition déjà effectuée — jamais deux fois (2038 p.21)' };
+        const pg = character.gloire;
+        const dotation: string[] = pg < 50 ? ['fumigene']
+          : pg < 100 ? ['fumigene', 'flash']
+          : pg < 150 ? ['fumigene', 'flash', 'grappin']
+          : pg < 200 ? ['fumigene', 'flash', 'grappin', 'dard', 'attaque-sur-casque']
+          : pg < 250 ? ['fumigene', 'flash', 'grappin', 'dard', 'attaque-sur-casque', 'lame-de-bras']
+          : pg < 300 ? ['fumigene', 'flash', 'grappin', 'dard', 'attaque-sur-casque', 'lame-de-bras', 'relais-taccom']
+          : ['fumigene', 'flash', 'grappin', 'dard', 'attaque-sur-casque', 'lame-de-bras', 'relais-taccom', 'blindage-drone'];
+        // modules standards gratuits du catalogue (coût PG ignoré, p.21)
+        const modules = dotation.map((id) => catalogueModules.find((m) => m.id === id)).filter(Boolean) as Character['modules'];
+        const necro = META_ARMURES['necromancer'];
+        if (!necro) return { ok: false, message: 'Necromancer absente des données' };
+        set(recalcule({
+          ...character,
+          metaArmor: structuredClone(necro),
+          modules,
+          overdrives: [], // les 4 OD libres « Plus fort que la chair » restent à répartir au MJ (p.21)
+          ghostActif: false,
+          goliathMetres: 0,
+        }));
+        poserTheme('necromancer');
+        return { ok: true, message: `Sarcophage investie — ${modules.length} modules gratuits (PG ${pg}, 2038 p.21)` };
       },
 
       remplacerPersonnage: (character) => {

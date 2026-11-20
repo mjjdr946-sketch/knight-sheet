@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCharacterStore, ACCENT_PAR_MODELE, themeDeFiche } from '@/store/characterStore';
 import { computeDerived, palierPuissance } from '@/engine/stats';
+import { compteActif, chargerFichesServeur } from '@/lib/sync';
 import type { Character } from '@/types/character';
 
 export default function AccueilPage() {
@@ -31,6 +32,18 @@ export default function AccueilPage() {
     const state = useCharacterStore.getState();
     useCharacterStore.setState({ derived: computeDerived(state.character) });
     document.documentElement.setAttribute('data-theme', themeDeFiche(state.character));
+    // Prompt v13 : les fiches du COMPTE viennent du serveur (cache local écrasé)
+    const accountId = compteActif();
+    if (accountId) {
+      chargerFichesServeur(accountId).then((fiches) => {
+        if (fiches && fiches.length > 0) {
+          useCharacterStore.setState({
+            character: fiches.find((f) => f.id === state.actifId) ?? fiches[0],
+            autresFiches: Object.fromEntries(fiches.map((f) => [f.id, f])),
+          } as never);
+        }
+      });
+    }
     setHydrate(true);
   }, []);
 

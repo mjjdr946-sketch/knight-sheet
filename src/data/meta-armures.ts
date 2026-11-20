@@ -399,6 +399,42 @@ export const META_ARMURES: Record<string, MetaArmor> = {
     ['RÈGLES: à compléter — évolutions 150/250 PG (capacités renforcées, les 6 actives) — 2038 p.15',
      'Handicaps 4e gén. : sensibilité IEM (parasitage auto), armure vivante (pas de fold), insensible poisons/chute'],
   ),
+
+  // ─── ARMURE SARCOPHAGE (2038, PARTIE 7 pp.21-23) : chevaliers décédés ──────
+  necromancer: gabarit(
+    'necromancer', 3,
+    { pa: 80, pe: 100, cdf: 12, slots: [12, 12, 12, 12, 12, 12] }, // 12 slots partout
+    [], // OD de base REMPLACÉES par « Plus fort que la chair » (4 OD libres à l'investiture, p.21)
+    [
+      {
+        id: 'plus-fort-que-la-chair',
+        nom: 'Plus fort que la chair',
+        description:
+          'Remplace les OD de base : 4 OD à répartir librement à l\u2019investiture. Le porteur est insensible à ' +
+          'peur X, domination et Anathème. Réacteur Ouroboros, pas d\u2019IA séparée. (2038 p.21)',
+        coutPE: '—',
+        activation: 'aucune',
+        duree: 'permanent',
+        effets: [],
+        active: false,
+      },
+      {
+        id: 'sarcophage',
+        nom: 'Armure Sarcophage (règle de mort)',
+        description:
+          'À la mort, le chevalier peut investir une Necromancer : il PERD son ancienne armure, ses capacités et ses ' +
+          'OD ; il CONSERVE ses armes et modules (même de prestige) et reçoit une dotation de modules gratuits selon ' +
+          'ses PG (0-49 : 1 standard · 50-99 : 2 std · 100-149 : 2 std + 1 avancé · 150-199 : 3 std + 2 avancés · ' +
+          '200-249 : 3 std + 3 avancés · 250-299 : 4 std + 3 avancés · 300+ : 5 std + 4 avancés, coût PG ignoré). (2038 p.21)',
+        coutPE: '—',
+        activation: 'aucune',
+        duree: 'permanent',
+        effets: [],
+        active: false,
+      },
+    ],
+    ['Transition irréversible — jamais deux fois (garde anti-double-transition, prompt v13 §3)'],
+  ),
 };
 
 /** Libellés lisibles pour le sélecteur */
@@ -415,4 +451,5 @@ export const NOMS_ARMURES: { id: string; nom: string; generation: string }[] = [
   { id: 'psion', nom: 'Psion', generation: '3e — le Flux' },
   { id: 'monk', nom: 'Monk', generation: '3e — Céa/Zen' },
   { id: 'sorcerer', nom: 'Sorcerer', generation: '4e — projet Trinity' },
+  { id: 'necromancer', nom: 'Necromancer', generation: '3e — Armure Sarcophage' },
 ];
