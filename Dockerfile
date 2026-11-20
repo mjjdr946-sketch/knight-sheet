@@ -1,9 +1,10 @@
 # syntax=docker/dockerfile:1
 # Knight Sheet — image de production (Next.js 14, output: 'standalone').
-# Base Debian slim (glibc) et NON alpine : better-sqlite3 (it. 10) embarque des
-# prebuilds linux-x64 (glibc) qui se chargent correctement ; ses prebuilds musl
-# provoquent un SEGFAULT sur alpine 3.23 (relocations insupportées).
-FROM node:20-slim AS deps
+# Node 22 LTS + Debian slim (glibc), et NON node:20-alpine :
+# better-sqlite3@13 déclare `engines: node >= 22` et ses prebuilds N-API
+# provoquent un SIGSEGV (exit 139) sur Node 20, ainsi que sur les prebuilds musl
+# d'alpine 3.23. Vérifié en conteneur avant bascule.
+FROM node:22-slim AS deps
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY package.json package-lock.json ./
@@ -12,7 +13,7 @@ COPY package.json package-lock.json ./
 # `prebuilds/` (linux-x64 pour cette base glibc), chargés à l'exécution.
 RUN npm ci --no-audit --no-fund --ignore-scripts
 
-FROM node:20-slim AS builder
+FROM node:22-slim AS builder
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 ARG GIT_SHA=dev
@@ -37,7 +38,7 @@ RUN --mount=type=secret,id=sheet_password,required=true \
     grep -q "standalone" next.config.mjs || { echo "❌ next.config.mjs sans output:'standalone'" >&2; exit 1; }; \
     SHEET_PASSWORD="$(cat /run/secrets/sheet_password)" npm run build
 
-FROM node:20-slim AS runner
+FROM node:22-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
