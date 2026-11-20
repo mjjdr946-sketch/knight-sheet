@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import { useCharacterStore, ACCENT_PAR_MODELE, themeDeFiche } from '@/store/characterStore';
 import { computeDerived, palierPuissance } from '@/engine/stats';
 import { compteActif, chargerFichesServeur } from '@/lib/sync';
+import { personnageExemple } from '@/data/character';
 import type { Character } from '@/types/character';
 
 export default function AccueilPage() {
@@ -36,11 +37,18 @@ export default function AccueilPage() {
     const accountId = compteActif();
     if (accountId) {
       chargerFichesServeur(accountId).then((fiches) => {
-        if (fiches && fiches.length > 0) {
+        // CORRECTIF ops (it. 11, recette pt 6) : le cache local appartient au
+        // compte PRÉCÉDENT. Si le serveur ne renvoie rien, on repart d'une fiche
+        // neutre — sinon un compte vierge voit les chevaliers d'un autre compte.
+        const liste = fiches ?? [];
+        if (liste.length > 0) {
           useCharacterStore.setState({
-            character: fiches.find((f) => f.id === state.actifId) ?? fiches[0],
-            autresFiches: Object.fromEntries(fiches.map((f) => [f.id, f])),
+            character: liste.find((f) => f.id === state.actifId) ?? liste[0],
+            autresFiches: Object.fromEntries(liste.map((f) => [f.id, f])),
           } as never);
+        } else {
+          const neutre = { ...structuredClone(personnageExemple), id: 'aucune', nom: '' };
+          useCharacterStore.setState({ character: neutre, autresFiches: {} } as never);
         }
       });
     }

@@ -11,6 +11,7 @@ import GaugeBar from '../../components/header/GaugeBar';
 import TabBar from '../../components/navigation/TabBar';
 import { useCharacterStore, themeDeFiche } from '@/store/characterStore';
 import { computeDerived } from '@/engine/stats';
+import { personnageExemple } from '@/data/character';
 import { brancherSync, compteActif, chargerFichesServeur, syncEnRetard, surSync } from '@/lib/sync';
 
 export default function PersonnageLayout({ children }: { children: React.ReactNode }) {
@@ -24,12 +25,17 @@ export default function PersonnageLayout({ children }: { children: React.ReactNo
     const accountId = compteActif();
     if (accountId) {
       chargerFichesServeur(accountId).then((fiches) => {
-        if (fiches && fiches.length > 0) {
-          const serveur = fiches.map((f) => f as never);
+        // CORRECTIF ops (it. 11, recette pt 6) : ne jamais garder le cache du
+        // compte précédent quand le compte courant n'a aucune fiche serveur.
+        const liste = (fiches ?? []).map((f) => f as never);
+        if (liste.length > 0) {
           useCharacterStore.setState({
-            character: serveur.find((f) => (f as { id: string }).id === useCharacterStore.getState().actifId) ?? serveur[0],
-            autresFiches: Object.fromEntries(serveur.map((f) => [(f as { id: string }).id, f])),
+            character: liste.find((f) => (f as { id: string }).id === useCharacterStore.getState().actifId) ?? liste[0],
+            autresFiches: Object.fromEntries(liste.map((f) => [(f as { id: string }).id, f])),
           } as never);
+        } else {
+          const neutre = { ...structuredClone(personnageExemple), id: 'aucune', nom: '' };
+          useCharacterStore.setState({ character: neutre, autresFiches: {} } as never);
         }
       });
     }
