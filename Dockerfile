@@ -31,7 +31,7 @@ COPY . .
 ARG SHEET_PASSWORD_HASH=dev
 RUN --mount=type=secret,id=sheet_password,required=true \
     set -eux; \
-    echo "secret hash: ${SHEET_PASSWORD_HASH:0:12}"; \
+    echo "secret hash: ${SHEET_PASSWORD_HASH}"; \
     test -s /run/secrets/sheet_password || { echo "❌ secret sheet_password absent ou vide" >&2; exit 1; }; \
     if [ ! -d public ]; then mkdir -p public; fi; \
     grep -q "standalone" next.config.mjs || { echo "❌ next.config.mjs sans output:'standalone'" >&2; exit 1; }; \
