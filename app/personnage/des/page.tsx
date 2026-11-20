@@ -9,6 +9,7 @@ import { useState, useCallback } from 'react';
 import { useShake, activerGyroscope } from '../use-shake';
 import { lancerDes, compterReussites, estExploit, estEchecCritique } from '@/engine/dice';
 import { useCharacterStore } from '@/store/characterStore';
+import ResultatAnime, { useCinematique } from '../../../components/ui/ResultatAnime';
 import type { TraitId } from '@/types/character';
 
 const TRAITS: TraitId[] = ['deplacement', 'force', 'endurance', 'hargne', 'combat', 'instinct', 'tir', 'savoir', 'technique', 'aura', 'parole', 'sangfroid', 'discretion', 'dexterite', 'perception'];
@@ -31,6 +32,7 @@ export default function DesPage() {
   const [combo, setCombo] = useState<TraitId>('force');
   const [difficulte, setDifficulte] = useState(2);
   const [resultat, setResultat] = useState<JetResultat | null>(null);
+  const [cinematique] = useCinematique();
   const [historique, setHistorique] = useState<string[]>([]);
   // Prompt v10 §2 : OD à ACTIVER pour ce jet (défaut = toutes les OD des 2 traits)
   const [odsDesactives, setOdsDesactives] = useState<Set<string>>(new Set());
@@ -134,7 +136,11 @@ export default function DesPage() {
       </div>
 
       {resultat && (
-        <div className="rounded-xl border border-neon-cyan/40 bg-zinc-900/80 p-3 text-center">
+        <ResultatAnime
+          total={`${resultat.total} ${resultat.total > difficulte ? '✓' : '✗'}`}
+          verdict={resultat.echecCritique ? 'critique' : resultat.total > difficulte ? 'succes' : 'echec'}
+          cinematique={cinematique}
+        >
           <p className="text-2xl font-bold text-white">
             {resultat.total} {resultat.total > difficulte ? '✓' : '✗'}
           </p>
@@ -143,7 +149,7 @@ export default function DesPage() {
           </p>
           {resultat.exploit && <p className="mt-1 text-sm font-bold text-neon-gold">EXPLOIT — relance (p.77)</p>}
           {resultat.echecCritique && <p className="mt-1 text-sm font-bold text-red-400">ÉCHEC CRITIQUE (p.77)</p>}
-        </div>
+        </ResultatAnime>
       )}
 
       {historique.length > 0 && (

@@ -10,7 +10,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCharacterStore, ACCENT_PAR_MODELE, themeDeFiche } from '@/store/characterStore';
-import { computeDerived } from '@/engine/stats';
+import { computeDerived, palierPuissance } from '@/engine/stats';
 import type { Character } from '@/types/character';
 
 export default function AccueilPage() {
@@ -104,6 +104,9 @@ export default function AccueilPage() {
                   </p>
                   <p className="text-xs" style={{ color: accent }}>
                     {modele.charAt(0).toUpperCase() + modele.slice(1)} · {fiche.niveau} · {fiche.gloire} PG
+                    <span className="ml-1.5 rounded border border-zinc-700 px-1 text-[10px] text-zinc-300">
+                      {palierPuissance(fiche.gloire).rang}
+                    </span>
                   </p>
                 </div>
                 <button

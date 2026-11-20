@@ -366,9 +366,17 @@ export const useCharacterStore = create<CharacterStore>()(
         const { character } = get();
         const nouvelle = META_ARMURES[modele];
         if (!nouvelle) return;
-        // Le changement de méta-armure est rare et soumis au MJ (p.129) ;
-        // les modules installés restent (leurs slots sont revérifiés à l'activation).
-        set(recalcule({ ...character, metaArmor: structuredClone(nouvelle) }));
+        // Prompt v11 §4 : le changement RÉINITIALISE tout ce qui dépend de l'armure —
+        // modules déséquipés, OD remplacées par les OD de base de la nouvelle,
+        // capacités actives désactivées, jauges recalculées (PG/identité/xpJournal conservés).
+        set(recalcule({
+          ...character,
+          metaArmor: structuredClone(nouvelle),
+          modules: [], // modules déséquipés (slots propres à chaque armure, p.130)
+          overdrives: nouvelle.overdrivesDeBase.map((o) => ({ trait: o.trait, niveau: o.niveau, origine: 'base' })),
+          ghostActif: false, // capacités spécifiques désactivées (p.152)
+          goliathMetres: 0, // Goliath reset (p.168)
+        }));
         poserTheme(nouvelle.modele);
       },
 

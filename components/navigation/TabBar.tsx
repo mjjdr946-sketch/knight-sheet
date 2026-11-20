@@ -8,11 +8,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
 
+// Prompt v11 §2 : 5 onglets — Chevaliers (accueil) · Feuille · Combat · Dés · Équipement
 const ONGLETS = [
+  { href: '/', label: 'Chevaliers', icon: '🏠' },
+  { href: '/personnage/feuille', label: 'Feuille', icon: '📜' },
   { href: '/personnage/combat', label: 'Combat', icon: '⚔' },
   { href: '/personnage/des', label: 'Dés', icon: '🎲' },
-  { href: '/personnage/materiel', label: 'Matériel', icon: '⚒' },
-  { href: '/personnage/feuille', label: 'Feuille', icon: '📜' },
+  { href: '/personnage/materiel', label: 'Équipement', icon: '⚒' },
 ] as const;
 
 export default function TabBar() {

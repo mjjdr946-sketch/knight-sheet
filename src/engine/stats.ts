@@ -285,3 +285,13 @@ export function computeDerived(character: Character): DerivedStats {
     cdfGoliath: (character.goliathMetres ?? 0), // Goliath p.168 : +1 CdF par mètre (utilisé par le simulateur)
   };
 }
+
+
+/** Palier de puissance (prompt v11 §5, digest PARTIE 7 pour Table Ronde) :
+ * Écuyer < 100 PG · Chevalier 100+ · Champion 300+ · Table Ronde 500+. */
+export function palierPuissance(gloire: number): { rang: string; seuil: number } {
+  if (gloire >= 500) return { rang: 'Table Ronde', seuil: 500 };
+  if (gloire >= 300) return { rang: 'Champion', seuil: 300 };
+  if (gloire >= 100) return { rang: 'Chevalier', seuil: 100 };
+  return { rang: 'Écuyer', seuil: 0 };
+}

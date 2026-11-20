@@ -12,6 +12,7 @@ import { motion } from 'framer-motion';
 import Accordion from '../../../components/ui/Accordion';
 import PanneauAdversaire from '../panneau-adversaire';
 import PanneauEnvironnement from '../panneau-environnement';
+import ResultatAnime, { useCinematique } from '../../../components/ui/ResultatAnime';
 import { useCharacterStore } from '@/store/characterStore';
 import { STYLES_COMBAT } from '../../../src/engine/combat';
 import { seuilEffectif } from '../../../src/engine/pnj';
@@ -46,7 +47,12 @@ export default function CombatPage() {
   const favorisCombos = favoris.filter((f) => f.startsWith('combo:')).map((f) => f.slice(6));
 
   // Jet libre (prompt v6 §1) : pas d'opposition — le joueur compare lui-même
-  const [jetLibre, setJetLibre] = useState(false);
+  // Prompt v10 §2 : contrôle « Jet avec opposition » COCHÉ par défaut (sens inversé it. 9)
+  const [avecOpposition, setAvecOpposition] = useState(true);
+// Prompt v11 §2 : l'Opposition n'est plus un onglet — bouton qui ouvre la vue dédiée
+  const [adversaireOuvert, setAdversaireOuvert] = useState(false);
+  const [cinematique] = useCinematique(); // prompt v11 §3
+  const jetLibre = !avecOpposition; // le moteur garde l'ancienne sémantique interne
 
   const styleActif = character.conditions.find((c) => c.id === 'style-combat')?.nom.replace('Style : ', '') ?? 'Standard';
   const styleId = STYLES_COMBAT.find((s) => s.nom === styleActif)?.id ?? 'standard';
@@ -177,12 +183,6 @@ export default function CombatPage() {
 
   return (
     <div className="space-y-5">
-      {/* ─── Adversaire (prompt v7 §1) ───────────────────────────────── */}
-      <PanneauAdversaire />
-
-      {/* ─── Environnement (prompt v7 §2, p.92) ──────────────────────── */}
-      <PanneauEnvironnement />
-
       {/* ─── Valeurs défensives (lecture seule, moteur) ─────────────── */}
       <section>
         <div className="grid grid-cols-4 gap-1.5 text-center">
@@ -268,8 +268,8 @@ export default function CombatPage() {
 
         {/* Jet libre (prompt v6 §1) : pas d'opposition — le joueur compare lui-même */}
         <label className="mb-2 flex min-h-[48px] items-center gap-2 rounded-lg bg-zinc-950 px-2 text-xs text-zinc-300">
-          <input type="checkbox" checked={jetLibre} onChange={(e) => setJetLibre(e.target.checked)} className="h-5 w-5 accent-cyan-400" />
-          Jet libre (sans opposition — comparaison manuelle au MJ)
+          <input type="checkbox" checked={avecOpposition} onChange={(e) => setAvecOpposition(!e.target.checked)} className="h-5 w-5 accent-cyan-400" />
+          Jet avec opposition (décocher = comparaison manuelle au MJ)
         </label>
 
         {/* Opposition + type (masqués si adversaire défini — son seuil prime) */}
@@ -340,7 +340,11 @@ export default function CombatPage() {
         {/* Résultat en grand */}
         {jet && prep && (
           <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} className="mt-3 space-y-2">
-            <div className="rounded-xl border border-zinc-700 bg-zinc-950 p-3 text-center">
+            <ResultatAnime
+              total={modeMj ? '???' : jet.total}
+              verdict={jetLibre ? 'succes' : touche(jet.total, seuilUtilise ?? 0) ? 'succes' : 'echec'}
+              cinematique={cinematique}
+            >
               <p className="text-xs text-zinc-500">{jet.des.length} dés · {jet.reussitesAuto} auto</p>
               <p className="my-1 text-4xl font-bold text-white">
                 {modeMj ? '???' : jet.total}
@@ -369,7 +373,7 @@ export default function CombatPage() {
               {jet.echecCritique && (
                 <p className="mt-1 text-xs font-semibold uppercase text-red-400">Échec critique — tous impairs (p.77)</p>
               )}
-            </div>
+            </ResultatAnime>
 
             {jet.exploit && (
               <button
@@ -639,7 +643,22 @@ export default function CombatPage() {
         <p className="mt-1 text-[11px] text-zinc-600">Détail des modules : onglet Méta-armure.</p>
       </Accordion>
 
-      {/* ─── Reset combat ───────────────────────────────────────────── */}
+            {/* ─── Opposition (prompt v11 §2 : bouton, pas un onglet) ──────── */}
+      <button
+        type="button"
+        onClick={() => setAdversaireOuvert((o) => !o)}
+        className="min-h-[48px] w-full rounded-lg border border-zinc-700 text-sm text-zinc-300 active:bg-zinc-800"
+      >
+        🎭 {adversaireOuvert ? 'Masquer' : 'Préparer'} l'adversaire
+      </button>
+      {adversaireOuvert && (
+        <>
+          <PanneauAdversaire />
+          <PanneauEnvironnement />
+        </>
+      )}
+
+{/* ─── Reset combat ───────────────────────────────────────────── */}
       <button
         type="button"
         onClick={() => resetCombat()}

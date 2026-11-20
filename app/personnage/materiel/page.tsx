@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Page Matériel — armes & équipement (prompt v5 : navigation à 5 onglets).
+ * Page Équipement (ex-Matériel, renommée it. 9) — armes, modules, échanges à la volée.
  * Armes (modes, équipe/ranger), équipement de mission (nods utilisables,
  * grenades). Les modules restent sur l'onglet Méta-armure.
  */
@@ -12,7 +12,7 @@ import { useCharacterStore } from '@/store/characterStore';
 import { equipementMissionDepart } from '../../../src/data/weapons';
 import type { Weapon } from '@/types/character';
 
-export default function MaterielPage() {
+export default function EquipementPage() {
   const character = useCharacterStore((s) => s.character);
   const equiperArme = useCharacterStore((s) => s.equiperArme);
   const utiliserNod = useCharacterStore((s) => s.utiliserNod);

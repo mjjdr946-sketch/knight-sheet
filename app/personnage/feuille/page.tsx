@@ -11,6 +11,7 @@ import IdentitePage from '../identite/page';
 import Accordion from '../../../components/ui/Accordion';
 import CapacitesClasse from '../capacites-classe';
 import { useCharacterStore } from '@/store/characterStore';
+import { useCinematique } from '../../../components/ui/ResultatAnime';
 
 /** Widget XP (prompt v8 livrable 5) : ajouter des points, journal, paliers franchis = réclamations */
 function XpWidget() {
@@ -58,6 +59,7 @@ function XpWidget() {
 
 export default function FeuillePage() {
   const scelle = useCharacterStore((s) => s.character.scelle);
+  const [cinematique, setCinematique] = useCinematique(); // prompt v11 §3 : réglages
   const deverrouiller = useCharacterStore((s) => s.deverrouiller);
   return (
     <main className="mx-auto max-w-md px-3 pb-24 pt-4">
@@ -73,6 +75,11 @@ export default function FeuillePage() {
           🔓 Déverrouiller l'édition
         </button>
       )}
+      {/* Réglages (prompt v11 §3) : animation Cinématique ON par défaut */}
+      <label className="flex min-h-[48px] items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900/70 px-3 text-sm text-zinc-300">
+        <span>🎬 Cinématique (flash/vibration au jet)</span>
+        <input type="checkbox" checked={cinematique} onChange={(e) => setCinematique(e.target.checked)} className="h-5 w-5 accent-cyan-400" />
+      </label>
       <XpWidget />
       <CapacitesClasse />
       {/* Chaque section existante est réutilisée telle quelle — repliées par défaut */}

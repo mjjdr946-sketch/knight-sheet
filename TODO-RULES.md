@@ -244,3 +244,32 @@ Modifier des paliers de modules, effets d'OD restants, ambiance/son.
   scellement ; ajustable ensuite dans ⚒ Matériel (même source de vérité).
 - ✅ **Tranchage §0 figé** : relance d'exploit = 1 seule, jamais de cascade
   (`relancesAutorisees`, test dédié, p.78).
+
+## Itération 9 (v11) — UX de jeu
+
+- ✅ **Header 2 lignes desktop** (≥1024px) : ligne 1 nom + dérivées, ligne 2
+  les 5 jauges côte à côte (`max-w-4xl`, `overflow-visible`) — plus de
+  scroll horizontal. Mobile inchangé (swipe horizontal toléré UNIQUEMENT
+  dans le header).
+- ✅ **TabBar à 5** : 🏠 Chevaliers · 📜 Feuille · ⚔ Combat · 🎲 Dés ·
+  ⚒ Équipement (Matériel renommé). L'Opposition n'est plus un onglet :
+  bouton « 🎭 Préparer l'adversaire » dans Combat qui ouvre la vue dédiée
+  (panneau + environnement repliés en fin de page).
+- ✅ **Ordre des blocs Combat** : attaque (gyroscope) · dégâts/encaissement ·
+  armure · (adversaire + environnement en bas).
+- ✅ **« Jet avec opposition »** (sens inversé) : COCHÉE par défaut — la
+  décocher passe en comparaison manuelle au MJ.
+- ✅ **Animation Mecha** (prompt v11 §3) : flash blanc, shake/zoom, chiffre
+  spring, bordure verdict — composant `ResultatAnime` ; vibreur
+  `navigator.vibrate` avec motif par verdict (feature-detect, silencieux
+  iOS) ; toggle « Cinématique » dans les réglages de la Feuille (ON par
+  défaut, persisté `knight-cinematique`) — OFF = bloc statique.
+- ✅ **Modale changement d'armure** (p.130) : liste précise des resets
+  (jauges max, OD de base, capacités désactivées, modules déséquipés,
+  évolutions) + « conservé » explicite (PG, boosté, identité, XP) ;
+  `changerArmure` applique le reset réel — 2 tests de non-régression.
+  NB : le test du prompt citait Warrior→Psion — Psion arrive en it. 10
+  (PARTIE 7) ; test équivalent avec Wizard.
+- ✅ **Palier de puissance** (PARTIE 7) : badge Écuyer/Chevalier/Champion/
+  Table Ronde sur l'accueil (cartes) + header (`palierPuissance`, test
+  dédié — seuils 100/300/500 PG).

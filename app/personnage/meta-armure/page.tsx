@@ -13,7 +13,7 @@ import { useMemo, useState } from 'react';
 import ModuleCard from '../../../components/cards/ModuleCard';
 import Accordion from '../../../components/ui/Accordion';
 import { catalogueModules } from '../../../src/data/modules';
-import { NOMS_ARMURES } from '../../../src/data/meta-armures';
+import { NOMS_ARMURES, META_ARMURES } from '../../../src/data/meta-armures';
 import { useCharacterStore } from '@/store/characterStore';
 import type { ModuleCategory, SlotZone } from '@/types/character';
 
@@ -46,6 +46,8 @@ export default function MetaArmurePage() {
   const activerCapacite = useCharacterStore((s) => s.activerCapacite);
   const payerMaintenanceShrine = useCharacterStore((s) => s.payerMaintenanceShrine);
   const changerArmure = useCharacterStore((s) => s.changerArmure);
+  // Prompt v11 §4 : modale de confirmation avec liste PRÉCISE des resets
+  const [armureEnAttente, setArmureEnAttente] = useState<string | null>(null);
 
   // Filtres du catalogue
   const [filtreCat, setFiltreCat] = useState<ModuleCategory | 'toutes'>('toutes');
@@ -80,11 +82,33 @@ export default function MetaArmurePage() {
           Seule la Paladin a un profil complet extrait ; les autres affichent des placeholders.
         </p>
         <div className="flex gap-1.5 overflow-x-auto pb-1">
-          {NOMS_ARMURES.map((a) => (
+          {/* Modale de confirmation (prompt v11 §4) — liste PRÉCISE des resets */}
+      {armureEnAttente && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3">
+          <div className="max-w-sm space-y-3 rounded-xl border border-zinc-700 bg-zinc-950 p-4">
+            <p className="text-base font-bold text-white">Changer de méta-armure ?</p>
+            <p className="text-xs text-zinc-400">L'armure actuelle devient <b>{META_ARMURES[armureEnAttente]?.modele ?? armureEnAttente}</b>. Sera remis à zéro / recalculé :</p>
+            <ul className="list-disc space-y-0.5 pl-5 text-xs text-zinc-300">
+              <li>Jauges max : PA {META_ARMURES[armureEnAttente]?.paTotal} · PE {META_ARMURES[armureEnAttente]?.peTotal} · CdF {META_ARMURES[armureEnAttente]?.cdfTotal}</li>
+              <li>Overdrives → OD de base de la nouvelle armure</li>
+              <li>Capacités spécifiques de l'ancienne armure — désactivées</li>
+              <li>Modules slotés — déséquipés (slots différents)</li>
+              <li>Évolutions atteintes — à réévaluer selon la nouvelle armure</li>
+            </ul>
+            <p className="text-xs text-zinc-500">✓ Conservé : PG cumulés, mode boosté, identité (tarot, motivations), XP, journal.</p>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setArmureEnAttente(null)} className="min-h-[48px] flex-1 rounded-lg border border-zinc-700 text-sm text-zinc-300">Annuler</button>
+              <button type="button" onClick={() => { changerArmure(armureEnAttente); setArmureEnAttente(null); }} className="min-h-[48px] flex-1 rounded-lg bg-red-900/50 text-sm font-bold text-white">Changer quand même</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {NOMS_ARMURES.map((a) => (
             <button
               key={a.id}
               type="button"
-              onClick={() => changerArmure(a.id)}
+              onClick={() => setArmureEnAttente(a.id)}
               className={`min-h-[48px] shrink-0 rounded-lg border px-3 text-xs ${
                 character.metaArmor.modele === a.id
                   ? 'border-neon-gold text-neon-gold shadow-glow-gold'
