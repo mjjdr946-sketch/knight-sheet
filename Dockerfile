@@ -5,7 +5,10 @@ FROM node:20-alpine AS deps
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY package.json package-lock.json ./
-RUN npm ci --no-audit --no-fund
+# --ignore-scripts : better-sqlite3 (it. 10) déclenche sinon un `node-gyp rebuild`
+# (pas de toolchain en alpine). Le paquet embarque ses binaires N-API dans
+# `prebuilds/` — dont linuxmusl-x64 pour cette image — chargés à l'exécution.
+RUN npm ci --no-audit --no-fund --ignore-scripts
 
 FROM node:20-alpine AS builder
 WORKDIR /app
