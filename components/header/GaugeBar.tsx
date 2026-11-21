@@ -22,6 +22,8 @@ export default function GaugeBar() {
           {palierPuissance(character.gloire).rang}
         </span>
         {character.scelle && <span className="ml-1 text-neon-gold" title="Fiche scellée — édition bloquée">🔒</span>}
+        {/* ops : CompteMenu était défini mais jamais rendu (menu compte inaccessible) */}
+        <CompteMenu />
       </p>
       {/* Desktop (≥1024px) : dérivées affichées en dur dans le header, sans drill-down (prompt v9 §2) */}
       <div className="hidden justify-center gap-4 border-b border/50 py-1 text-xs lg:flex">
