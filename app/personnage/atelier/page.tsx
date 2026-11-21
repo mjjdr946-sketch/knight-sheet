@@ -60,6 +60,7 @@ export default function AtelierPage() {
   const [porteePlus, setPorteePlus] = useState(0);
   const [effetsChoisis, setEffetsChoisis] = useState<Set<string>>(new Set());
   const [nom, setNom] = useState('');
+  const [armeForgee, setArmeForgee] = useState<string | null>(null); // modale custom (prompt v16 §6)
 
   const verrou = gloire < SEUIL_TABLE_RONDE;
 
@@ -94,7 +95,7 @@ export default function AtelierPage() {
       effets: Array.from(effetsChoisis),
     };
     ajouterArme(arme); // propriété du compte (sauvegarde serveur via sync)
-    alert(`« ${arme.nom} » forgée — remise par Merlin en cérémonie (p.38)`);
+    setArmeForgee(arme.nom); // modale custom au lieu d'alert
   };
 
   if (verrou) {
@@ -177,6 +178,16 @@ export default function AtelierPage() {
       <input value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Nom de l'arme (validé avec le MJ — p.38)"
         className="min-h-[48px] w-full rounded-lg border border-zinc-700 bg-zinc-950 px-2 text-sm text-white" />
 
+      {/* Modale de forge (prompt v16 §6) — jamais d'alert natif */}
+      {armeForgee && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3">
+          <div className="max-w-sm space-y-3 rounded-xl border border-neon-gold/50 bg-zinc-950 p-4 text-center">
+            <p className="font-display text-lg text-neon-gold">⚒ « {armeForgee} » forgée !</p>
+            <p className="text-xs text-zinc-400">Remise par Merlin en cérémonie (p.38) — visible dans ⚒ Équipement et sauvegardée côté serveur.</p>
+            <button type="button" onClick={() => setArmeForgee(null)} className="min-h-[48px] w-full rounded-lg bg-neon-gold/20 text-sm font-bold text-neon-gold">Parfait</button>
+          </div>
+        </div>
+      )}
       <button type="button" onClick={forger} disabled={!valide}
         className="min-h-[48px] w-full rounded-lg bg-neon-gold/20 text-base font-bold text-neon-gold disabled:opacity-40">
         ⚒ Forger l'arme de prestige

@@ -432,8 +432,11 @@ export default function CombatPage() {
           <h2 className="font-display text-xs uppercase tracking-widest text-zinc-500">Style de combat</h2>
           <span className="text-xs text-neon-cyan">{styleActif}</span>
         </div>
+        {/* Prompt v16 §1 : favoris (★) en tête de liste */}
         <div className="flex gap-1.5 overflow-x-auto pb-1">
-          {STYLES_COMBAT.map((s) => (
+          {[...STYLES_COMBAT].sort((a, b) =>
+            Number(favoris.includes(`style:${b.id}`)) - Number(favoris.includes(`style:${a.id}`)),
+          ).map((s) => (
             <button
               key={s.id}
               type="button"
@@ -457,6 +460,17 @@ export default function CombatPage() {
             ★
           </button>
         </div>
+        {/* Drill-down : texte descriptif du style actif (avantages/inconvénients, p.87-89) */}
+        {(() => {
+          const style = STYLES_COMBAT.find((s) => s.id === styleId);
+          if (!style) return null;
+          return (
+            <p className="mt-1 rounded-lg border border-zinc-800 bg-zinc-950 p-2 text-[11px] text-zinc-400">
+              <span className="text-neon-cyan">Bonus : {style.bonus}</span>
+              {style.malus && <span className="block text-red-400/80">Malus : {style.malus}</span>}
+            </p>
+          );
+        })()}
       </section>
 
       {/* ─── Tour suivant + Héroïsme (prompt v7 §4, p.96-97) ─────────── */}
@@ -503,7 +517,7 @@ export default function CombatPage() {
                   const reussites = des.filter((d) => d % 2 === 0).length;
                   const succes = reussites > diffEsprit;
                   const r = testerEspoir(succes, 1 + Math.floor(Math.random() * 6));
-                  alert(`${succes ? '✓ Réussite' : '✗ Échec'} (${reussites} réussites sur ${des.length} dés vs ${diffEsprit}) — ${r.perte} PEs perdus (p.96).`);
+                  alert(`${succes ? '✓ Réussite' : '✗ Échec'} (${reussites} réussites sur ${des.length} dés vs ${diffEsprit}) — ${r.perte} Espoir perdus (p.96).`);
                 }}
                 className="min-h-[48px] flex-1 rounded-lg bg-neon-gold/15 text-xs font-bold text-neon-gold active:bg-neon-gold/25"
               >
@@ -513,14 +527,14 @@ export default function CombatPage() {
             <div className="flex gap-1.5">
               <button
                 type="button"
-                onClick={() => { const r = testerEspoir(true, 1 + Math.floor(Math.random() * 6)); alert(`Réussite : aucune perte (${r.perte} PEs perdus).`); }}
+                onClick={() => { const r = testerEspoir(true, 1 + Math.floor(Math.random() * 6)); alert(`Réussite : aucune perte (${r.perte} Espoir perdus).`); }}
                 className="min-h-[48px] flex-1 rounded-lg bg-neon-cyan/15 text-xs text-neon-cyan active:bg-neon-cyan/25"
               >
                 Réussite
               </button>
               <button
                 type="button"
-                onClick={() => { const r = testerEspoir(false, 1 + Math.floor(Math.random() * 6)); alert(`Échec : −${r.perte} PEs (1D6, p.96).`); }}
+                onClick={() => { const r = testerEspoir(false, 1 + Math.floor(Math.random() * 6)); alert(`Échec : −${r.perte} Espoir (1D6, p.96).`); }}
                 className="min-h-[48px] flex-1 rounded-lg bg-red-900/40 text-xs text-red-300 active:bg-red-900/60"
               >
                 Échec (−1D6)
@@ -530,7 +544,7 @@ export default function CombatPage() {
           {(
             [
               { usage: 'ignorer-agonie', nom: 'Ignorer une mise à l\u2019agonie', desc: 'Conserve 1 PS exactement' },
-              { usage: 'garder-espoir', nom: 'Garder le dernier espoir', desc: 'Conserve 1 PEs exactement' },
+              { usage: 'garder-espoir', nom: 'Garder le dernier espoir', desc: 'Conserve 1 Espoir exactement' },
               { usage: 'relancer-jet', nom: 'Relancer un jet raté', desc: 'Sur l\u2019instant' },
               { usage: 'degats-maximum', nom: 'Dégâts maximum', desc: 'Arme au max' },
               { usage: 'combo-supplementaire', nom: 'Combo supplémentaire', desc: 'À déclarer avant le jet' },

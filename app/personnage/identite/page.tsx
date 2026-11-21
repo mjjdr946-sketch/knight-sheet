@@ -4,7 +4,7 @@
  * Page Identité — lames de tarot (22 lames), haut fait, blason, motivations,
  * serment + export/import du personnage en JSON.
  * L'effet des lames sur les stats passe par les `Modifier` des cartes
- * (ex. Dur à cuir → +5 PS, Forteresse spirituelle → +5 PEs).
+ * (ex. Dur à cuir → +5 PS, Forteresse spirituelle → +5 Espoir).
  */
 import { useRef, useState } from 'react';
 import RuleDrawer from '../../../components/drawers/RuleDrawer';
@@ -164,7 +164,7 @@ export default function IdentitePage() {
               {c.categorie === 'blessure' && (
                 <button
                   type="button"
-                  onClick={() => { const ok = poserImplant(c.id); alert(ok ? 'Implant posé (20 PG, −3 PEs total, p.91)' : 'Refusé — max 6 implants (p.91)'); }}
+                  onClick={() => { const ok = poserImplant(c.id); alert(ok ? 'Implant posé (20 PG, −3 Espoir total, p.91)' : 'Refusé — max 6 implants (p.91)'); }}
                   className="min-h-[48px] rounded-lg border border-zinc-700 px-2.5 text-[11px] text-zinc-300 active:bg-zinc-800"
                 >
                   Implant (20 PG)
