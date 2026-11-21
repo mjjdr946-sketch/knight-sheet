@@ -44,7 +44,7 @@ export default function AccueilPage() {
         if (liste.length > 0) {
           // Invariant (it. 7) : l'active n'est JAMAIS dans autresFiches, sinon
           // l'accueil affiche la même fiche deux fois (constaté en prod).
-          const active = liste.find((f) => f.id === state.actifId) ?? liste[0];
+          const active = liste.find((f) => f.id === state.actifId) ?? liste[0]!;
           useCharacterStore.setState({
             character: active,
             autresFiches: Object.fromEntries(liste.filter((f) => f.id !== active.id).map((f) => [f.id, f])),
