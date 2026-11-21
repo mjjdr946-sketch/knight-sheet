@@ -29,6 +29,9 @@ const SECTIONS: { id: string; nom: string; aspect: AspectId; traits: TraitId[]; 
   { id: 'giant', nom: 'Giant', aspect: 'machine', traits: ['tir', 'savoir', 'technique'], inconv: 'Rat d\u2019atelier' },
   { id: 'gargoyle', nom: 'Gargoyle', aspect: 'chair', traits: ['deplacement', 'force', 'endurance'], inconv: 'Surprotecteur' },
   { id: 'korrigan', nom: 'Korrigan', aspect: 'masque', traits: ['discretion', 'dexterite', 'perception'], inconv: 'Toujours un doute' },
+  { id: 'tarasque', nom: 'Tarasque', aspect: 'bete', traits: ['hargne', 'combat', 'instinct'], inconv: 'Fou dangereux' },
+  { id: 'griffon', nom: 'Griffon', aspect: 'masque', traits: ['discretion', 'dexterite', 'perception'], inconv: 'Jouteur' },
+  { id: 'cyclope', nom: 'Cyclope', aspect: 'machine', traits: ['tir', 'savoir', 'technique'], inconv: 'Sensible à l’Anathème' },
 ];
 
 export default function CreationPage() {
@@ -169,10 +172,10 @@ export default function CreationPage() {
         return (
           <ChoixListe
             titre="Haut fait (p.123-125)"
-            items={HAUTS_FATS.map((h) => ({ id: h.id, nom: h.nom, sous: h.bonus }))}
+            items={HAUTS_FATS.map((h) => ({ id: h.nom, nom: h.nom, sous: h.bonus }))}
             actif={draft.identite.hautFait?.nom}
-            onChoisir={(id) => maj((d) => {
-              const hf = HAUTS_FATS.find((h) => h.id === id)!;
+            onChoisir={(nomHf) => maj((d) => {
+              const hf = HAUTS_FATS.find((h) => h.nom === nomHf)!;
               d.identite.hautFait = { nom: hf.nom, surnom: '' };
               const key = hf.trait as TraitId;
               d.traits[key] = Math.min(9, d.traits[key] + 1); // +1 aspect simplifié (prompt v8 : +1 aspect +2 pts liés au MJ)
@@ -183,10 +186,10 @@ export default function CreationPage() {
         return (
           <ChoixListe
             titre="Blason (p.126)"
-            items={BLASONS.map((b) => ({ id: b.id, nom: b.nom, sous: b.voeu }))}
+            items={BLASONS.map((b) => ({ id: b.nom, nom: b.nom, sous: b.voeu }))}
             actif={draft.identite.blason}
-            onChoisir={(id) => maj((d) => {
-              const b = BLASONS.find((x) => x.id === id)!;
+            onChoisir={(nomBlason) => maj((d) => {
+              const b = BLASONS.find((x) => x.nom === nomBlason)!;
               d.identite.blason = b.nom; // le blason est stocké par nom (identité)
               d.identite.motivations = d.identite.motivations.filter((m) => m.texte !== b.voeu);
               d.identite.motivations.push({ type: 'mineure', texte: b.voeu }); // le vœu = motivation mineure (p.126)

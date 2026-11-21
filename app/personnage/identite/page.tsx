@@ -9,7 +9,6 @@
 import { useRef, useState } from 'react';
 import RuleDrawer from '../../../components/drawers/RuleDrawer';
 import Accordion from '../../../components/ui/Accordion';
-import FichesSection from '../fiches-section';
 import { LAMES_TAROT } from '../../../src/data/tarot';
 import { useCharacterStore } from '@/store/characterStore';
 
@@ -152,9 +151,6 @@ export default function IdentitePage() {
         </ul>
         <p className="mt-1 text-xs text-zinc-600">1 majeure + 3 mineures (vœu du blason inclus) · motivation accomplie = +1D6 espoir (p.127)</p>
       </Accordion>
-
-      {/* ─── Fiches de personnages (prompt v6 §2) ───────────────────── */}
-      <FichesSection />
 
       {/* ─── État & soins lourds (p.90-91) ──────────────────────────── */}
       <Accordion titre="État & soins lourds" compteur={character.conditions.length} accent="cyan">

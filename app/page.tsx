@@ -27,12 +27,48 @@ export default function AccueilPage() {
 
   const [hydrate, setHydrate] = useState(false);
   const [importOuvert, setImportOuvert] = useState(false);
+  // Prompt v14 §3 : migration des fiches locales (knight-sheet-v1) vers le compte
+  const [migration, setMigration] = useState<{ noms: string[]; fiches: Character[] } | null>(null);
+
+  const proposerMigration = () => {
+    try {
+      const brut = localStorage.getItem('knight-sheet-v1');
+      if (!brut) return;
+      const parsed = JSON.parse(brut) as { state?: { character?: Character; autresFiches?: Record<string, Character> } };
+      const s = parsed.state;
+      if (!s) return;
+      const fiches = [s.character, ...Object.values(s.autresFiches ?? {})].filter(Boolean) as Character[];
+      if (fiches.length === 0) return;
+      setMigration({ noms: fiches.map((f) => f.nom), fiches });
+    } catch {
+      // pas de fiches migrables
+    }
+  };
+
+  const importerLocales = async () => {
+    if (!migration) return;
+    const accountId = compteActif();
+    if (!accountId) { alert('Choisis un compte d\'abord'); return; }
+    for (const fiche of migration.fiches) {
+      await fetch('/api/chevaliers', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accountId, fiche }),
+      });
+    }
+    // vider la partie DONNÉES du localStorage (préférences UI conservées)
+    localStorage.removeItem('knight-sheet-v1');
+    setMigration(null);
+    alert(`${migration.fiches.length} fiche(s) importée(s) dans le compte — elles sont maintenant côté serveur.`);
+    window.location.reload();
+  };
 
   useEffect(() => {
     useCharacterStore.persist.rehydrate();
     const state = useCharacterStore.getState();
     useCharacterStore.setState({ derived: computeDerived(state.character) });
     document.documentElement.setAttribute('data-theme', themeDeFiche(state.character));
+    proposerMigration();
     // Prompt v13 : les fiches du COMPTE viennent du serveur (cache local écrasé)
     const accountId = compteActif();
     if (accountId) {
@@ -153,6 +189,20 @@ export default function AccueilPage() {
                 <button
                   type="button"
                   onClick={() => {
+                    const blob = new Blob([JSON.stringify(fiche, null, 2)], { type: 'application/json' });
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = `knight-${fiche.nom.replace(/\s+/g, '-').toLowerCase()}.json`;
+                    a.click();
+                    URL.revokeObjectURL(a.href);
+                  }}
+                  className="min-h-[48px] flex-1 rounded-lg border border-zinc-700 text-xs text-zinc-400 active:bg-zinc-800"
+                >
+                  Exporter
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
                     if (fiches.length <= 1) { alert('Au moins une fiche doit rester.'); return; }
                     if (confirm(`Supprimer ${fiche.nom} ?`)) supprimerFiche(id);
                   }}
@@ -174,6 +224,21 @@ export default function AccueilPage() {
       >
         + Nouveau chevalier (assistant 10 étapes)
       </button>
+
+      {/* ─── Migration des fiches locales (prompt v14 §3) ─────────────── */}
+      {migration && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3">
+          <div className="max-w-sm space-y-3 rounded-xl border border-zinc-700 bg-zinc-950 p-4">
+            <p className="text-base font-bold text-white">{migration.noms.length} fiche(s) trouvée(s) sur cet appareil</p>
+            <p className="text-xs text-zinc-400">Les importer dans le compte actif ? Elles seront sauvegardées côté serveur (visibles depuis n'importe quel appareil).</p>
+            <p className="text-xs text-neon-cyan">{migration.noms.join(' · ')}</p>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => { localStorage.removeItem('knight-sheet-v1'); setMigration(null); }} className="min-h-[48px] flex-1 rounded-lg border border-zinc-700 text-sm text-zinc-400">Non, ignorer</button>
+              <button type="button" onClick={importerLocales} className="min-h-[48px] flex-1 rounded-lg bg-neon-cyan/20 text-sm font-bold text-neon-cyan">Importer</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ─── Importer ─────────────────────────────────────────────────── */}
       <button

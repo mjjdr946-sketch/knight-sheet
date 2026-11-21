@@ -61,3 +61,22 @@ SQLite ; export/import JSON reste disponible en secours (page Identité).
 6. Isolation : compte A ne voit jamais les fiches de B.
 7. Bandeau « non sauvegardé » sur coupure API.
 8. `./backup.sh` → `integrity ok`.
+
+
+## Traçabilité « toute écriture → API » (prompt v15 §0)
+
+Principe : un **subscriber unique** (`src/lib/sync.ts`, branché au montage du
+layout) écoute TOUTE mutation du store et pousse :
+- la **fiche active** → `PUT /api/chevaliers` (debounce 800 ms) ;
+- la **session de combat** → `PUT /api/session` (debounce 300 ms).
+
+Toutes les actions passent donc par l'API, y compris : création wizard
+(`ajouterFiche`), achats d'équipement (`configurerLongbow`, `ajouterArme`),
+capacités (`activerTypeWarrior`, `basculerGhost`, `utiliserImpulsion`,
+`utiliserCapacitePE`, `reparerPA`, `activerGoliath`), XP (`ajouterXP`),
+scellement/déverrouillage, jauges, dégâts, adversaire (via l'état de session).
+Le générateur d'identité (fiche neuve `ajouterFiche`) est couvert par le même
+subscriber dès l'ajout.
+
+Vérification recette : créer un chevalier complet au wizard → `GET
+/api/chevaliers?accountId=X` contient la fiche enrichie (armes, modules, XP).

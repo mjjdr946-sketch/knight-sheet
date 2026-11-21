@@ -82,6 +82,17 @@ export function compteParId(id: string): { id: string; nom: string; role: string
   return (getDb().prepare('SELECT id, nom, role FROM accounts WHERE id = ?').get(id) as never) ?? null;
 }
 
+/** Crée un compte (prompt v14 §2 : libre-service, unicité insensible à la casse). */
+export function creerCompte(nom: string): { ok: boolean; compte?: { id: string; nom: string; role: string }; message?: string } {
+  const nomPropre = nom.trim();
+  if (nomPropre.length < 2) return { ok: false, message: 'Nom trop court (2 caractères minimum)' };
+  const existant = getDb().prepare('SELECT id, nom FROM accounts WHERE LOWER(nom) = LOWER(?)').get(nomPropre) as { id: string } | undefined;
+  if (existant) return { ok: false, message: 'Ce nom est déjà pris' };
+  const id = `acc-${Date.now()}`;
+  getDb().prepare('INSERT INTO accounts (id, nom, role) VALUES (?, ?, ?)').run(id, nomPropre, 'joueur');
+  return { ok: true, compte: { id, nom: nomPropre, role: 'joueur' } };
+}
+
 export function tousComptes(): { id: string; nom: string; role: string }[] {
   return getDb().prepare('SELECT id, nom, role FROM accounts ORDER BY nom').all() as never;
 }

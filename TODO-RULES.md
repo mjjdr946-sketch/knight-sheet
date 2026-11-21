@@ -352,3 +352,22 @@ Modifier des paliers de modules, effets d'OD restants, ambiance/son.
   visibles à retoucher, Équipement 3 sections, sync.ts état unique
   renforcé, Necromancer UI Feuille, forge modale, backup GitHub — lots
   suivants (l'essentiel bloquant est traité).
+
+## Itération 13 (v15) — auth stricte, comptes libres, migration
+
+- ✅ **Wizard §5** : hauts faits (14) et blasons (10) surlignés à la sélection
+  (le highlight comparait l'id au nom stocké — jamais allumé) ; les 8 sections
+  complétées (+ Tarasque, Griffon, Cyclope).
+- ✅ **§1 auth stricte** : middleware — aucune route applicative sans compte
+  choisi (payload accountId du cookie) ; redirection /quijoue.
+- ✅ **§2 comptes libre-service** : « + Créer un nouveau compte » sur
+  /quijoue (unicité insensible à la casse, role joueur) ; les 4 seed restent.
+- ✅ **§3 migration locale** : modale systématique au chargement de l'accueil
+  si `knight-sheet-v1` contient des fiches (noms en aperçu) → import dans le
+  compte (PUT par fiche) → partie données du localStorage vidée.
+- ✅ **§4** : bouton « Exporter » (JSON) par carte de chevalier.
+- ✅ **§6** : rubrique « Fiches » retirée de la Feuille (gestion sur l'accueil).
+- ✅ **§0** : traçabilité « toute écriture → API » documentée dans DEVOPS.md
+  (subscriber unique — toutes les actions passent).
+- 🔶 Reportés §7 : postures drill-down, OD visibles, Équipement 3 sections,
+  sync singleton renforcé, Necromancer UI, forge modale, backup GitHub.
