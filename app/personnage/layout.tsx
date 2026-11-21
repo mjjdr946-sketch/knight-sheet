@@ -29,9 +29,11 @@ export default function PersonnageLayout({ children }: { children: React.ReactNo
         // compte précédent quand le compte courant n'a aucune fiche serveur.
         const liste = (fiches ?? []).map((f) => f as never);
         if (liste.length > 0) {
+          // Même invariant ici : l'active reste hors de autresFiches.
+          const active = liste.find((f) => (f as { id: string }).id === useCharacterStore.getState().actifId) ?? liste[0];
           useCharacterStore.setState({
-            character: liste.find((f) => (f as { id: string }).id === useCharacterStore.getState().actifId) ?? liste[0],
-            autresFiches: Object.fromEntries(liste.map((f) => [(f as { id: string }).id, f])),
+            character: active,
+            autresFiches: Object.fromEntries(liste.filter((f) => f !== active).map((f) => [(f as { id: string }).id, f])),
           } as never);
         } else {
           const neutre = { ...structuredClone(personnageExemple), id: 'aucune', nom: '' };

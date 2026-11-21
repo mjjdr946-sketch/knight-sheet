@@ -42,9 +42,12 @@ export default function AccueilPage() {
         // neutre — sinon un compte vierge voit les chevaliers d'un autre compte.
         const liste = fiches ?? [];
         if (liste.length > 0) {
+          // Invariant (it. 7) : l'active n'est JAMAIS dans autresFiches, sinon
+          // l'accueil affiche la même fiche deux fois (constaté en prod).
+          const active = liste.find((f) => f.id === state.actifId) ?? liste[0];
           useCharacterStore.setState({
-            character: liste.find((f) => f.id === state.actifId) ?? liste[0],
-            autresFiches: Object.fromEntries(liste.map((f) => [f.id, f])),
+            character: active,
+            autresFiches: Object.fromEntries(liste.filter((f) => f.id !== active.id).map((f) => [f.id, f])),
           } as never);
         } else {
           const neutre = { ...structuredClone(personnageExemple), id: 'aucune', nom: '' };
