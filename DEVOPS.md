@@ -80,3 +80,12 @@ subscriber dès l'ajout.
 
 Vérification recette : créer un chevalier complet au wizard → `GET
 /api/chevaliers?accountId=X` contient la fiche enrichie (armes, modules, XP).
+
+
+## Backup GitHub hors site (prompt v16 §7)
+
+1. Créer le repo privé : `curl -X POST -H "Authorization: Bearer $TOKEN" https://api.github.com/user/repos -d '{"name":"knight-sheet-backups","private":true}'`
+2. Token : PAT fine-grained, scope `contents:write` sur CE repo uniquement — rotation périodique, jamais commité.
+3. `deploy/backup-github.sh` : après `backup.sh`, push du snapshot daté (`knight-YYYYMMDD-HHMM.db`).
+4. Cron quotidien à la suite du backup 03:30 : `30 3 * * * /opt/knight/backup.sh && /opt/knight/deploy/backup-github.sh /data/knight.db`
+5. Rétention : historique de commits du repo (revert = restaurer un snapshot).

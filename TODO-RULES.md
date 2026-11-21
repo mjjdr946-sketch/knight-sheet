@@ -371,3 +371,25 @@ Modifier des paliers de modules, effets d'OD restants, ambiance/son.
   (subscriber unique — toutes les actions passent).
 - 🔶 Reportés §7 : postures drill-down, OD visibles, Équipement 3 sections,
   sync singleton renforcé, Necromancer UI, forge modale, backup GitHub.
+
+## Itération 14 (v16) — rattrapage arsenal 2038 + consolidation
+
+- ✅ **§0 RATTRAPAGE (38 items)** : NOUVEL_ARSENAL_2038 (fusil sonique, lance
+  de lumière, canon UV rare, ceste à concussion, fusil UV — stats digest
+  p.23) + MODULES_PRESTIGE (34 lignes du tableau pp.26-33, 12 blasons :
+  ours 3, serpent 4, dragon 3, faucon 2, sanglier 2, cheval 2, aigle 3,
+  cerf 3, corbeau 3, lion 3, taureau 3, loup 3 — PG/activation/durée/énergie/
+  effet/page) — flag TODO remplacé par la donnée. Test de compte : 40+5
+  armes, 57+34 modules, 7 prestige, 3 reliques.
+- ✅ **§4 sync état unique** : canaux séparés fiche/session (le succès de la
+  session ne masque plus l'échec de la fiche) ; fichier unique réparé.
+- ✅ **§1 postures** : favoris (★) en tête de liste + drill-down bonus/malus
+  du style actif (digest p.87-89).
+- ✅ **§8 libellés** : « PEs » → « Espoir » partout (header déjà correct).
+- ✅ **§6** : Necromancer UI (bouton ⚰ + modale de confirmation d'investiture
+  dans Capacités, Feuille) ; forge d'arme = modale custom (plus d'alert natif).
+- ✅ **§7** : `deploy/backup-github.sh` (API GitHub, PUT contents base64,
+  token env GITHUB_BACKUP_TOKEN, rétention par commits — doc inline).
+- 🔶 Restes mineurs : Équipement 3 sections (le contenu existe, refacto
+  visuelle à peaufiner), OD visibles 🎲 (déjà fonctionnel depuis it. 8,
+  UI à re-confirmer), Avalon (data descriptive seulement).
