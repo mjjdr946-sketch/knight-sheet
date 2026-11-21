@@ -304,7 +304,7 @@ export default function CreationPage() {
   };
 
   return (
-    <main className="mx-auto max-w-md px-3 pb-24 pt-6">
+    <main className="mx-auto max-w-md px-3 pb-44 pt-6">
       <header className="mb-4 flex items-center justify-between">
         <button type="button" onClick={() => router.push('/')} className="text-sm text-zinc-500">← Accueil</button>
         <span className="text-xs text-zinc-500">Étape {step + 1}/10 — {ETAPES[step]}</span>
@@ -316,7 +316,7 @@ export default function CreationPage() {
       </div>
       {corps()}
       {draft && (
-        <div className="fixed inset-x-0 bottom-0 z-40 flex gap-2 border-t border bg-zinc-950/95 p-3 backdrop-blur safe-bottom">
+        <div className="fixed inset-x-0 bottom-[76px] z-30 flex gap-2 border-t border bg-zinc-950/95 p-3 backdrop-blur safe-bottom">
           <button type="button" disabled={step === 0} onClick={() => setStep((s) => Math.max(0, s - 1))} className="min-h-[48px] flex-1 rounded-lg border border-zinc-700 text-sm text-zinc-300 disabled:opacity-30">←</button>
           {step < 9 ? (
             <button type="button" onClick={() => setStep((s) => s + 1)} className="min-h-[48px] flex-[3] rounded-lg bg-neon-cyan/20 text-sm font-bold text-neon-cyan">Étape suivante</button>

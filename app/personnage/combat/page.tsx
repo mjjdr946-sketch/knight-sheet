@@ -52,6 +52,7 @@ export default function CombatPage() {
   const [avecOpposition, setAvecOpposition] = useState(false);
 // Prompt v11 §2 : l'Opposition n'est plus un onglet — bouton qui ouvre la vue dédiée
   const [adversaireOuvert, setAdversaireOuvert] = useState(false);
+  const [diffEsprit, setDiffEsprit] = useState(2); // difficulté du test d'espoir (MJ, p.96)
   const [cinematique] = useCinematique(); // prompt v11 §3
   const jetLibre = !avecOpposition; // le moteur garde l'ancienne sémantique interne
 
@@ -481,7 +482,34 @@ export default function CombatPage() {
         <div className="space-y-1.5">
           {/* Test d'espoir (p.96) — jet Sang-Froid combo Hargne côté MJ */}
           <div className="rounded-lg border border-zinc-700 bg-zinc-950 p-2">
-            <p className="mb-1 text-xs text-zinc-400">Test d'espoir (p.96) — jet Sang-Froid combo Hargne</p>
+            <p className="mb-1 text-xs text-zinc-400">Test d'espoir (p.96) — jet Sang-Froid combo Hargne, difficulté MJ</p>
+            {/* Prompt v14 §4 : vrai jet automatique (base Sang-Froid combo Hargne) */}
+            <div className="mb-1.5 flex items-center gap-1.5">
+              <input
+                type="number"
+                min={0}
+                max={12}
+                value={diffEsprit}
+                onChange={(e) => setDiffEsprit(Number(e.target.value) || 0)}
+                className="min-h-[44px] w-16 rounded-lg border border-zinc-700 bg-zinc-950 px-2 text-xs text-white"
+                title="Difficulté fixée par le degré de désespoir (MJ, p.96)"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  // jet réel : dés de sangfroid + hargne (mécanique p.76-78)
+                  const n = (character.traits.sangfroid ?? 0) + (character.traits.hargne ?? 0);
+                  const des = Array.from({ length: n }, () => 1 + Math.floor(Math.random() * 6));
+                  const reussites = des.filter((d) => d % 2 === 0).length;
+                  const succes = reussites > diffEsprit;
+                  const r = testerEspoir(succes, 1 + Math.floor(Math.random() * 6));
+                  alert(`${succes ? '✓ Réussite' : '✗ Échec'} (${reussites} réussites sur ${des.length} dés vs ${diffEsprit}) — ${r.perte} PEs perdus (p.96).`);
+                }}
+                className="min-h-[48px] flex-1 rounded-lg bg-neon-gold/15 text-xs font-bold text-neon-gold active:bg-neon-gold/25"
+              >
+                🎲 Lancer le test d'espoir
+              </button>
+            </div>
             <div className="flex gap-1.5">
               <button
                 type="button"

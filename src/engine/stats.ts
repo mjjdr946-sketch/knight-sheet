@@ -295,3 +295,27 @@ export function palierPuissance(gloire: number): { rang: string; seuil: number }
   if (gloire >= 100) return { rang: 'Chevalier', seuil: 100 };
   return { rang: 'Écuyer', seuil: 0 };
 }
+
+
+/** Valeur du chevalier en PG (prompt v14 §3) — somme des postes d'après les
+ * catalogues digest : armes (achat réel, prestige coûtPG 0 = forgée) +
+ * modules installés + OD de base+acquises (grille 10/30/50/70/100 par niveau
+ * cumulé) + améliorations d'armes. Palier de puissance associé (PARTIE 7). */
+export function valeurChevalier(character: {
+  armes: { coutPG: number }[];
+  modules: { coutPG: number }[];
+  overdrives: { trait: string; niveau: number; origine?: string }[];
+}): { armes: number; modules: number; overdrives: number; total: number } {
+  const armes = character.armes.reduce((a, w) => a + w.coutPG, 0);
+  const modules = character.modules.reduce((a, m) => a + m.coutPG, 0);
+  // OD : grille annexe 10/30/50/70/100 pour le niveau 1..5 (coût cumulé par trait)
+  const parTrait = new Map<string, number>();
+  for (const o of character.overdrives) {
+    if ((o.origine ?? '') === 'type-warrior') continue; // hors limite 5, gratuites (p.136)
+    parTrait.set(o.trait, (parTrait.get(o.trait) ?? 0) + o.niveau);
+  }
+  const GRILLE = [0, 10, 40, 90, 160, 260]; // cumul 10/30/50/70/100
+  let overdrives = 0;
+  for (const total of parTrait.values()) overdrives += GRILLE[Math.min(5, total)] ?? 0;
+  return { armes, modules, overdrives, total: armes + modules + overdrives };
+}

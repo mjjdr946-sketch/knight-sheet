@@ -331,3 +331,24 @@ Modifier des paliers de modules, effets d'OD restants, ambiance/son.
 - 🔶 **Recette des 8 points** : points 1/2/5/6/7 couverts par tests et
   architecture ; points 4 (rebuild volume) et 8 (backup.sh — script
   fourni) restent une recette MANUELLE devops au déploiement.
+
+## Itération 12 (v14) — recette de table
+
+- ✅ **§0 BLOQUANT** : champ « Nom du chevalier » vérifié présent à l'étape 1
+  (test de layout + smoke live : Démarrer → nom → Étape 2 atteinte).
+- ✅ **§1 BLOQUANT** : barre d'action du wizard remontée au-dessus de la
+  TabBar (`bottom-[76px]`, z-30) + conteneur scrollable dégagé (`pb-44`)
+  — vérifié au rect (btnY 320-368 vs TabBar 365-437, plus d'occlusion).
+- ✅ **§2** : menu « 👤 Compte ▾ » dans le header → Changer de compte
+  (/quijoue, sans re-saisir le sas) / Se déconnecter (`/api/logout` purge
+  le cookie HMAC → /login).
+- ✅ **§3** : fenêtre « 💰 Valeur du chevalier » sur la Feuille —
+  `valeurChevalier()` (armes + modules + OD grille cumulée 10/30/50/70/100,
+  OD de type Warrior exclues) + palier de puissance (tests).
+- ✅ **§4** : « 🎲 Lancer le test d'espoir » — vrai jet (Sang-Froid combo
+  Hargne, dés pairs, difficulté MJ saisie), échec applique −1D6 PE via le
+  moteur existant ; les boutons manuels réussite/échec restent en secours.
+- 🔶 Reportés §7 restants : postures drill-down/favoris en tête, OD
+  visibles à retoucher, Équipement 3 sections, sync.ts état unique
+  renforcé, Necromancer UI Feuille, forge modale, backup GitHub — lots
+  suivants (l'essentiel bloquant est traité).

@@ -12,6 +12,7 @@ import Accordion from '../../../components/ui/Accordion';
 import CapacitesClasse from '../capacites-classe';
 import { useCharacterStore } from '@/store/characterStore';
 import { useCinematique } from '../../../components/ui/ResultatAnime';
+import { valeurChevalier, palierPuissance } from '@/engine/stats';
 
 /** Widget XP (prompt v8 livrable 5) : ajouter des points, journal, paliers franchis = réclamations */
 function XpWidget() {
@@ -81,6 +82,7 @@ export default function FeuillePage() {
         <input type="checkbox" checked={cinematique} onChange={(e) => setCinematique(e.target.checked)} className="h-5 w-5 accent-cyan-400" />
       </label>
       <XpWidget />
+      <ValeurChevalier />
       <CapacitesClasse />
       {/* Chaque section existante est réutilisée telle quelle — repliées par défaut */}
       <div className="space-y-3">
@@ -95,5 +97,23 @@ export default function FeuillePage() {
         </Accordion>
       </div>
     </main>
+  );
+}
+
+
+/** Fenêtre « 💰 Valeur du chevalier » (prompt v14 §3) — coût total en PG + palier. */
+function ValeurChevalier() {
+  const character = useCharacterStore((s) => s.character);
+  const v = valeurChevalier(character);
+  return (
+    <Accordion titre="💰 Valeur du chevalier" accent="gold" sousTitre={`palier ${palierPuissance(character.gloire).rang}`}>
+      <div className="space-y-1 text-xs text-zinc-300">
+        <p>Armes : <b className="text-white">{v.armes} PG</b></p>
+        <p>Modules installés : <b className="text-white">{v.modules} PG</b></p>
+        <p>Overdrives (grille 10/30/50/70/100) : <b className="text-white">{v.overdrives} PG</b></p>
+        <p className="border-t border-zinc-800 pt-1">Total de puissance estimé : <b className="text-neon-gold">{v.total} PG</b></p>
+        <p className="text-[11px] text-zinc-600">Améliorations et évolutions : intégrées aux postes ci-dessus quand chiffrées (digest).</p>
+      </div>
+    </Accordion>
   );
 }

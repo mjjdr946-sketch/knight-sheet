@@ -41,6 +41,8 @@ SQLite ; export/import JSON reste disponible en secours (page Identité).
 | `POST /api/login` | Sas : mot de passe → cookie HMAC |
 | `GET/POST /api/comptes` | Liste / sélection de compte (cookie re-signé avec accountId) |
 | `GET/PUT/DELETE /api/chevaliers` | CRUD fiches (garde scellement vérifiée côté API — 403 si édition interdite) |
+| `PUT/GET /api/session` | Session de combat par compte (historique persisté) |
+| `POST /api/logout` | Purge du cookie HMAC → retour au sas |
 
 ## À venir (it. 10 lot 6+)
 

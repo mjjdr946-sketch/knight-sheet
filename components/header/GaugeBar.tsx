@@ -4,6 +4,7 @@
  * Header sticky — rangée de jauges 1-tap.
  * Se lit depuis le store (jauges + dérivées du moteur) ; zéro calcul local.
  */
+import { useState } from 'react';
 import Gauge from './Gauge';
 import { useCharacterStore } from '@/store/characterStore';
 import { palierPuissance } from '../../src/engine/stats';
@@ -81,5 +82,37 @@ export default function GaugeBar() {
         </p>
       )}
     </header>
+  );
+}
+
+
+/** Menu Compte (prompt v14 §2) : changer de compte (sans re-saisir le sas) ou se déconnecter. */
+function CompteMenu() {
+  const [ouvert, setOuvert] = useState(false);
+  const nom = typeof window !== 'undefined' ? localStorage.getItem('knight-compte') : null;
+  return (
+    <span className="relative ml-2">
+      <button type="button" onClick={() => setOuvert((o) => !o)} className="rounded border border-zinc-700 px-1.5 text-[10px] text-zinc-400">
+        👤 {nom ?? 'compte'} ▾
+      </button>
+      {ouvert && (
+        <span className="absolute left-1/2 top-full z-50 mt-1 flex w-44 -translate-x-1/2 flex-col rounded-lg border border-zinc-700 bg-zinc-950 shadow-xl">
+          <a href="/quijoue" className="border-b border-zinc-800 px-2 py-2 text-[11px] text-zinc-200">👤 Changer de compte</a>
+          <button
+            type="button"
+            onClick={() => {
+              // purge du cookie de session (côté serveur via /api/logout) + local
+              fetch('/api/logout', { method: 'POST' }).finally(() => {
+                localStorage.removeItem('knight-compte');
+                window.location.href = '/login';
+              });
+            }}
+            className="px-2 py-2 text-left text-[11px] text-red-400"
+          >
+            🚪 Se déconnecter
+          </button>
+        </span>
+      )}
+    </span>
   );
 }
