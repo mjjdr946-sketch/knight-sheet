@@ -14,6 +14,20 @@ import type { Weapon } from '@/types/character';
 import Link from 'next/link';
 
 export default function EquipementPage() {
+  return <RedirectEquipement />;
+}
+
+function RedirectEquipement() {
+  // Prompt v17 : route propre /personnage/equipement — l'ancienne route ne 404 pas
+  if (typeof window !== 'undefined') window.location.replace('/personnage/equipement');
+  return (
+    <div className="flex h-dvh items-center justify-center">
+      <span className="font-display animate-pulse text-sm text-neon-cyan">Équipement →</span>
+    </div>
+  );
+}
+
+function AnciennePage() {
   const character = useCharacterStore((s) => s.character);
   const equiperArme = useCharacterStore((s) => s.equiperArme);
   const utiliserNod = useCharacterStore((s) => s.utiliserNod);

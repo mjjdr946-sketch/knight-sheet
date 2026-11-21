@@ -155,6 +155,9 @@ interface CharacterStore {
   /** Ajoute une fiche FINIE (wizard it. 6/7) sans toucher à l'active (bug 1) */
   ajouterFiche: (fiche: Character) => string;
   ajouterArme: (arme: Character['armes'][number]) => void;
+  /** Achat catalogue (prompt v17 §2) : vérifie PG, débit, ajoute l'item */
+  acheterArmeCatalogue: (modele: Character['armes'][number]) => { ok: boolean; message: string };
+  acheterModuleCatalogue: (modele: Character['modules'][number]) => { ok: boolean; message: string };
   /** Duplique une fiche existante */
   dupliquerFiche: (id: string) => string | null;
   /** Supprime une fiche (la dernière restante est conservée) */
@@ -301,6 +304,32 @@ export const useCharacterStore = create<CharacterStore>()(
         const id = fiche.id && !get().autresFiches[fiche.id] ? fiche.id : `fiche-${Date.now()}`;
         useCharacterStore.setState((s) => ({ autresFiches: { ...s.autresFiches, [id]: { ...fiche, id } } }));
         return id;
+      },
+
+      /** Achat catalogue (prompt v17 §2) : PG disponibles → débit → inventaire → sync serveur */
+      acheterArmeCatalogue: (modele) => {
+        const { character } = get();
+        if (character.gloire < modele.coutPG) return { ok: false, message: `Il te manque ${modele.coutPG - character.gloire} PG (p.414)` };
+        const instance: Character['armes'][number] = { ...structuredClone(modele), id: `${modele.id}-${Date.now()}`, equipee: false };
+        set(recalcule({ ...character, gloire: character.gloire - modele.coutPG, armes: [...character.armes, instance] }));
+        return { ok: true, message: `${modele.nom} achetée (−${modele.coutPG} PG)` };
+      },
+      /** Achat module catalogue : débit + installation automatique sur slots libres (p.428) */
+      acheterModuleCatalogue: (modele) => {
+        const { character } = get();
+        if (character.gloire < modele.coutPG) return { ok: false, message: `Il te manque ${modele.coutPG - character.gloire} PG (p.428)` };
+        // réservation des slots : vérifier la place sur chaque zone demandée
+        const occupe: Record<string, number> = {};
+        for (const m of character.modules) for (const [zone, n] of Object.entries(m.slots)) occupe[zone] = (occupe[zone] ?? 0) + n;
+        const capacite = character.metaArmor.slots;
+        for (const [zone, n] of Object.entries(modele.slots)) {
+          if ((occupe[zone] ?? 0) + (n as number) > (capacite[zone as keyof typeof capacite] ?? 0)) {
+            return { ok: false, message: `Pas assez de slots libres : ${zone} (p.428)` };
+          }
+        }
+        const instance: Character['modules'][number] = { ...structuredClone(modele), id: `${modele.id}-${Date.now()}`, etat: 'inactif' as const, niveau: 1 };
+        set(recalcule({ ...character, gloire: character.gloire - modele.coutPG, modules: [...character.modules, instance] }));
+        return { ok: true, message: `${modele.nom} installé (−${modele.coutPG} PG)` };
       },
 
       /** Ajoute une arme forgée/achetée (générateur prestige, prompt v13 §4) */

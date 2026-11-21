@@ -393,3 +393,20 @@ Modifier des paliers de modules, effets d'OD restants, ambiance/son.
 - 🔶 Restes mineurs : Équipement 3 sections (le contenu existe, refacto
   visuelle à peaufiner), OD visibles 🎲 (déjà fonctionnel depuis it. 8,
   UI à re-confirmer), Avalon (data descriptive seulement).
+
+## Itération 15 (v17) — l'Équipement comme vrai catalogue
+
+- ✅ **Route propre** : `/personnage/equipement` (l'ancienne /materiel redirige, pas de 404).
+- ✅ **3 sections drill-down avec compteurs** : « Mon armure » (PA/PE/CdF,
+  modules actifs/inactifs avec Activer/Désactiver) · « Catalogue d'armes »
+  (45 armes : base + 2038 + prestige, badges STANDARD/AVANCÉ/RARE/TABLE
+  RONDE, Acheter X PG / Équiper) · « Modules & améliorations » (57 modules
+  achetables) + « Reliques d'espoir » et « Modules de prestige » 2038.
+- ✅ **Achat de bout en bout** : `acheterArmeCatalogue` /
+  `acheterModuleCatalogue` — PG vérifiés, débit réel sur gloire, refus
+  propre « Il te manque Y PG », item dans l'inventaire, installation
+  vérifiée sur slots libres, sync serveur via le subscriber (GET
+  /api/chevaliers après achat). Tests : achat simple / refusé / module.
+- ✅ **Barre de recherche textuelle** (nom ou effet) + badges
+  d'accessibilité sur chaque carte.
+- ✅ Point « achat intégré » ouvert depuis l'itération 6 : **FERMÉ**.
