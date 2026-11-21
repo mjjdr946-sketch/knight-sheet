@@ -31,6 +31,6 @@ else
 fi
 
 # Création du repo (une fois) :
-#   curl -X POST -H "Authorization: Bearer $TOKEN" https://api.github.com/user/repos \
+#   curl -X POST -H "Authorization: Bearer $GITHUB_BACKUP_TOKEN" https://api.github.com/user/repos \
 #     -d '{"name":"knight-sheet-backups","private":true}'
 # Rotation du token : PAT fine-grained, scope contents:write sur ce repo uniquement.
