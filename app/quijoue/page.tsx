@@ -1,24 +1,29 @@
 'use client';
 
 /**
- * Écran « Qui joue ? » (prompt v12 §1) : 4 comptes créés en dur.
- * Le sas d'entrée (SHEET_PASSWORD) a déjà validé l'accès — ici on choisit
- * seulement le compte (cookie re-signé avec accountId, sans re-saisie).
- * Rôles : nuncyco = mj, les 3 autres = joueur (cosmétique pour l'instant).
+ * Écran « Qui joue ? » (prompt v12 §1, v19bis) : liste DYNAMIQUE depuis le
+ * serveur — après le reset complet il peut y avoir ZÉRO compte : la création
+ * en libre-service est alors le seul chemin (prompt v14 §2). Le sas
+ * (SHEET_PASSWORD) a déjà validé l'accès — ici on choisit/crée le compte
+ * (cookie re-signé avec accountId, sans re-saisie). Pas de distinction de
+ * rôle : les 4 comptes initiaux n'existent plus (remise à plat it. 17).
  */
 import { useEffect, useState } from 'react';
 
-const COMPTES: { nom: string; role: string }[] = [
-  { nom: 'nuncyco', role: 'mj' },
-  { nom: 'bigboy', role: 'joueur' },
-  { nom: 'xcypher', role: 'joueur' },
-  { nom: 'albatar', role: 'joueur' },
-];
+interface Compte { id: string; nom: string; role: string }
 
 export default function QuiJouePage() {
   const [chargement, setChargement] = useState(false);
   const [nouveauNom, setNouveauNom] = useState('');
   const [creation, setCreation] = useState(false);
+  const [comptes, setComptes] = useState<Compte[] | null>(null); // null = chargement
+
+  useEffect(() => {
+    fetch('/api/comptes')
+      .then((r) => r.json())
+      .then((d: { comptes: Compte[] }) => setComptes(d.comptes))
+      .catch(() => setComptes([]));
+  }, []);
 
   const choisir = async (nom: string, creer = false) => {
     setChargement(true);
@@ -27,12 +32,12 @@ export default function QuiJouePage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ nom, creer }),
     });
-    const data = (await r.json()) as { ok: boolean };
+    const data = (await r.json()) as { ok: boolean; message?: string };
     if (data.ok) {
       localStorage.setItem('knight-compte', nom); // préférence UI uniquement
       window.location.href = '/';
     } else {
-      alert('Erreur de sélection de compte');
+      alert(data.message ?? 'Erreur de sélection de compte');
       setChargement(false);
     }
   };
@@ -40,22 +45,29 @@ export default function QuiJouePage() {
   return (
     <main className="mx-auto flex h-dvh max-w-md flex-col items-center justify-center gap-4 px-3">
       <h1 className="font-display text-2xl text-neon-cyan">Qui joue ?</h1>
+
       <div className="w-full space-y-2.5">
-        {COMPTES.map((c) => (
-          <button
-            key={c.nom}
-            type="button"
-            disabled={chargement}
-            onClick={() => choisir(c.nom)}
-            className="min-h-[56px] w-full rounded-xl border border-zinc-700 bg-zinc-900/80 text-left active:bg-zinc-800"
-          >
-            <span className="px-3 text-base font-bold text-white">{c.nom}</span>
-            <span className="px-1 text-xs uppercase tracking-widest text-zinc-500">
-              {c.role === 'mj' ? 'Maître du jeu' : 'Joueur'}
-            </span>
-          </button>
-        ))}
+        {comptes === null ? (
+          <p className="animate-pulse text-center text-sm text-zinc-500">Chargement…</p>
+        ) : comptes.length === 0 ? (
+          <p className="text-center text-sm text-zinc-400">
+            Aucun compte encore — crée le tien pour commencer.
+          </p>
+        ) : (
+          comptes.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              disabled={chargement}
+              onClick={() => choisir(c.nom)}
+              className="min-h-[56px] w-full rounded-xl border border-zinc-700 bg-zinc-900/80 text-left active:bg-zinc-800"
+            >
+              <span className="px-3 text-base font-bold text-white">{c.nom}</span>
+            </button>
+          ))
+        )}
       </div>
+
       <div className="w-full space-y-2">
         {!creation ? (
           <button type="button" onClick={() => setCreation(true)} className="min-h-[48px] w-full rounded-lg border border-neon-cyan/40 bg-neon-cyan/10 text-sm font-bold text-neon-cyan active:bg-neon-cyan/20">

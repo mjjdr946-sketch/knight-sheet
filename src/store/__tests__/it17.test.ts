@@ -3,13 +3,14 @@ import { compteActif } from '../../lib/sync';
 
 /** Itération 17 — remise à plat + flux strict (prompt v19). */
 describe('§1 — reset serveur (script reset-db.mjs)', () => {
-  it('garde : le script existe et cible chevaliers/adversaires/sessions (comptes conservés)', () => {
+  it('garde v19bis : reset COMPLET — comptes inclus (reprendre réellement à zéro)', () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const src = require('fs').readFileSync('scripts/reset-db.mjs', 'utf8');
     expect(src).toContain('DELETE FROM chevaliers');
     expect(src).toContain('DELETE FROM adversaires');
     expect(src).toContain('DELETE FROM sessions_combat');
-    expect(src).toContain("INSERT OR IGNORE INTO accounts"); // les comptes restent
+    expect(src).toContain('DELETE FROM accounts'); // zéro compte aussi (retour NunnuN)
+    expect(src).not.toContain('INSERT OR IGNORE INTO accounts'); // pas de re-seed
   });
 });
 
