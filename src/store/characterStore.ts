@@ -302,16 +302,7 @@ export const useCharacterStore = create<CharacterStore>()(
       // ─── Slots de personnages (prompt v6 §2) ──────────────────────────
       ajouterFiche: (fiche) => {
         const id = fiche.id && !get().autresFiches[fiche.id] ? fiche.id : `fiche-${Date.now()}`;
-        const nouvelle = { ...fiche, id };
-        const { character: ancienne, autresFiches } = get();
-        const autres: Record<string, typeof nouvelle> = { ...autresFiches };
-        delete autres[id];
-        // Invariant : l'active n'est jamais dans autresFiches (cf. it. 12).
-        if (ancienne && ancienne.id !== 'aucune' && ancienne.id !== id) autres[ancienne.id] = ancienne;
-        // ops : la fiche créée devient ACTIVE. La sync ne pousse que `character` :
-        // la laisser dans autresFiches ne l'enregistrait jamais côté serveur
-        // (constaté en prod après reset : 0 fiche en base après un wizard complet).
-        useCharacterStore.setState({ character: nouvelle, actifId: id, autresFiches: autres } as never);
+        useCharacterStore.setState((s) => ({ autresFiches: { ...s.autresFiches, [id]: { ...fiche, id } } }));
         return id;
       },
 

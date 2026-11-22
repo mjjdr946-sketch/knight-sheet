@@ -49,14 +49,23 @@ async function pousserFiche(accountId: string): Promise<void> {
   // est un PLACEHOLDER d'affichage quand le serveur n'a aucune fiche. La pousser
   // créait une vraie ligne en base qui écrasait ensuite le chevalier créé au
   // wizard (perte de données constatée en prod après reset complet).
-  if (!fiche || fiche.id === 'aucune') return;
+  // ops : pousser TOUTES les fiches du store, pas seulement l'active. Le wizard
+  // ajoute la fiche créée dans `autresFiches` SANS toucher l'active (invariant
+  // produit, testé) : elle n'atteignait donc jamais le serveur.
+  const { character, autresFiches } = useCharacterStore.getState();
+  const toutes = [character, ...Object.values(autresFiches ?? {})].filter(
+    (f): f is NonNullable<typeof character> => !!f && f.id !== 'aucune',
+  );
+  if (toutes.length === 0) return;
   try {
-    const r = await fetch('/api/chevaliers', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accountId, fiche }),
-    });
-    etat.fiche = !r.ok;
+    for (const f of toutes) {
+      const r = await fetch('/api/chevaliers', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accountId, fiche: f }),
+      });
+      if (!r.ok) etat.fiche = true;
+    }
     notifier();
   } catch {
     etat.fiche = true; // échec réseau → bandeau (retry au prochain changement)
