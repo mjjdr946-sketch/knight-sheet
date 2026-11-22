@@ -63,8 +63,9 @@ function migrer(db: Database.Database): void {
 }
 
 /** Récupère un compte par nom (écran « Qui joue ? »). */
+/** Recherche casse-insensible (HOTFIX : connexion avec n'importe quelle casse). */
 export function compteParNom(nom: string): { id: string; nom: string; role: string } | null {
-  return (getDb().prepare('SELECT id, nom, role FROM accounts WHERE nom = ?').get(nom) as never) ?? null;
+  return (getDb().prepare('SELECT id, nom, role FROM accounts WHERE LOWER(nom) = LOWER(?)').get(nom) as never) ?? null;
 }
 
 export function compteParId(id: string): { id: string; nom: string; role: string } | null {
