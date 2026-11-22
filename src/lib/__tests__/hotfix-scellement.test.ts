@@ -59,12 +59,14 @@ describe('pousserTout — scellement persiste côté serveur', () => {
 });
 
 describe('garde de source — wizard : scellement attendu + pas de redirection en échec', () => {
-  it('la page creation utilise await pousserTout avec garde sur le résultat', () => {
+  it('la page creation pousse la FICHE SCELLÉE (hotfix 2 : brouillon du store) avec garde sur le résultat', () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const src = require('fs').readFileSync('app/personnage/creation/page.tsx', 'utf8');
-    expect(src).toContain('await pousserTout(accountId)');
+    // HOTFIX 2 : le brouillon du store (pas la fiche neutre) est scellé et poussé
+    expect(src).toContain('await sauverFicheImmediate(accountId, finie)');
     expect(src).toContain('Non sauvegardé'); // bandeau
     expect(src).toMatch(/if \(!ok\)/); // garde avant redirection
-    expect(src).toContain('sauverFicheImmediate'); // export dispo pour usage ponctuel
+    expect(src).toContain('confirmerScellement(finie)'); // swap store en succès uniquement
+    expect(src).not.toContain('pousserTout'); // plus de push de la fiche neutre
   });
 });
