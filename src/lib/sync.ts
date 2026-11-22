@@ -45,6 +45,11 @@ export function planifierSauvegardeFiche(): void {
 
 async function pousserFiche(accountId: string): Promise<void> {
   const fiche = useCharacterStore.getState().character;
+  // ops : la fiche neutre « aucune » (app/page.tsx, app/personnage/layout.tsx)
+  // est un PLACEHOLDER d'affichage quand le serveur n'a aucune fiche. La pousser
+  // créait une vraie ligne en base qui écrasait ensuite le chevalier créé au
+  // wizard (perte de données constatée en prod après reset complet).
+  if (!fiche || fiche.id === 'aucune') return;
   try {
     const r = await fetch('/api/chevaliers', {
       method: 'PUT',
