@@ -138,15 +138,17 @@ case " $MOUNTS " in
 esac
 
 # La base est créée paresseusement au premier appel qui touche SQLite : on
-# déclenche /api/comptes (qui liste les 4 comptes seed) AVANT de vérifier le fichier.
+# déclenche /api/comptes AVANT de vérifier le fichier. Depuis l'it. 17bis il n'y
+# a PLUS de comptes seed (reset complet assumé) : la liste peut être vide, on
+# vérifie seulement que l'API répond un JSON valide.
 jar3="$(mktemp)"
 printf '{"password":"%s"}' "$PW" | curl -s -o /dev/null -c "$jar3" -X POST \
   -H 'Content-Type: application/json' --data-binary @- "http://127.0.0.1:${PORT}/api/login"
 comptes="$(curl -s -b "$jar3" --max-time 10 "http://127.0.0.1:${PORT}/api/comptes" || true)"
 rm -f "$jar3"
 echo "   /api/comptes → $(printf '%s' "$comptes" | head -c 150)"
-printf '%s' "$comptes" | grep -q 'nuncyco' \
-  || fail "l'API /api/comptes ne renvoie pas les comptes seed (réponse : $(printf '%s' "$comptes" | head -c 120))"
+printf '%s' "$comptes" | grep -q '\"comptes\"' \
+  || fail "l'API /api/comptes ne répond pas un JSON valide (réponse : $(printf '%s' "$comptes" | head -c 120))"
 rc="$(docker inspect -f '{{.RestartCount}}' knight-app)"
 [[ "$rc" == "0" ]] || fail "le conteneur a redémarré $rc fois pendant les vérifications (crash d'un handler API)"
 
@@ -159,8 +161,7 @@ const integ = Object.values(db.prepare('PRAGMA integrity_check').get())[0];
 const n = (t) => db.prepare('SELECT count(*) AS n FROM ' + t).get().n;
 console.log('   DB integrity : ' + integ + ' | comptes : ' + n('accounts') + ' | chevaliers : ' + n('chevaliers') + ' | adversaires : ' + n('adversaires'));
 if (integ !== 'ok') process.exit(1);
-if (n('accounts') < 4) { console.error('   ❌ comptes seed manquants (attendu 4)'); process.exit(1); }
-" || fail "vérification de la base échouée (intégrité ou comptes seed)"
+" || fail "vérification de la base échouée (intégrité)"
 
 DOMAIN="$(envval KNIGHT_DOMAIN)"
 if [[ -n "$DOMAIN" && "$DOMAIN" != "localhost" && "$TLS_MODE" == "host" ]]; then
