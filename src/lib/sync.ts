@@ -45,8 +45,28 @@ export function planifierSauvegardeFiche(): void {
 
 /** ops : pousse IMMÉDIATEMENT toutes les fiches (le debounce est perdu au
  *  changement de route — utilisé à la sortie du wizard). */
-export async function pousserTout(accountId: string): Promise<void> {
-  await pousserFiche(accountId);
+/** HOTFIX v19bis : pousse TOUT l'état fiches du compte (active + autres) en
+ * ATTENDANT le résultat. Utilisé par le scellement du wizard : la redirection
+ * n'a lieu QUE si le serveur a confirmé ; en échec → bandeau + pas de redirection. */
+export async function pousserTout(accountId: string): Promise<boolean> {
+  const { character, autresFiches } = useCharacterStore.getState();
+  const toutes = [character, ...Object.values(autresFiches)];
+  let toutOk = true;
+  for (const fiche of toutes) {
+    try {
+      const r = await fetch('/api/chevaliers', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accountId, fiche }),
+      });
+      if (!r.ok) toutOk = false;
+    } catch {
+      toutOk = false;
+    }
+  }
+  etat.fiche = !toutOk;
+  notifier();
+  return toutOk;
 }
 
 async function pousserFiche(accountId: string): Promise<void> {
@@ -99,6 +119,27 @@ export function planifierSauvegardeSession(): void {
       notifier();
     }
   }, 300);
+}
+
+/** HOTFIX v19bis : sauvegarde IMMÉDIATE d'une fiche (attente du résultat).
+ * Utilisée par le scellement du wizard : la redirection n'a lieu QUE si le
+ * serveur a confirmé l'écriture ; en échec, le bandeau « ⚠ Non sauvegardé »
+ * s'affiche et l'utilisateur reste sur le wizard. */
+export async function sauverFicheImmediate(accountId: string, fiche: unknown): Promise<boolean> {
+  try {
+    const r = await fetch('/api/chevaliers', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accountId, fiche }),
+    });
+    etat.fiche = !r.ok;
+    notifier();
+    return r.ok;
+  } catch {
+    etat.fiche = true;
+    notifier();
+    return false;
+  }
 }
 
 /** Charge les fiches du compte depuis le serveur (recette points 1-3). */

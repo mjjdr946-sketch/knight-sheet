@@ -9,11 +9,11 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCharacterStore } from '@/store/characterStore';
 import { computeDerived } from '@/engine/stats';
+import { compteActif, pousserTout, sauverFicheImmediate } from '@/lib/sync';
 import { LAMES_TAROT } from '@/data/tarot';
 import { ARCHETYPES, HAUTS_FATS, BLASONS } from '@/data/creation';
 import { META_ARMURES } from '@/data/meta-armures';
 import { personnageExemple } from '@/data/character';
-import { compteActif, pousserTout } from '@/lib/sync';
 import { armesArsenal } from '@/data/weapons';
 import { NODS } from '@/data/nods';
 import type { Character, AspectId, TraitId } from '@/types/character';
@@ -47,6 +47,7 @@ export default function CreationPage() {
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<Character | null>(null); // copie de travail
   const [booste, setBooste] = useState(false);
+  const [messageErreur, setMessageErreur] = useState('');
   // Étape 10 (prompt v10 §4) : achat d'arsenal intégré — 60 PG de départ (p.174)
   const [achats, setAchats] = useState<Record<string, number>>({}); // id arme → quantité
 
@@ -92,9 +93,14 @@ export default function CreationPage() {
     });
   };
 
-  const valider = () => {
+  // HOTFIX v19bis : le scellement DOIT persister côté serveur (PUT /api/chevaliers
+  // avec accountId) AVANT la redirection — et attendre le résultat. En échec :
+  // bandeau « ⚠ Non sauvegardé » + rester sur le wizard.
+  const valider = async () => {
     if (!draft) return;
     if (!draft.nom.trim()) { alert('Le nom du chevalier est requis (prompt v12 §0.4)'); return; }
+    const accountId = compteActif();
+    if (!accountId) { setMessageErreur('Aucun compte actif — impossible de sauvegarder.'); return; }
     const finie: Character = { ...structuredClone(draft), scelle: true };
     if (booste) finie.gloire = (finie.gloire ?? 0) + 25; // mode boosté (option MJ)
     // scellement propre (prompt v9 §3) : jauges courantes == max, journal initialisé
@@ -120,14 +126,14 @@ export default function CreationPage() {
     void NODS;
     // CORRECTIF bug 1 : la fiche finie est AJOUTÉE à la liste — l'active reste intacte
     ajouterFiche(finie);
-    // ops : pousser IMMÉDIATEMENT avant de quitter l'écran. Le debounce (800 ms)
-    // est perdu au changement de route et l'accueil recharge le serveur (vide),
-    // ce qui écrasait la fiche tout juste créée (0 fiche en base après un wizard).
-    void (async () => {
-      const compte = compteActif();
-      if (compte) await pousserTout(compte);
-      router.push('/');
-    })();
+    // HOTFIX v19bis : sauvegarde serveur ATTENDUE avant redirection (pousse
+    // TOUTES les fiches du compte). En échec : bandeau + rester sur le wizard.
+    const ok = await pousserTout(accountId);
+    if (!ok) {
+      setMessageErreur('⚠ Non sauvegardé — le serveur n\'a pas confirmé l\'écriture. Réessaie.');
+      return; // PAS de redirection en cas d'échec
+    }
+    router.push('/');
   };
 
   // ─── Écrans par étape ──────────────────────────────────────────────────
@@ -304,7 +310,7 @@ export default function CreationPage() {
               <input type="checkbox" checked={booste} onChange={(e) => setBooste(e.target.checked)} />
               Mode boosté (+25 PG — option MJ, p.128)
             </label>
-            <button type="button" onClick={valider} className="min-h-[48px] w-full rounded-lg bg-neon-cyan/20 text-sm font-bold text-neon-cyan">
+            <button type="button" onClick={() => void valider()} className="min-h-[48px] w-full rounded-lg bg-neon-cyan/20 text-sm font-bold text-neon-cyan">
               🔒 Sceller et jouer
             </button>
           </div>
@@ -326,6 +332,11 @@ export default function CreationPage() {
         ))}
       </div>
       {corps()}
+      {messageErreur && (
+        <div className="sticky top-0 z-50 bg-red-900/90 px-3 py-2 text-center text-xs font-semibold text-white" role="alert">
+          ⚠ {messageErreur}
+        </div>
+      )}
       {draft && (
         <div className="fixed inset-x-0 bottom-[76px] z-30 flex gap-2 border-t border bg-zinc-950/95 p-3 backdrop-blur safe-bottom">
           <button type="button" disabled={step === 0} onClick={() => setStep((s) => Math.max(0, s - 1))} className="min-h-[48px] flex-1 rounded-lg border border-zinc-700 text-sm text-zinc-300 disabled:opacity-30">←</button>
