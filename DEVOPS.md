@@ -93,10 +93,22 @@ Vérification recette : créer un chevalier complet au wizard → `GET
 
 ## Remise à plat (itération 17 — prompt v19)
 
-```bash
-# sur le VPS, AVANT de redémarrer l'app :
-node /opt/knight/scripts/reset-db.mjs /data/knight.db
-# → vide chevaliers/adversaires/sessions ; les comptes sont conservés.
-# localStorage : purgé automatiquement côté client par la modale
-# « 🛠 Mise à jour effectuée » au premier chargement.
-```
+**L'IA DevOps lancera elle-même le script** lors du déploiement de cette
+version — aucune action manuelle de NunnuN :
+
+1. Déployer la nouvelle version (le fichier `scripts/reset-db.mjs` est dans
+   le repo).
+2. **Lancer le reset** :
+   ```bash
+   node /opt/knight/scripts/reset-db.mjs /data/knight.db
+   ```
+   → vide `chevaliers` / `adversaires` / `sessions_combat` ; les comptes sont
+   conservés (re-seed automatique des 4 si base vierge).
+3. Redémarrer le conteneur.
+4. Vérifier : au premier chargement, la modale « 🛠 Mise à jour effectuée »
+   purge le localStorage côté client (aucune action utilisateur nécessaire
+   au-delà de « J'ai compris »).
+5. Recette des 8 points de persistance à rejouer sur la base propre.
+
+Compte-rendu attendu de DevOps : sortie du script (compte des lignes
+supprimées par table), confirmation du redémarrage, résultat de la recette.
