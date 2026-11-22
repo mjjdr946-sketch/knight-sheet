@@ -1124,6 +1124,9 @@ export const useCharacterStore = create<CharacterStore>()(
           actifId: p.actifId ?? current.actifId,
           autresFiches: p.autresFiches ?? current.autresFiches,
           adversaire: p.adversaire ?? null,
+          // ops : wizardDraft est écrit par partialize mais n'était PAS recopié ici :
+          // le brouillon du wizard était jeté à chaque rehydratation (reload).
+          wizardDraft: p.wizardDraft ?? current.wizardDraft,
         };
       },
     },
