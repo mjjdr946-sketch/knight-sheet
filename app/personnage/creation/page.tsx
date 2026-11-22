@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCharacterStore } from '@/store/characterStore';
 import { computeDerived } from '@/engine/stats';
-import { compteActif, pousserTout, sauverFicheImmediate } from '@/lib/sync';
+import { compteActif, sauverFicheImmediate } from '@/lib/sync'; // HOTFIX 2 : push ciblé de la fiche scellée
 import { LAMES_TAROT } from '@/data/tarot';
 import { ARCHETYPES, HAUTS_FATS, BLASONS } from '@/data/creation';
 import { META_ARMURES } from '@/data/meta-armures';
@@ -42,10 +42,16 @@ export default function CreationPage() {
   const actifId = useCharacterStore((s) => s.actifId);
   const creerFiche = useCharacterStore((s) => s.creerFiche);
   const chargerFiche = useCharacterStore((s) => s.chargerFiche);
-  const ajouterFiche = useCharacterStore((s) => s.ajouterFiche);
+  // HOTFIX 2 (v19bis) : brouillon du wizard dans le store
+  const demarrerWizard = useCharacterStore((s) => s.demarrerWizard);
+  const majWizardDraft = useCharacterStore((s) => s.majWizardDraft);
+  const confirmerScellement = useCharacterStore((s) => s.confirmerScellement);
 
   const [step, setStep] = useState(0);
-  const [draft, setDraft] = useState<Character | null>(null); // copie de travail
+  // HOTFIX 2 (v19bis) : le brouillon vit DANS le store (persisté) — plus de
+  // state local de composant (cause racine du bug prod : brouillon jamais
+  // transféré, seule la fiche neutre était scellée).
+  const draft = useCharacterStore((s) => s.wizardDraft);
   const [booste, setBooste] = useState(false);
   const [messageErreur, setMessageErreur] = useState('');
   // Étape 10 (prompt v10 §4) : achat d'arsenal intégré — 60 PG de départ (p.174)
@@ -57,14 +63,8 @@ export default function CreationPage() {
    * la nouvelle fiche est AJOUTÉE à la liste (pas de remplacement).
    */
   const demarrer = () => {
-    const base: Character = { ...structuredClone(personnageExemple), id: `fiche-${Date.now()}`, nom: '', scelle: false };
-    base.favoris = [];
-    base.xpJournal = [];
-    // étape 1 : reset des scores de base (aspects 2, caractéristiques 1, p.110)
-    (Object.keys(base.aspects) as AspectId[]).forEach((a) => { base.aspects[a] = 2; });
-    (Object.keys(base.traits) as TraitId[]).forEach((t) => { base.traits[t] = 1; });
-    base.conditions = []; // fiche neuve : aucune blessure
-    setDraft(base);
+    // HOTFIX 2 : le brouillon neuf est créé DANS le store
+    demarrerWizard();
     setStep(0);
   };
 
@@ -85,12 +85,7 @@ export default function CreationPage() {
   const [messageAchat, setMessageAchat] = useState('');
 
   const maj = (fn: (d: Character) => void) => {
-    setDraft((d) => {
-      if (!d) return d;
-      const copie = structuredClone(d);
-      fn(copie);
-      return copie;
-    });
+    majWizardDraft(fn); // HOTFIX 2 : écriture dans le store (persistée)
   };
 
   // HOTFIX v19bis : le scellement DOIT persister côté serveur (PUT /api/chevaliers
@@ -98,7 +93,11 @@ export default function CreationPage() {
   // bandeau « ⚠ Non sauvegardé » + rester sur le wizard.
   const valider = async () => {
     if (!draft) return;
-    if (!draft.nom.trim()) { alert('Le nom du chevalier est requis (prompt v12 §0.4)'); return; }
+    if (!draft.nom.trim()) {
+      // HOTFIX 2 : refus VISIBLE (bandeau), pas de redirection
+      setMessageErreur('Le nom du chevalier est requis (prompt v12 §0.4)');
+      return;
+    }
     const accountId = compteActif();
     if (!accountId) { setMessageErreur('Aucun compte actif — impossible de sauvegarder.'); return; }
     const finie: Character = { ...structuredClone(draft), scelle: true };
@@ -124,15 +123,15 @@ export default function CreationPage() {
     ];
     // Équipement de départ par mission (p.174) : 3 nods de chaque type (information rôles — les nods restent consommables en jeu via ⚒ Matériel)
     void NODS;
-    // CORRECTIF bug 1 : la fiche finie est AJOUTÉE à la liste — l'active reste intacte
-    ajouterFiche(finie);
-    // HOTFIX v19bis : sauvegarde serveur ATTENDUE avant redirection (pousse
-    // TOUTES les fiches du compte). En échec : bandeau + rester sur le wizard.
-    const ok = await pousserTout(accountId);
+    // HOTFIX 2 (v19bis) : la FICHE SCELLÉE (le brouillon du store, pas la
+    // fiche neutre) est poussée au serveur EN ATTENDANT la confirmation.
+    const ok = await sauverFicheImmediate(accountId, finie);
     if (!ok) {
       setMessageErreur('⚠ Non sauvegardé — le serveur n\'a pas confirmé l\'écriture. Réessaie.');
-      return; // PAS de redirection en cas d'échec
+      return; // PAS de redirection en cas d'échec — le brouillon du store est PRÉSERVÉ
     }
+    // Succès : la fiche scellée devient l'active (brouillon consommé)
+    confirmerScellement(finie);
     router.push('/');
   };
 

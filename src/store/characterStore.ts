@@ -21,7 +21,7 @@ import { MODULES_INTERDITS_PALADIN, catalogueModules } from '../data/modules';
 import { META_ARMURES } from '../data/meta-armures';
 import { subirDegatsPNJ } from '../engine/pnj';
 import type { Adversaire } from '../engine/pnj';
-import type { ArmorModule, Character, Condition, DerivedStats } from '../types/character';
+import type { ArmorModule, AspectId, Character, Condition, DerivedStats, TraitId } from '../types/character';
 
 /** Version du schéma de persistance — à incrémenter à chaque breaking change */
 export const SCHEMA_VERSION = 4;
@@ -150,6 +150,15 @@ interface CharacterStore {
   actifId: string | null;
   /** Fiches NON actives (l'active vit dans `character`) */
   autresFiches: Record<string, Character>;
+  /** HOTFIX 2 (v19bis) : brouillon du wizard — vit DANS le store (persisté),
+   * jamais dans un state local de composant (cause racine du bug prod). */
+  wizardDraft: Character | null;
+  /** Démarre le wizard : brouillon NEUF dans le store */
+  demarrerWizard: () => void;
+  /** Met à jour le brouillon du wizard (chaque étape passe par ici) */
+  majWizardDraft: (fn: (d: Character) => void) => void;
+  /** Consomme le brouillon : fiche active = brouillon scellé 🔒 */
+  confirmerScellement: (finie: Character) => void;
   /** Crée une nouvelle fiche (à partir du modèle d'exemple) */
   creerFiche: (nom: string) => string;
   /** Ajoute une fiche FINIE (wizard it. 6/7) sans toucher à l'active (bug 1) */
@@ -298,6 +307,30 @@ export const useCharacterStore = create<CharacterStore>()(
       derived: computeDerived(personnageExemple),
       actifId: 'principal',
       autresFiches: {},
+      wizardDraft: null,
+
+      // ─── HOTFIX 2 (v19bis) : le brouillon du wizard vit dans le store ──
+      demarrerWizard: () => {
+        const base: Character = { ...structuredClone(personnageExemple), id: `fiche-${Date.now()}`, nom: '', scelle: false };
+        base.favoris = [];
+        base.xpJournal = [];
+        // étape 1 (p.110) : reset des scores de base — aspects 2, caractéristiques 1
+        (Object.keys(base.aspects) as AspectId[]).forEach((a) => { base.aspects[a] = 2; });
+        (Object.keys(base.traits) as TraitId[]).forEach((tr) => { base.traits[tr] = 1; });
+        base.conditions = [];
+        set({ wizardDraft: base });
+      },
+      majWizardDraft: (fn) => {
+        const d = get().wizardDraft;
+        if (!d) return;
+        const copie = structuredClone(d);
+        fn(copie);
+        set({ wizardDraft: copie });
+      },
+      confirmerScellement: (finie) => {
+        // la fiche scellée DEVIENT l'active (invariant : l'ancienne neutre disparaît)
+        set({ character: finie, derived: computeDerived(finie), wizardDraft: null });
+      },
 
       // ─── Slots de personnages (prompt v6 §2) ──────────────────────────
       ajouterFiche: (fiche) => {
@@ -1077,6 +1110,7 @@ export const useCharacterStore = create<CharacterStore>()(
           actifId: state.actifId,
           autresFiches: state.autresFiches,
           adversaire: state.adversaire,
+          wizardDraft: state.wizardDraft, // HOTFIX 2 : brouillon persisté (récupère sa place après un refresh)
         }) as unknown as CharacterStore,
       merge: (persisted, current) => {
         // Restaure personnage + fiches + session + adversaire ; dérivées recalculées
