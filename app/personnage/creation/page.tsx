@@ -13,6 +13,7 @@ import { LAMES_TAROT } from '@/data/tarot';
 import { ARCHETYPES, HAUTS_FATS, BLASONS } from '@/data/creation';
 import { META_ARMURES } from '@/data/meta-armures';
 import { personnageExemple } from '@/data/character';
+import { compteActif, pousserTout } from '@/lib/sync';
 import { armesArsenal } from '@/data/weapons';
 import { NODS } from '@/data/nods';
 import type { Character, AspectId, TraitId } from '@/types/character';
@@ -119,7 +120,14 @@ export default function CreationPage() {
     void NODS;
     // CORRECTIF bug 1 : la fiche finie est AJOUTÉE à la liste — l'active reste intacte
     ajouterFiche(finie);
-    router.push('/');
+    // ops : pousser IMMÉDIATEMENT avant de quitter l'écran. Le debounce (800 ms)
+    // est perdu au changement de route et l'accueil recharge le serveur (vide),
+    // ce qui écrasait la fiche tout juste créée (0 fiche en base après un wizard).
+    void (async () => {
+      const compte = compteActif();
+      if (compte) await pousserTout(compte);
+      router.push('/');
+    })();
   };
 
   // ─── Écrans par étape ──────────────────────────────────────────────────

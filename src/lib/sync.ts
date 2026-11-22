@@ -43,6 +43,12 @@ export function planifierSauvegardeFiche(): void {
   timerFiche = setTimeout(() => void pousserFiche(accountId), 800);
 }
 
+/** ops : pousse IMMÉDIATEMENT toutes les fiches (le debounce est perdu au
+ *  changement de route — utilisé à la sortie du wizard). */
+export async function pousserTout(accountId: string): Promise<void> {
+  await pousserFiche(accountId);
+}
+
 async function pousserFiche(accountId: string): Promise<void> {
   const fiche = useCharacterStore.getState().character;
   // ops : la fiche neutre « aucune » (app/page.tsx, app/personnage/layout.tsx)
