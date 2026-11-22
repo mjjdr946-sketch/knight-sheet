@@ -132,15 +132,23 @@ export function planifierSauvegardeSession(): void {
  * s'affiche et l'utilisateur reste sur le wizard. */
 export async function sauverFicheImmediate(accountId: string, fiche: unknown): Promise<boolean> {
   try {
+    // HOTFIX 2-bis : TRACE complète (statut + corps) — la prod ne laissait
+    // aucun indice sur l'échec silencieux du scellement.
     const r = await fetch('/api/chevaliers', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ accountId, fiche }),
     });
+    console.info(`[sync] PUT /api/chevaliers → ${r.status} ${r.statusText}`);
+    if (!r.ok) {
+      const corps = await r.text().catch(() => '');
+      console.error(`[sync] PUT refusé (${r.status}) :`, corps.slice(0, 300));
+    }
     etat.fiche = !r.ok;
     notifier();
     return r.ok;
-  } catch {
+  } catch (e) {
+    console.error('[sync] PUT /api/chevaliers EXCEPTION :', e);
     etat.fiche = true;
     notifier();
     return false;

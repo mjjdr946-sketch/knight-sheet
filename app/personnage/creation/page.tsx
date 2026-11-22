@@ -88,51 +88,71 @@ export default function CreationPage() {
     majWizardDraft(fn); // HOTFIX 2 : écriture dans le store (persistée)
   };
 
-  // HOTFIX v19bis : le scellement DOIT persister côté serveur (PUT /api/chevaliers
-  // avec accountId) AVANT la redirection — et attendre le résultat. En échec :
-  // bandeau « ⚠ Non sauvegardé » + rester sur le wizard.
+  // HOTFIX 2-bis (verdict 3ᵉ échec) : TOUTES les sorties de valider sont
+  // traçées et visibles — plus AUCUNE sortie silencieuse (avant : !draft et
+  // !accountId retournaient sans message, une exception dans le void async
+  // était avalée : l'URL restait sur le wizard sans aucune erreur).
   const valider = async () => {
-    if (!draft) return;
-    if (!draft.nom.trim()) {
-      // HOTFIX 2 : refus VISIBLE (bandeau), pas de redirection
-      setMessageErreur('Le nom du chevalier est requis (prompt v12 §0.4)');
-      return;
+    console.info('[scellement] clic « Sceller et jouer »');
+    try {
+      if (!draft) {
+        console.error('[scellement] ABANDON : wizardDraft est null dans le store');
+        setMessageErreur('⚠ Brouillon perdu — redémarre la création (aucune donnée à sauvegarder).');
+        return; // PAS de redirection
+      }
+      if (!draft.nom.trim()) {
+        console.error('[scellement] ABANDON : nom du chevalier vide');
+        setMessageErreur('Le nom du chevalier est requis (prompt v12 §0.4)');
+        return; // PAS de redirection
+      }
+      const accountId = compteActif();
+      if (!accountId) {
+        console.error('[scellement] ABANDON : aucun compte actif (knight-compte absent)');
+        setMessageErreur('Aucun compte actif — impossible de sauvegarder. Rechoisis ton compte.');
+        return; // PAS de redirection
+      }
+      const finie: Character = { ...structuredClone(draft), scelle: true };
+      if (booste) finie.gloire = (finie.gloire ?? 0) + 25; // mode boosté (option MJ)
+      // scellement propre (prompt v9 §3) : jauges courantes == max, journal initialisé
+      const derivees = computeDerived(finie);
+      finie.jauges = {
+        ps: { current: derivees.ps.max },
+        pa: { current: derivees.pa.max },
+        pe: { current: derivees.pe.max },
+        cdf: { current: derivees.cdf },
+        pes: { current: derivees.pes.max },
+        heroisme: { current: 0 },
+      };
+      finie.xpJournal = finie.xpJournal ?? [];
+      // Étape 10 : achats d'arsenal appliqués avant scellement (prompt v10 §4)
+      finie.armes = [
+        ...finie.armes,
+        ...Object.entries(achats).flatMap(([id, qte]) => {
+          const modele = armesArsenal.find((a) => a.id === id);
+          return modele ? Array.from({ length: qte }, (_, i) => ({ ...structuredClone(modele), id: `${modele.id}-${Date.now()}-${i}`, equipee: false })) : [];
+        }),
+      ];
+      // Équipement de départ par mission (p.174) : 3 nods de chaque type (information rôles — les nods restent consommables en jeu via ⚒ Matériel)
+      void NODS;
+      // HOTFIX 2 : la FICHE SCELLÉE (le brouillon du store) est poussée au
+      // serveur EN ATTENDANT la confirmation — avec TRACE du statut réseau.
+      console.info('[scellement] PUT /api/chevaliers → fiche', finie.nom, '| compte', accountId);
+      const ok = await sauverFicheImmediate(accountId, finie);
+      console.info('[scellement] résultat du PUT :', ok ? 'SUCCÈS' : 'ÉCHEC');
+      if (!ok) {
+        console.error('[scellement] échec de l\'écriture serveur — brouillon préservé');
+        setMessageErreur('⚠ Non sauvegardé — le serveur n\'a pas confirmé l\'écriture. Réessaie.');
+        return; // PAS de redirection en cas d'échec — le brouillon du store est PRÉSERVÉ
+      }
+      // Succès : la fiche scellée devient l'active (brouillon consommé)
+      confirmerScellement(finie);
+      console.info('[scellement] fiche active =', finie.nom, '→ redirection accueil');
+      router.push('/');
+    } catch (e) {
+      // Toute exception est maintenant VISIBLE (avant : unhandled rejection silencieux)
+      console.error('[scellement] EXCEPTION pendant la validation :', e);
+      setMessageErreur(`⚠ Erreur pendant le scellement : ${e instanceof Error ? e.message : String(e)}`);
     }
-    const accountId = compteActif();
-    if (!accountId) { setMessageErreur('Aucun compte actif — impossible de sauvegarder.'); return; }
-    const finie: Character = { ...structuredClone(draft), scelle: true };
-    if (booste) finie.gloire = (finie.gloire ?? 0) + 25; // mode boosté (option MJ)
-    // scellement propre (prompt v9 §3) : jauges courantes == max, journal initialisé
-    const derivees = computeDerived(finie);
-    finie.jauges = {
-      ps: { current: derivees.ps.max },
-      pa: { current: derivees.pa.max },
-      pe: { current: derivees.pe.max },
-      cdf: { current: derivees.cdf },
-      pes: { current: derivees.pes.max },
-      heroisme: { current: 0 },
-    };
-    finie.xpJournal = finie.xpJournal ?? [];
-    // Étape 10 : achats d'arsenal appliqués avant scellement (prompt v10 §4)
-    finie.armes = [
-      ...finie.armes,
-      ...Object.entries(achats).flatMap(([id, qte]) => {
-        const modele = armesArsenal.find((a) => a.id === id);
-        return modele ? Array.from({ length: qte }, (_, i) => ({ ...structuredClone(modele), id: `${modele.id}-${Date.now()}-${i}`, equipee: false })) : [];
-      }),
-    ];
-    // Équipement de départ par mission (p.174) : 3 nods de chaque type (information rôles — les nods restent consommables en jeu via ⚒ Matériel)
-    void NODS;
-    // HOTFIX 2 (v19bis) : la FICHE SCELLÉE (le brouillon du store, pas la
-    // fiche neutre) est poussée au serveur EN ATTENDANT la confirmation.
-    const ok = await sauverFicheImmediate(accountId, finie);
-    if (!ok) {
-      setMessageErreur('⚠ Non sauvegardé — le serveur n\'a pas confirmé l\'écriture. Réessaie.');
-      return; // PAS de redirection en cas d'échec — le brouillon du store est PRÉSERVÉ
-    }
-    // Succès : la fiche scellée devient l'active (brouillon consommé)
-    confirmerScellement(finie);
-    router.push('/');
   };
 
   // ─── Écrans par étape ──────────────────────────────────────────────────

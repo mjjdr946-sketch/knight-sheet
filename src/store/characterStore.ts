@@ -322,7 +322,11 @@ export const useCharacterStore = create<CharacterStore>()(
       },
       majWizardDraft: (fn) => {
         const d = get().wizardDraft;
-        if (!d) return;
+        if (!d) {
+          // HOTFIX 2-bis : plus de perte silencieuse — trace l'abandon
+          console.error('[wizard] majWizardDraft ignoré : wizardDraft est null (demarrerWizard non appelé ?)');
+          return;
+        }
         const copie = structuredClone(d);
         fn(copie);
         set({ wizardDraft: copie });
