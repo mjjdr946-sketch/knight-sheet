@@ -410,3 +410,20 @@ Modifier des paliers de modules, effets d'OD restants, ambiance/son.
 - ✅ **Barre de recherche textuelle** (nom ou effet) + badges
   d'accessibilité sur chaque carte.
 - ✅ Point « achat intégré » ouvert depuis l'itération 6 : **FERMÉ**.
+
+## Itération 17 (v19) — remise à plat + flux de connexion correct
+
+- ✅ **§1 remise à plat** : `scripts/reset-db.mjs` — vide chevaliers /
+  adversaires / sessions_combat, CONSERVE les comptes (+ re-seed les 4
+  comptes si DB vierge, schéma idempotent). Testé sur DB scratch.
+- ✅ **§2 alerte d'incompatibilité** : la modale d'import/migration de
+  l'itération 13 est SUPPRIMÉE (code mort inclus : `proposerMigration`,
+  `importerLocales`, bouton « Importer un personnage ») ; remplacée par
+  la modale « 🛠 Mise à jour effectuée — anciens chevaliers incompatibles,
+  effacés. Recrée ton chevalier. » → « J'ai compris » → purge locale.
+- ✅ **§3 flux strict** : middleware ré-appliqué (régression détectée) —
+  sas → compte obligatoire (payload accountId) → application ; déconnexion
+  → sas puis « Qui joue ? ». Garde de source sur `middleware.ts`.
+- 🔶 Recette des 8 points à rejouer sur la base propre après déploiement
+  (lancer `node scripts/reset-db.mjs /data/knight.db` sur le VPS puis
+  redémarrer le conteneur).

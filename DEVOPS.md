@@ -89,3 +89,14 @@ Vérification recette : créer un chevalier complet au wizard → `GET
 3. `deploy/backup-github.sh` : après `backup.sh`, push du snapshot daté (`knight-YYYYMMDD-HHMM.db`).
 4. Cron quotidien à la suite du backup 03:30 : `30 3 * * * /opt/knight/backup.sh && /opt/knight/deploy/backup-github.sh /data/knight.db`
 5. Rétention : historique de commits du repo (revert = restaurer un snapshot).
+
+
+## Remise à plat (itération 17 — prompt v19)
+
+```bash
+# sur le VPS, AVANT de redémarrer l'app :
+node /opt/knight/scripts/reset-db.mjs /data/knight.db
+# → vide chevaliers/adversaires/sessions ; les comptes sont conservés.
+# localStorage : purgé automatiquement côté client par la modale
+# « 🛠 Mise à jour effectuée » au premier chargement.
+```

@@ -21,14 +21,22 @@ export async function middleware(req: NextRequest) {
 
   const token = req.cookies.get(COOKIE)?.value ?? '';
   const authentifie = token !== 'dev' && (await verifierTokenSession(token));
-  if (authentifie) return NextResponse.next();
-
-  // Pages autorisées sans session : login + API de login
-  const url = req.nextUrl;
-  if (url.pathname === '/login' || url.pathname === '/api/login') {
-    return NextResponse.next();
+  if (!authentifie) {
+    // Sas obligatoire (prompt v6 §5)
+    const url = req.nextUrl;
+    if (url.pathname === '/login' || url.pathname === '/api/login') return NextResponse.next();
+    return NextResponse.redirect(new URL('/login', req.url));
   }
-  return NextResponse.redirect(new URL('/login', req.url));
+
+  // Prompt v14 §1 / v19 §3 : AUTH STRICTE — un compte doit être choisi
+  // (payload accountId dans le cookie : ts.accountId.signature)
+  const compteChoisi = token.split('.').length >= 3;
+  const url = req.nextUrl;
+  const exemptees = ['/quijoue', '/api/comptes', '/api/login', '/api/logout'];
+  if (!compteChoisi && !exemptees.some((e) => url.pathname.startsWith(e))) {
+    return NextResponse.redirect(new URL('/quijoue', req.url));
+  }
+  return NextResponse.next();
 }
 
 export const config = {

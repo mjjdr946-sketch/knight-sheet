@@ -26,41 +26,13 @@ export default function AccueilPage() {
   const remplacerPersonnage = useCharacterStore((s) => s.remplacerPersonnage);
 
   const [hydrate, setHydrate] = useState(false);
-  const [importOuvert, setImportOuvert] = useState(false);
-  // Prompt v14 §3 : migration des fiches locales (knight-sheet-v1) vers le compte
-  const [migration, setMigration] = useState<{ noms: string[]; fiches: Character[] } | null>(null);
+  // Prompt v19 §2 : alerte d'incompatibilité — les anciens chevaliers sont
+  // EFFACÉS (schéma pré-it. 11 incompatible, perte assumée par NunnuN).
+  const [incompat, setIncompat] = useState(false);
 
-  const proposerMigration = () => {
-    try {
-      const brut = localStorage.getItem('knight-sheet-v1');
-      if (!brut) return;
-      const parsed = JSON.parse(brut) as { state?: { character?: Character; autresFiches?: Record<string, Character> } };
-      const s = parsed.state;
-      if (!s) return;
-      const fiches = [s.character, ...Object.values(s.autresFiches ?? {})].filter(Boolean) as Character[];
-      if (fiches.length === 0) return;
-      setMigration({ noms: fiches.map((f) => f.nom), fiches });
-    } catch {
-      // pas de fiches migrables
-    }
-  };
-
-  const importerLocales = async () => {
-    if (!migration) return;
-    const accountId = compteActif();
-    if (!accountId) { alert('Choisis un compte d\'abord'); return; }
-    for (const fiche of migration.fiches) {
-      await fetch('/api/chevaliers', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accountId, fiche }),
-      });
-    }
-    // vider la partie DONNÉES du localStorage (préférences UI conservées)
-    localStorage.removeItem('knight-sheet-v1');
-    setMigration(null);
-    alert(`${migration.fiches.length} fiche(s) importée(s) dans le compte — elles sont maintenant côté serveur.`);
-    window.location.reload();
+  const detecterIncompatibles = () => {
+    if (typeof window === 'undefined') return;
+    if (localStorage.getItem('knight-sheet-v1')) setIncompat(true);
   };
 
   useEffect(() => {
@@ -68,7 +40,7 @@ export default function AccueilPage() {
     const state = useCharacterStore.getState();
     useCharacterStore.setState({ derived: computeDerived(state.character) });
     document.documentElement.setAttribute('data-theme', themeDeFiche(state.character));
-    proposerMigration();
+    detecterIncompatibles();
     // Prompt v13 : les fiches du COMPTE viennent du serveur (cache local écrasé)
     const accountId = compteActif();
     if (accountId) {
@@ -101,27 +73,6 @@ export default function AccueilPage() {
     const fiche = id === actifId ? character : autresFiches[id];
     if (fiche) document.documentElement.setAttribute('data-theme', themeDeFiche(fiche));
     router.push('/personnage/combat');
-  };
-
-  const importer = (fichier: File) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const perso = JSON.parse(reader.result as string) as Character;
-        if (!perso.id || !perso.jauges || !perso.metaArmor) throw new Error('format');
-        // l'import devient la fiche active
-        remplacerPersonnage(perso);
-        useCharacterStore.setState((s) => ({
-          actifId: perso.id,
-          autresFiches: { ...s.autresFiches, [perso.id]: perso },
-        }));
-        alert(`Import réussi : ${perso.nom}`);
-        setImportOuvert(false);
-      } catch {
-        alert('Fichier invalide — import refusé');
-      }
-    };
-    reader.readAsText(fichier);
   };
 
   // Toutes les fiches : l'active (si elle existe — état « aucune fiche » propre) + les autres
@@ -225,41 +176,24 @@ export default function AccueilPage() {
         + Nouveau chevalier (assistant 10 étapes)
       </button>
 
-      {/* ─── Migration des fiches locales (prompt v14 §3) ─────────────── */}
-      {migration && (
+      {/* ─── Alerte d'incompatibilité (prompt v19 §2) — perte assumée ─── */}
+      {incompat && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3">
-          <div className="max-w-sm space-y-3 rounded-xl border border-zinc-700 bg-zinc-950 p-4">
-            <p className="text-base font-bold text-white">{migration.noms.length} fiche(s) trouvée(s) sur cet appareil</p>
-            <p className="text-xs text-zinc-400">Les importer dans le compte actif ? Elles seront sauvegardées côté serveur (visibles depuis n'importe quel appareil).</p>
-            <p className="text-xs text-neon-cyan">{migration.noms.join(' · ')}</p>
-            <div className="flex gap-2">
-              <button type="button" onClick={() => { localStorage.removeItem('knight-sheet-v1'); setMigration(null); }} className="min-h-[48px] flex-1 rounded-lg border border-zinc-700 text-sm text-zinc-400">Non, ignorer</button>
-              <button type="button" onClick={importerLocales} className="min-h-[48px] flex-1 rounded-lg bg-neon-cyan/20 text-sm font-bold text-neon-cyan">Importer</button>
-            </div>
+          <div className="max-w-sm space-y-3 rounded-xl border border-amber-700/60 bg-zinc-950 p-4 text-center">
+            <p className="text-2xl">🛠</p>
+            <p className="text-base font-bold text-white">Mise à jour effectuée</p>
+            <p className="text-xs text-zinc-400">Les anciens chevaliers sont <b>incompatibles</b> et vont être effacés. Recrée ton chevalier avec l&apos;assistant.</p>
+            <button
+              type="button"
+              onClick={() => { localStorage.removeItem('knight-sheet-v1'); setIncompat(false); }}
+              className="min-h-[48px] w-full rounded-lg bg-neon-cyan/20 text-sm font-bold text-neon-cyan"
+            >
+              J&apos;ai compris
+            </button>
           </div>
         </div>
       )}
 
-      {/* ─── Importer ─────────────────────────────────────────────────── */}
-      <button
-        type="button"
-        onClick={() => setImportOuvert((o: boolean) => !o)}
-        className="min-h-[48px] w-full rounded-lg border border-zinc-700 text-xs text-zinc-300 active:bg-zinc-800"
-      >
-        Importer un personnage (JSON)
-      </button>
-      {importOuvert && (
-        <input
-          type="file"
-          accept="application/json"
-          className="block w-full text-xs text-zinc-400"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) importer(f);
-            e.target.value = '';
-          }}
-        />
-      )}
-    </main>
+          </main>
   );
 }
