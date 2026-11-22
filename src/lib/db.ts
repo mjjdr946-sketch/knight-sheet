@@ -77,7 +77,11 @@ export function creerCompte(nom: string): { ok: boolean; compte?: { id: string; 
   if (nomPropre.length < 2) return { ok: false, message: 'Nom trop court (2 caractères minimum)' };
   const existant = getDb().prepare('SELECT id, nom FROM accounts WHERE LOWER(nom) = LOWER(?)').get(nomPropre) as { id: string } | undefined;
   if (existant) return { ok: false, message: 'Ce nom est déjà pris' };
-  const id = `acc-${Date.now()}`;
+  // ops : l'id DOIT être le nom — /quijoue stocke `nom` dans knight-compte et
+  // toutes les API reçoivent accountId=nom. Avec un id synthétique (acc-<ts>),
+  // la FK chevaliers.account_id → accounts(id) rejetait chaque écriture
+  // (FOREIGN KEY constraint failed) : impossible d'enregistrer un chevalier.
+  const id = nomPropre;
   getDb().prepare('INSERT INTO accounts (id, nom, role) VALUES (?, ?, ?)').run(id, nomPropre, 'joueur');
   return { ok: true, compte: { id, nom: nomPropre, role: 'joueur' } };
 }
