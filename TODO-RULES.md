@@ -427,3 +427,12 @@ Modifier des paliers de modules, effets d'OD restants, ambiance/son.
 - 🔶 Recette des 8 points à rejouer sur la base propre après déploiement
   (lancer `node scripts/reset-db.mjs /data/knight.db` sur le VPS puis
   redémarrer le conteneur).
+
+- ✅ **v19bis (retour NunnuN)** : reset COMPLET — comptes inclus
+  (`DELETE FROM accounts`, plus aucun seed) ; « Qui joue ? » liste
+  dynamique depuis le serveur (0 compte = création libre-service) ;
+  §0-bis bloquants corrigés : modale acquittée versionnée
+  (`knight-migration-ack` = SCHEMA_VERSION, purge des seules données de
+  fiche — plus de boucle malgré zustand-persist) et accueil sans carte
+  fantôme (fiche neutre « aucune » filtrée, écran « Créer mon premier
+  chevalier »). Tests non-régression : 2 chargements → modale disparue.

@@ -102,12 +102,15 @@ version — aucune action manuelle de NunnuN :
    ```bash
    node /opt/knight/scripts/reset-db.mjs /data/knight.db
    ```
-   → vide `chevaliers` / `adversaires` / `sessions_combat` ; les comptes sont
-   conservés (re-seed automatique des 4 si base vierge).
+   → RESET COMPLET : vide `chevaliers` / `adversaires` / `sessions_combat`
+   ET `accounts` (zéro chevalier, zéro compte — on reprend réellement à
+   zéro). Les comptes sont créés par les joueurs sur « Qui joue ? »
+   (libre-service).
 3. Redémarrer le conteneur.
 4. Vérifier : au premier chargement, la modale « 🛠 Mise à jour effectuée »
-   purge le localStorage côté client (aucune action utilisateur nécessaire
-   au-delà de « J'ai compris »).
+   purge le localStorage (acquittement versionné `knight-migration-ack` —
+   elle ne revient PAS au rechargement suivant) ; « Qui joue ? » affiche
+   « Aucun compte encore — crée le tien » (0 compte en base).
 5. Recette des 8 points de persistance à rejouer sur la base propre.
 
 Compte-rendu attendu de DevOps : sortie du script (compte des lignes
