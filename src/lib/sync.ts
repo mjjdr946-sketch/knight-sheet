@@ -50,7 +50,12 @@ export function planifierSauvegardeFiche(): void {
  * n'a lieu QUE si le serveur a confirmé ; en échec → bandeau + pas de redirection. */
 export async function pousserTout(accountId: string): Promise<boolean> {
   const { character, autresFiches } = useCharacterStore.getState();
-  const toutes = [character, ...Object.values(autresFiches)];
+  // Même garde que pousserFiche : le placeholder « aucune » n'est pas une donnée
+  // (sinon une ligne fantôme nom="" est créée à chaque scellement depuis un
+  // compte sans chevalier — régression constatée en it. 17bis).
+  const toutes = [character, ...Object.values(autresFiches)].filter(
+    (f): f is NonNullable<typeof character> => !!f && f.id !== 'aucune',
+  );
   let toutOk = true;
   for (const fiche of toutes) {
     try {
