@@ -25,7 +25,8 @@ export function getDb(): Database.Database {
   db = new Database(path.join(dir, path.basename(DB_PATH)));
   db.pragma('journal_mode = WAL');
   migrer(db);
-  semer(db);
+  // Prompt v19bis : PAS de seed — on reprend réellement à zéro, les comptes
+  // sont créés en libre-service sur « Qui joue ? ».
   return db;
 }
 
@@ -59,18 +60,6 @@ function migrer(db: Database.Database): void {
   `);
   const v = db.prepare('SELECT version FROM schema_version').get() as { version: number } | undefined;
   if (!v) db.prepare('INSERT INTO schema_version (version) VALUES (1)').run();
-}
-
-/** Seed : 4 comptes créés en dur au premier lancement (prompt v12 §1). */
-function semer(db: Database.Database): void {
-  const comptes: [string, string, string][] = [
-    ['nuncyco', 'nuncyco', 'mj'],
-    ['bigboy', 'bigboy', 'joueur'],
-    ['xcypher', 'xcypher', 'joueur'],
-    ['albatar', 'albatar', 'joueur'],
-  ];
-  const insert = db.prepare('INSERT OR IGNORE INTO accounts (id, nom, role) VALUES (?, ?, ?)');
-  for (const [id, nom, role] of comptes) insert.run(id, nom, role);
 }
 
 /** Récupère un compte par nom (écran « Qui joue ? »). */

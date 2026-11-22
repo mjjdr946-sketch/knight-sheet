@@ -9,7 +9,7 @@
  */
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useCharacterStore, ACCENT_PAR_MODELE, themeDeFiche } from '@/store/characterStore';
+import { useCharacterStore, ACCENT_PAR_MODELE, themeDeFiche, SCHEMA_VERSION } from '@/store/characterStore';
 import { computeDerived, palierPuissance } from '@/engine/stats';
 import { compteActif, chargerFichesServeur } from '@/lib/sync';
 import { personnageExemple } from '@/data/character';
@@ -30,9 +30,37 @@ export default function AccueilPage() {
   // EFFACÉS (schéma pré-it. 11 incompatible, perte assumée par NunnuN).
   const [incompat, setIncompat] = useState(false);
 
+  // CORRECTIF it. 17bis (bug 1) : zustand-persist recrée la clé juste après
+  // removeItem → la modale bouclait. Fix : acquittement DÉDIÉ versionné
+  // (knight-migration-ack = SCHEMA_VERSION) + purge des SEULES données de
+  // fiche (champs du state), jamais de la clé entière.
   const detecterIncompatibles = () => {
     if (typeof window === 'undefined') return;
-    if (localStorage.getItem('knight-sheet-v1')) setIncompat(true);
+    const ack = localStorage.getItem('knight-migration-ack');
+    if (ack === String(SCHEMA_VERSION)) return; // déjà acquitté pour ce schéma
+    if (localStorage.getItem('knight-sheet-v1')) {
+      setIncompat(true);
+    }
+  };
+
+  const acquitterMigration = () => {
+    // purge des seules DONNÉES de fiche dans knight-sheet-v1 (le persist
+    // zustand recrée la clé, on laisse une coquille propre) + acquittement
+    const brut = localStorage.getItem('knight-sheet-v1');
+    if (brut) {
+      try {
+        const parsed = JSON.parse(brut) as Record<string, unknown>;
+        if (parsed.state) {
+          (parsed.state as Record<string, unknown>).character = null; // fiches effacées
+          (parsed.state as Record<string, unknown>).autresFiches = {};
+          localStorage.setItem('knight-sheet-v1', JSON.stringify(parsed));
+        }
+      } catch {
+        localStorage.removeItem('knight-sheet-v1');
+      }
+    }
+    localStorage.setItem('knight-migration-ack', String(SCHEMA_VERSION));
+    setIncompat(false);
   };
 
   useEffect(() => {
@@ -76,9 +104,13 @@ export default function AccueilPage() {
   };
 
   // Toutes les fiches : l'active (si elle existe — état « aucune fiche » propre) + les autres
+  // CORRECTIF it. 17bis (bug 2) : la fiche neutre de repli (id 'aucune',
+  // invariant it. 11) n'est PAS un chevalier — elle ne doit jamais être rendue.
   const fiches: { id: string; fiche: Character; active: boolean }[] = [
-    ...(actifId ? [{ id: actifId, fiche: character, active: true }] : []),
-    ...Object.entries(autresFiches).map(([id, f]) => ({ id, fiche: f, active: false })),
+    ...(actifId && character.id !== 'aucune' ? [{ id: actifId, fiche: character, active: true }] : []),
+    ...Object.entries(autresFiches)
+      .filter(([id]) => id !== 'aucune')
+      .map(([id, f]) => ({ id, fiche: f, active: false })),
   ];
 
   if (!hydrate) {
@@ -86,6 +118,22 @@ export default function AccueilPage() {
       <div className="flex h-dvh items-center justify-center">
         <span className="font-display animate-pulse text-sm text-neon-cyan">Knight</span>
       </div>
+    );
+  }
+
+  // Prompt v14 §2 (bug 2 it. 17bis) : état vide PROPRE — pas de carte fantôme
+  if (fiches.length === 0) {
+    return (
+      <main className="mx-auto flex h-dvh max-w-md flex-col items-center justify-center gap-4 px-3">
+        <p className="font-display text-xl text-neon-cyan">Knight</p>
+        <p className="text-center text-sm text-zinc-400">
+          Ce compte n'a pas encore de chevalier. Crée ton premier chevalier avec l'assistant (10 étapes).
+        </p>
+        <button type="button" onClick={() => router.push('/personnage/creation')}
+          className="min-h-[56px] w-full rounded-xl border border-neon-cyan/40 bg-neon-cyan/10 text-sm font-bold text-neon-cyan active:bg-neon-cyan/20">
+          + Créer mon premier chevalier
+        </button>
+      </main>
     );
   }
 
@@ -185,7 +233,7 @@ export default function AccueilPage() {
             <p className="text-xs text-zinc-400">Les anciens chevaliers sont <b>incompatibles</b> et vont être effacés. Recrée ton chevalier avec l&apos;assistant.</p>
             <button
               type="button"
-              onClick={() => { localStorage.removeItem('knight-sheet-v1'); setIncompat(false); }}
+              onClick={acquitterMigration}
               className="min-h-[48px] w-full rounded-lg bg-neon-cyan/20 text-sm font-bold text-neon-cyan"
             >
               J&apos;ai compris

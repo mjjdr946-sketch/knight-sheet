@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
- * Reset de la base (prompt v19 §1) — remise à plat assumée par NunnuN :
- * tables `chevaliers`, `adversaires`, `sessions_combat` VIDÉES ; les comptes
- * restent (les 4 seed + comptes libres créés). Usage :
+ * Reset COMPLET de la base (prompt v19 + retour NunnuN : « on reprend
+ * réellement à zéro ») — TOUTES les tables vidées y compris `accounts` :
+ * zéro chevalier, zéro compte. Les comptes sont recréés par les joueurs
+ * (libre-service « Qui joue ? », prompt v14 §2). Usage :
  *   node scripts/reset-db.mjs            (DB par défaut)
  *   node scripts/reset-db.mjs /chemin/knight.db
  */
@@ -30,10 +31,6 @@ db.exec(`
 `);
 const v = db.prepare('SELECT version FROM schema_version').get();
 if (!v) db.prepare('INSERT INTO schema_version (version) VALUES (1)').run();
-// comptes : INSERT OR IGNORE (les 4 seed restent présents, prompt v19 §1)
-const seed = db.prepare('INSERT OR IGNORE INTO accounts (id, nom, role) VALUES (?, ?, ?)');
-for (const [id, nom, role] of [['nuncyco','nuncyco','mj'],['bigboy','bigboy','joueur'],['xcypher','xcypher','joueur'],['albatar','albatar','joueur']]) seed.run(id, nom, role);
-
 const avant = {
   chevaliers: (db.prepare('SELECT COUNT(*) n FROM chevaliers').get() ?? { n: 0 }).n,
   adversaires: (db.prepare('SELECT COUNT(*) n FROM adversaires').get() ?? { n: 0 }).n,
@@ -42,7 +39,8 @@ const avant = {
 db.prepare('DELETE FROM chevaliers').run();
 db.prepare('DELETE FROM adversaires').run();
 db.prepare('DELETE FROM sessions_combat').run();
-const comptes = (db.prepare('SELECT COUNT(*) n FROM accounts').get() ?? { n: 0 }).n;
+const comptesSupprimes = (db.prepare('DELETE FROM accounts').run().changes);
+const comptesRestants = (db.prepare('SELECT COUNT(*) n FROM accounts').get() ?? { n: 0 }).n;
 
-console.log(`✓ Reset terminé : ${avant.chevaliers} chevaliers, ${avant.adversaires} adversaires, ${avant.sessions} sessions supprimés — ${comptes} comptes conservés.`);
+console.log(`✓ Reset COMPLET : ${avant.chevaliers} chevaliers, ${avant.adversaires} adversaires, ${avant.sessions} sessions, ${comptesSupprimes} comptes supprimés — base vide (${comptesRestants} compte restant).`);
 db.close();
