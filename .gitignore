@@ -9,3 +9,6 @@ coverage/
 .env.*.local
 .sheet_password
 deploy/backups/
+test-results/
+playwright-report/
+blob-report/
