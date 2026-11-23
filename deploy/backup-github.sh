@@ -12,7 +12,9 @@ USER=${GITHUB_BACKUP_USER:-mjjdr946-sketch}
 [ -f "$DB" ] || { echo "knight.db introuvable : $DB"; exit 1; }
 
 # snapshot daté + base64 pour PUT contents
-STAMP=$(date -u +%Y%m%d-%H%M)
+# ops : secondes dans le nom — un horodatage à la minute provoquait un 422 ("sha
+# wasn't supplied") dès deux pushes dans la même minute (run manuel + cron, retry).
+STAMP=$(date -u +%Y%m%d-%H%M%S)
 CONTENT=$(base64 -w0 "$DB")
 
 echo "Push du snapshot $DB → $USER/$REPO ($STAMP)…"
