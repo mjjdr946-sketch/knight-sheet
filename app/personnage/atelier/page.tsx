@@ -103,7 +103,7 @@ export default function AtelierPage() {
       <main className="mx-auto max-w-md space-y-3 px-3 pb-24 pt-6">
         <h1 className="font-display text-xl text-neon-cyan">Atelier — arme de prestige</h1>
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-4 text-sm text-zinc-300">
-          🔒 **Verrouillé.** La création d'une arme de prestige exige d'être chevalier de la
+          🔒 <b>Verrouillé.</b> La création d'une arme de prestige exige d'être chevalier de la
           <b> Table Ronde (500 PG cumulés)</b> ou 700 PG, au choix du MJ (p.36).
           PG actuels : <b className="text-neon-gold">{gloire}</b> / {SEUIL_TABLE_RONDE}.
         </div>
