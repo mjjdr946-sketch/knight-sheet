@@ -16,11 +16,14 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ ok: true, fiches });
 }
 
-/** Champs modifiables sur une fiche scellée (jauges de jeu — combat/jets restent actifs).
- * IT. 20 §2 : XP/évolutions INCLUSES — « Ajouter des XP » (+10 PG) est une action
- * de jeu qui doit persister après scellement (avant : rejeté silencieusement
- * côté API → bandeau « non sauvegardé » permanent). */
-const CHAMPS_JEU = new Set(['jauges', 'combatSession', 'favoris', 'gloire', 'xpJournal', 'niveau', 'overdrives']);
+/** IT. 21 §1 : la garde passe en liste INVERSE — tout champ qui n'est pas
+ * STRUCTUREL (identité de création) est modifiable sur fiche scellée : jauges,
+ * combat, favoris, XP/évolutions, modules (activer/désactiver), armes
+ * (équiper/modes), armure déployée (Shrine/Watchtower/Guardian), déverrouillage
+ * (scelle), conditions/styles de jeu, ascribes d'agonie. Une liste POSITIVE
+ * oubliait systématiquement le champ suivant (3 rounds de bandeau « non
+ * sauvegardé » à tort). */
+const CHAMPS_STRUCTURELS = new Set(['id', 'nom', 'classe', 'concept', 'archetypeId', 'sectionId', 'metaArmor']);
 
 export async function PUT(req: NextRequest) {
   const { accountId, fiche } = (await req.json()) as { accountId: string; fiche: Character };
@@ -32,11 +35,9 @@ export async function PUT(req: NextRequest) {
     const ancienne = JSON.parse(existante.fiche) as Character;
     if (ancienne.scelle) {
       // ne diff que sur les champs de jeu
-      const horsJeu = Object.keys(fiche).filter((k) => !CHAMPS_JEU.has(k) && JSON.stringify((fiche as unknown as Record<string, unknown>)[k]) !== JSON.stringify((ancienne as unknown as Record<string, unknown>)[k]));
-      const ignorer = ['mis_a_jour', 'niveau', 'id', 'nom'];
-      const reel = horsJeu.filter((k) => !ignorer.includes(k));
-      if (reel.length > 0) {
-        return NextResponse.json({ ok: false, message: `Fiche scellée — édition bloquée : ${reel.join(', ')}` }, { status: 403 });
+      const horsJeu = Object.keys(fiche).filter((k) => CHAMPS_STRUCTURELS.has(k) && JSON.stringify((fiche as unknown as Record<string, unknown>)[k]) !== JSON.stringify((ancienne as unknown as Record<string, unknown>)[k]));
+      if (horsJeu.length > 0) {
+        return NextResponse.json({ ok: false, message: `Fiche scellée — identité bloquée : ${horsJeu.join(', ')}` }, { status: 403 });
       }
     }
   }

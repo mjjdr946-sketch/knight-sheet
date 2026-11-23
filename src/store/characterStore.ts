@@ -168,6 +168,10 @@ interface CharacterStore {
   abandonnerBrouillon: () => void;
   /** it. 20 §2 : revendiquer le brouillon d'un autre compte (choix du joueur) */
   revendiquerBrouillon: (compte: string) => void;
+  /** IT. 21 §5 : dépenser des PG pour monter une caractéristique (coût = nouvelle valeur, plafond = aspect — p.110) */
+  monterTrait: (trait: TraitId, valeur: number) => { ok: boolean; message: string };
+  /** IT. 21 §4 : dépenser des PG pour monter un aspect (coût = nouvelle valeur, plafond 9 — p.110) */
+  monterAspect: (aspect: AspectId, valeur: number) => { ok: boolean; message: string };
   /** Consomme le brouillon : fiche active = brouillon scellé 🔒 */
   confirmerScellement: (finie: Character) => void;
   /** Crée une nouvelle fiche (à partir du modèle d'exemple) */
@@ -307,6 +311,19 @@ function coutActivationPE(coutPE?: string): number {
 }
 
 /** Recalcule les dérivées après une mutation d'état */
+/** IT. 21 §5 : plafond d'un trait = valeur de son aspect parent (p.110 :
+ * « l'aspect fixe le plafond des caractéristiques liées »). */
+const TRAIT_VERS_ASPECT: Record<TraitId, AspectId> = {
+  deplacement: 'chair', force: 'chair', endurance: 'chair',
+  hargne: 'bete', combat: 'bete', instinct: 'bete',
+  tir: 'machine', savoir: 'machine', technique: 'machine',
+  aura: 'dame', parole: 'dame', sangfroid: 'dame',
+  discretion: 'masque', dexterite: 'masque', perception: 'masque',
+};
+function plafondTrait(trait: TraitId, aspects: Record<AspectId, number>): number {
+  return aspects[TRAIT_VERS_ASPECT[trait]] ?? 9;
+}
+
 function recalcule(character: Character): Pick<CharacterStore, 'character' | 'derived'> {
   return { character, derived: computeDerived(character) };
 }
@@ -479,6 +496,34 @@ export const useCharacterStore = create<CharacterStore>()(
         set(recalcule(cible));
         poserTheme(cible.metaArmor.modele);
         useCharacterStore.setState({ actifId: id, autresFiches: reste });
+      },
+
+
+      // IT. 21 §5 : progression par PG — le coût d'une caractéristique est SA
+      // NOUVELLE valeur, le plafond est fixé par l'aspect parent (p.110).
+      monterTrait: (trait, valeur) => {
+        const { character } = get();
+        const actuel = character.traits[trait] ?? 1;
+        if (valeur <= actuel) return { ok: false, message: 'Valeur identique ou inférieure' };
+        const plafond = plafondTrait(trait, character.aspects);
+        if (valeur > plafond) return { ok: false, message: `Plafond de l'aspect atteint (${plafond})` };
+        const cout = valeur; // coût = nouvelle valeur (prompt v21, digest p.110)
+        if (character.gloire < cout) return { ok: false, message: `Il te manque ${cout - character.gloire} PG` };
+        const jour = [...(character.xpJournal ?? []), { quand: new Date().toISOString(), points: -cout, note: `Montée de ${trait} → ${valeur}`, paliers: [] }];
+        set(recalcule({ ...character, traits: { ...character.traits, [trait]: valeur }, gloire: character.gloire - cout, xpJournal: jour }));
+        return { ok: true, message: `${trait} monté à ${valeur} (−${cout} PG)` };
+      },
+      monterAspect: (aspect, valeur) => {
+        const { character } = get();
+        const actuel = character.aspects[aspect] ?? 2;
+        if (valeur <= actuel) return { ok: false, message: 'Seule l\'augmentation d\'un cran est possible' };
+        if (valeur > actuel + 1) return { ok: false, message: 'La valeur ne monte que d\'un cran' };
+        if (valeur > 9) return { ok: false, message: 'Plafond PJ : 9 (p.110)' };
+        const cout = valeur; // coût = nouvelle valeur (prompt v21)
+        if (character.gloire < cout) return { ok: false, message: `Il te manque ${cout - character.gloire} PG` };
+        const jour = [...(character.xpJournal ?? []), { quand: new Date().toISOString(), points: -cout, note: `Montée de l'aspect ${aspect} → ${valeur}`, paliers: [] }];
+        set(recalcule({ ...character, aspects: { ...character.aspects, [aspect]: valeur }, gloire: character.gloire - cout, xpJournal: jour }));
+        return { ok: true, message: `Aspect ${aspect} monté à ${valeur} (−${cout} PG)` };
       },
 
       changerArmure: (modele) => {

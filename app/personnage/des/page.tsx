@@ -145,8 +145,20 @@ export default function DesPage() {
             {resultat.total} {resultat.total > difficulte ? '✓' : '✗'}
           </p>
           <p className="mt-1 text-xs text-zinc-400">
-            {resultat.reussites} paires + {resultat.auto} OD · dés : {resultat.des.join(', ')}
+            {resultat.reussites} paires + {resultat.auto} OD
           </p>
+          <details className="mt-2 rounded-lg border border-zinc-800 px-2 py-1">
+            <summary className="cursor-pointer text-[11px] uppercase tracking-widest text-zinc-500">
+              Détail du jet
+            </summary>
+            <ul className="mt-1 space-y-0.5 text-[11px] text-zinc-400">
+              {resultat.des.map((d: number, i: number) => (
+                <li key={i} className={d % 2 === 0 ? 'text-neon-cyan' : 'text-zinc-500'}>
+                  dé {i + 1} : {d} {d % 2 === 0 ? '(paire)' : '(impair)'}
+                </li>
+              ))}
+            </ul>
+          </details>
           {resultat.exploit && <p className="mt-1 text-sm font-bold text-neon-gold">EXPLOIT — relance (p.77)</p>}
           {resultat.echecCritique && <p className="mt-1 text-sm font-bold text-red-400">ÉCHEC CRITIQUE (p.77)</p>}
         </ResultatAnime>

@@ -477,3 +477,17 @@ Modifier des paliers de modules, effets d'OD restants, ambiance/son.
   (`chargementFiches`, spinner « Chargement des chevaliers… ») — E2E avec
   GET retardé 800 ms. §4 fiches partielles normalisées
   (`normaliserFiche` dans sync.ts, défensive à la réception serveur).
+
+- ✅ **Itération 21 (v21) — retour de table** : §1 audit de câblage complet
+  (DEVOPS.md, 30 actions) + garde inversée `CHAMPS_STRUCTURELS` (tout hors
+  identité de création est modifiable sur fiche scellée — fin des
+  omissions CHAMPS_JEU) + modale custom « 🔓 Déverrouiller » (les achats
+  restent payés) + bandeau absent sur PUT 200. §2 désélection d'arme
+  (« − 1 » étape Arsenal, budget recalculé). §3/§4 traits & aspects en
+  listes déroulantes (plafond = aspect, §4 deux valeurs un cran, coût =
+  nouvelle valeur, plafond 9). §5 progression PG (monterTrait/monterAspect
+  + journal). §6 comptes de recette marqués « (test) » via
+  scripts/mark-test-accounts.mjs (idempotent). §7 texte Combat.
+  §8 Détail du jet sur la page Dés (drill-down par dé).
+  🔶 plafond exact des traits (aspect vs aspect+1) à valider par le MJ
+  (implémenté = valeur de l'aspect, p.110 littérale).

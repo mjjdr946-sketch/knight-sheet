@@ -18,6 +18,7 @@ import { valeurChevalier, palierPuissance } from '@/engine/stats';
 function XpWidget() {
   const scelle = useCharacterStore((s) => s.character.scelle);
   const deverrouiller = useCharacterStore((s) => s.deverrouiller);
+  const [modalDeverrouiller, setModalDeverrouiller] = useState(false);
   const gloire = useCharacterStore((s) => s.character.gloire);
   const journalRef = useCharacterStore((s) => s.character.xpJournal); // selector STABLE (zustand v5 : pas de ?? [] dans le selector)
   const journal = journalRef ?? [];
@@ -62,19 +63,40 @@ export default function FeuillePage() {
   const scelle = useCharacterStore((s) => s.character.scelle);
   const [cinematique, setCinematique] = useCinematique(); // prompt v11 §3 : réglages
   const deverrouiller = useCharacterStore((s) => s.deverrouiller);
+  const [modalDeverrouiller, setModalDeverrouiller] = useState(false);
   return (
     <main className="mx-auto max-w-md px-3 pb-24 pt-4">
       <h1 className="font-display mb-3 text-xl text-neon-cyan">
         Feuille {scelle && <span className="text-sm text-neon-gold">🔒 scellée</span>}
       </h1>
-      {scelle && (
+      {scelle && !modalDeverrouiller && (
         <button
           type="button"
-          onClick={() => { if (confirm('Déverrouiller la fiche pour édition ? Le MJ devra valider les modifications.')) deverrouiller(); }}
+          onClick={() => setModalDeverrouiller(true)}
           className="mb-3 min-h-[48px] w-full rounded-lg border border-neon-gold/50 text-xs text-neon-gold active:bg-neon-gold/10"
         >
           🔓 Déverrouiller l'édition
         </button>
+      )}
+      {scelle && modalDeverrouiller && (
+        // IT. 21 §1 : modale CUSTOM avec le texte attendu (avant : un
+        // confirm() natif invisible en mobile + un bouton sans action réelle)
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal>
+          <div className="w-full max-w-sm space-y-3 rounded-xl border border-zinc-700 bg-zinc-950 p-4">
+            <p className="font-display text-sm text-neon-gold">🔓 Déverrouiller l'édition</p>
+            <p className="text-xs text-zinc-400">
+              La fiche redevient modifiable — les achats d'équipement restent payés.
+            </p>
+            <button type="button" onClick={() => { deverrouiller(); setModalDeverrouiller(false); }}
+              className="min-h-[48px] w-full rounded-lg border border-neon-cyan/40 bg-neon-cyan/10 text-xs font-bold text-neon-cyan active:bg-neon-cyan/20">
+              ✅ Confirmer le déverrouillage
+            </button>
+            <button type="button" onClick={() => setModalDeverrouiller(false)}
+              className="min-h-[48px] w-full rounded-lg border border-zinc-700 text-xs text-zinc-300 active:bg-zinc-800">
+              Annuler
+            </button>
+          </div>
+        </div>
       )}
       {/* Réglages (prompt v11 §3) : animation Cinématique ON par défaut */}
       <label className="flex min-h-[48px] items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900/70 px-3 text-sm text-zinc-300">

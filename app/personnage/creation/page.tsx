@@ -117,6 +117,22 @@ export default function CreationPage() {
     });
     setMessageAchat('');
   };
+  // IT. 21 §2 : désélection — « − 1 » retire la DERNIÈRE arme de ce modèle du
+  // brouillon et recalcule le budget (avant : impossible de retirer, seul « + »).
+  const deselectionner = (id: string) => {
+    const arme = armesArsenal.find((a) => a.id === id);
+    if (!arme) return;
+    maj((d) => {
+      d.armes = d.armes ?? [];
+      const idx = d.armes.map((a) => a.nom).lastIndexOf(arme.nom);
+      if (idx >= 0) d.armes.splice(idx, 1);
+    });
+    setMessageAchat('');
+  };
+  const nbAchetees = (id: string) => (draft?.armes ?? []).filter((a) => {
+    const modele = armesArsenal.find((m) => m.nom === a.nom);
+    return modele?.id === id;
+  }).length;
   const [messageAchat, setMessageAchat] = useState('');
 
   const maj = (fn: (d: Character) => void) => {
@@ -359,7 +375,11 @@ export default function CreationPage() {
                     <p className="text-[10px] text-zinc-500">{a.degats.nombre}D6+{a.degats.bonus} · {a.type}</p>
                   </div>
                   <div className="flex items-center gap-1">
-                    {(draft?.armes ?? []).filter((ar) => ar.nom === a.nom).length > 0 && <span className="text-xs text-neon-cyan">×{(draft?.armes ?? []).filter((ar) => ar.nom === a.nom).length}</span>}
+                    {nbAchetees(a.id) > 0 && <span className="text-xs text-neon-cyan">×{nbAchetees(a.id)}</span>}
+                    {nbAchetees(a.id) > 0 && (
+                      <button type="button" onClick={() => deselectionner(a.id)}
+                        className="min-h-[44px] rounded-lg border border-zinc-700 px-2.5 text-xs font-bold text-zinc-300 active:bg-zinc-800">− 1</button>
+                    )}
                     <button type="button" onClick={() => acheter(a.id)} disabled={a.coutPG > restant}
                       className="min-h-[44px] rounded-lg bg-neon-cyan/15 px-2.5 text-xs font-bold text-neon-cyan disabled:opacity-30">+</button>
                   </div>

@@ -6,6 +6,7 @@
  * Les totaux ne changent qu'entre missions (règle p.88/§5) — l'édition ici
  * représente une intermission.
  */
+import { useState } from 'react';
 import { useCharacterStore } from '@/store/characterStore';
 import Accordion from '../../../components/ui/Accordion';
 import type { AspectId, TraitId } from '@/types/character';
@@ -28,22 +29,13 @@ const CHOIX_DERIVEES: { cle: 'defense' | 'reaction' | 'initiative' | 'sante'; no
 
 export default function AttributsPage() {
   const character = useCharacterStore((s) => s.character);
+  const monterTrait = useCharacterStore((s) => s.monterTrait);
+  const monterAspect = useCharacterStore((s) => s.monterAspect);
+  const [erreurProgression, setErreurProgression] = useState('');
   const derived = useCharacterStore((s) => s.derived);
   const setChoixDerive = useCharacterStore((s) => s.setChoixDerive);
   const depenserContacts = useCharacterStore((s) => s.depenserContacts);
   const contactsDepenses = useCharacterStore((s) => s.combatSession.contactsDepenses);
-
-  // Édition de caractéristique : bornée par l'aspect (plafond, p.110) et 1 minimum
-  const ajusterTrait = (aspect: AspectId, trait: TraitId, delta: number) => {
-    const plafond = character.aspects[aspect]; // l'aspect fixe le plafond (p.110)
-    const actuel = character.traits[trait];
-    const nouveau = Math.min(plafond, Math.max(0, actuel + delta));
-    // L'édition de traits = intermission (totaux figés en partie, p.88/§5)
-    useCharacterStore.getState().remplacerPersonnage({
-      ...character,
-      traits: { ...character.traits, [trait]: nouveau },
-    });
-  };
 
   return (
     <div className="space-y-5">
@@ -59,36 +51,61 @@ export default function AttributsPage() {
           <div key={aspect.id} className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-2">
             <div className="mb-1 flex items-center justify-between">
               <span className="font-display text-sm text-neon-gold">{aspect.nom}</span>
-              <span className="rounded bg-zinc-800 px-2 py-0.5 text-xs text-white">{character.aspects[aspect.id]}</span>
+              {/* IT. 21 §4 : liste à DEUX valeurs (actuel / actuel+1) — monte un
+                  cran, coût = nouvelle valeur, plafond 9 PJ (p.110) */}
+              <select
+                value={character.aspects[aspect.id]}
+                onChange={(e) => {
+                  const cible = Number(e.target.value);
+                  if (cible === character.aspects[aspect.id]) return;
+                  const r = monterAspect(aspect.id, cible);
+                  if (!r.ok) setErreurProgression(r.message);
+                }}
+                className="min-h-[48px] rounded border border-zinc-700 bg-zinc-950 px-2 text-xs text-white"
+              >
+                {[character.aspects[aspect.id], character.aspects[aspect.id] + 1].map((v) => (
+                  <option key={v} value={v}>
+                    {v} PG{v === character.aspects[aspect.id] ? '' : ` (coût ${v})`}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="grid grid-cols-3 gap-1.5">
-              {aspect.traits.map((t) => (
-                <div key={t.id} className="flex items-center justify-between rounded-lg bg-zinc-950 px-1 py-1">
-                  <span className="text-xs text-zinc-400">{t.nom}</span>
-                  <div className="flex items-center">
-                    <button
-                      type="button"
-                      aria-label={`Retirer un point de ${t.nom}`}
-                      onClick={() => ajusterTrait(aspect.id, t.id, -1)}
-                      className="h-12 w-10 rounded text-sm text-zinc-400 active:bg-zinc-800"
+              {aspect.traits.map((t) => {
+                // IT. 21 §5 : liste déroulante — valeurs 1..plafond (l'aspect
+                // fixe le plafond des caractéristiques liées, p.110), coût =
+                // nouvelle valeur, débitée de la gloire dans le store.
+                const actuel = character.traits[t.id] ?? 1;
+                const plafond = character.aspects[aspect.id] ?? 9;
+                const options = Array.from({ length: plafond }, (_, i) => i + 1);
+                return (
+                  <div key={t.id} className="rounded-lg bg-zinc-950 px-1 py-1">
+                    <span className="block text-[10px] text-zinc-500">{t.nom}</span>
+                    <select
+                      value={actuel}
+                      onChange={(e) => {
+                        const r = monterTrait(t.id, Number(e.target.value));
+                        if (!r.ok) setErreurProgression(r.message);
+                      }}
+                      className="min-h-[48px] w-full rounded border border-zinc-700 bg-zinc-950 text-sm text-white"
                     >
-                      −
-                    </button>
-                    <span className="w-5 text-center text-base font-bold text-white">{character.traits[t.id]}</span>
-                    <button
-                      type="button"
-                      aria-label={`Ajouter un point à ${t.nom}`}
-                      onClick={() => ajusterTrait(aspect.id, t.id, +1)}
-                      className="h-12 w-10 rounded text-sm text-zinc-400 active:bg-zinc-800"
-                    >
-                      +
-                    </button>
+                      {options.map((v) => (
+                        <option key={v} value={v}>
+                          {v}{v > actuel ? ` (${v} PG)` : ''}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ))}
+        {erreurProgression && (
+          <p className="mt-2 rounded-lg border border-red-900 bg-red-900/40 px-2 py-1 text-xs text-red-300" role="alert">
+            {erreurProgression}
+          </p>
+        )}
       </section>
 
       {/* ─── Valeurs dérivées : choix de la caractéristique (replié) ── */}

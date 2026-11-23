@@ -69,12 +69,14 @@ describe('§2 — XP/évolutions persistent sur une fiche scellée', () => {
     // editionBloquee ne bloque PAS les XP (action de jeu)
   });
 
-  it('CHAMPS_JEU inclut gloire/xpJournal/niveau/overdrives (garde de source API)', () => {
+  it('gloire/xpJournal/niveau/overdrives SONT des champs de jeu (garde inversée it. 21)', () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const route = require('fs').readFileSync('app/api/chevaliers/route.ts', 'utf8');
+    // it. 21 : liste INVERSE — aucun de ces champs ne doit être STRUCTUREL
     for (const champ of ['gloire', 'xpJournal', 'niveau', 'overdrives']) {
-      expect(route).toContain(`'${champ}'`); // champ d'évolution accepté sur fiche scellée
+      expect(route).not.toContain(`'${champ}'`); // hors liste structurelle = modifiable
     }
+    expect(route).toContain('CHAMPS_STRUCTURELS'); // la liste inverse existe
   });
 
   it('PUT d\u2019une fiche scellée avec XP → la fiche pousse gloire + xpJournal', async () => {

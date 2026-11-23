@@ -134,3 +134,44 @@ curl -X DELETE "https://<host>/api/chevaliers" -d '{"accountId":"…","ficheId":
 - `accountId` = id du compte propriétaire (isolation vérifiée côté API) ;
 - `id` = **id de la fiche** (le champ `ficheId` n'existe pas dans la route).
 Scripts de recette : utiliser la forme query string.
+
+# Audit de câblage action UI → store → endpoint (IT. 21 §1, prompt v21-22)
+
+Chaque ligne est prouvée par la garde de source des tests (315 tests) et par
+les E2E Playwright (7 specs). Toute action passe par le subscriber sync
+(`brancherSync()` dans le layout) qui pousse en PUT avec debounce 800 ms —
+le bandeau « non sauvegardé » n’apparaît QUE sur un statut != 2xx ou une
+exception (IT. 21 mise en garde 2 — le faux positif venait de la garde
+scellement en liste POSITIVE, remplacée par la liste INVERSE
+`CHAMPS_STRUCTURELS` : tout champ hors identité de création est de jeu).
+
+- `activerCapacite` — Feuille — Capacités de classe → store + engine → PUT via sync (jauges)
+- `activerModule` — Équipement › Mon armure — activer/désactiver → store (débit PE) → PUT via sync (modules/jauges)
+- `ajouterXP` — Feuille — Ajouter des XP → store (paliers 150/200/250) → PUT via sync (gloire/xpJournal)
+- `basculerArmure` — Combat — Déployer / Replier Guardian, Shrine, Watchtower → store + PUT via sync → PUT /api/chevaliers (armureDeployee)
+- `basculerFavori` — Dés / Combat — ★ favoris → store → PUT via sync (fiche)
+- `changerArmure` — Méta-armure — changement à la volée → store (classe suit la méta-armure, IT. 20) → PUT via sync (metaArmor/classe)
+- `chargerFiche` — Accueil / Feuille → store → PUT via sync
+- `declarerStyle` — Combat — postures → store → PUT via sync (conditions)
+- `depenserContacts` — Attributs — dépense de contacts → store → PUT via sync (session)
+- `depenserPEUsage` — Combat / Feuille — capacités → store → PUT via sync (jauges)
+- `desinstallerModule` — Méta-armure — retirer un module → store → PUT via sync (modules)
+- `deverrouiller` — Feuille — 🔓 Déverrouiller (modale custom IT. 21) → store (scelle: false) → PUT via sync (scelle)
+- `dupliquerFiche` — Accueil — carte chevalier → store (persist + PUT via sync) → PUT /api/chevaliers
+- `frapperAdversaire` — Combat — attaque → store + engine → PUT via sync (fiche + session)
+- `installerModule` — Méta-armure — installer un module → store (slots vérifiés) → PUT via sync (modules)
+- `journaliserJet` — Combat — chaque jet → store → PUT via sync (session)
+- `memoriserOpposition` — Combat — opposition → store → PUT via sync (session)
+- `monterAspect` — Attributs — liste déroulante aspect (IT. 21 §4/§5) → store (débit gloire + journal) → PUT via sync (aspects/gloire/xpJournal)
+- `monterTrait` — Attributs — liste déroulante trait (IT. 21 §5) → store (débit gloire + journal) → PUT via sync (traits/gloire/xpJournal)
+- `passerAuTourSuivant` — Combat — Tour suivant → store → PUT via sync (session)
+- `payerMaintenanceShrine` — Combat — maintenance Shrine → store → PUT via sync (jauges)
+- `poserImplant` — Identité — poser un implant → store → PUT via sync (conditions)
+- `remplacerPersonnage` — Accueil / layout (chargement serveur) → store → —
+- `resetCombat` — Combat — Reset combat → store → PUT via sync (session)
+- `setChoixDerive` — Attributs — valeurs dérivées au choix → store → PUT via sync (choixDerivees)
+- `subirDegats` — Combat — Encaisser → store → PUT via sync (jauges/conditions)
+- `supprimerFiche` — Accueil — carte chevalier → store + DELETE via sync → DELETE /api/chevaliers?accountId&id
+- `testerEspoir` — Combat — Test d’espoir → store → PUT via sync (jauges/PEs)
+- `tirerBlessureAgonie` — Combat — blessures → store → PUT via sync (conditions)
+- `utiliserHeroisme` — Header — Héroïsme → store → PUT via sync (jauges)
