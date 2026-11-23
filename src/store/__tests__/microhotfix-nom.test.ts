@@ -64,7 +64,7 @@ describe('garde de source — champ nom câblé sur le brouillon du store', () =
     expect(src).toContain('s.wizardStep');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const st = require('fs').readFileSync('src/store/characterStore.ts', 'utf8');
-    expect(st).toContain('if (get().wizardDraft) return; // reprise du brouillon existant');
+    expect(st).toMatch(/if \(get\(\)\.wizardDraft\) \{/); // garde anti-écrasement (avec trace §0)
     expect(st).toContain('wizardStep: state.wizardStep'); // persisté
   });
 });

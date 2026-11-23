@@ -320,7 +320,12 @@ export const useCharacterStore = create<CharacterStore>()(
         // MICRO-HOTFIX : NE PAS écraser un brouillon en cours (reload réseau au
         // milieu du wizard → retour étape 1 → re-clic « Démarrer » jetait le
         // brouillon rempli : nom vide au scellement, constaté en prod).
-        if (get().wizardDraft) return; // reprise du brouillon existant
+        if (get().wizardDraft) {
+          // §0 traçage (prompt v21) : une reprise ne doit JAMAIS réinitialiser
+          console.info('[wizard] demarrerWizard → REPRISE du brouillon existant (nom:', get().wizardDraft?.nom ?? '', ')');
+          return;
+        }
+        console.info('[wizard] demarrerWizard → NOUVEAU brouillon (nom vide)');
         const base: Character = { ...structuredClone(personnageExemple), id: `fiche-${Date.now()}`, nom: '', scelle: false };
         base.favoris = [];
         base.xpJournal = [];
@@ -340,9 +345,14 @@ export const useCharacterStore = create<CharacterStore>()(
         }
         const copie = structuredClone(d);
         fn(copie);
+        // §0 traçage (prompt v21) : chaque écriture du brouillon est traçée —
+        // le log qui manque est celui qui révèle où le nom disparaît.
+        console.info('[wizard] majWizardDraft → nom:', JSON.stringify(copie.nom), '| classe:', copie.classe);
         set({ wizardDraft: copie });
       },
       confirmerScellement: (finie) => {
+        // §0 traçage (prompt v21) : le nom au moment exact du swap
+        console.info('[wizard] confirmerScellement → fiche active =', finie.nom, '| brouillon consommé');
         // la fiche scellée DEVIENT l'active (invariant : l'ancienne neutre disparaît)
         set({ character: finie, derived: computeDerived(finie), wizardDraft: null });
       },
@@ -1131,6 +1141,9 @@ export const useCharacterStore = create<CharacterStore>()(
       merge: (persisted, current) => {
         // Restaure personnage + fiches + session + adversaire ; dérivées recalculées
         const p = persisted as Partial<CharacterStore>;
+        // §0 traçage (prompt v21) : ce que le persist réinjecte au rehydrate —
+        // un merge écrasant le brouillon serait visible ici.
+        console.info('[persist] merge — wizardDraft persisté:', p.wizardDraft ? JSON.stringify(p.wizardDraft.nom) : '∅', '| courant:', current.wizardDraft ? JSON.stringify(current.wizardDraft.nom) : '∅');
         const perso = p.character ?? current.character;
         const session: CombatSession = { ...SESSION_VIDE, ...(p.combatSession ?? {}) };
         return {

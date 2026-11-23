@@ -436,3 +436,12 @@ Modifier des paliers de modules, effets d'OD restants, ambiance/son.
   fiche — plus de boucle malgré zustand-persist) et accueil sans carte
   fantôme (fiche neutre « aucune » filtrée, écran « Créer mon premier
   chevalier »). Tests non-régression : 2 chargements → modale disparue.
+
+- ✅ **Itération 18 (v21) — chaîne nom du wizard** : traçage complet de la
+  chaîne (frappes du nom débauncées `[wizard-nom]`, chaque
+  `majWizardDraft` `[wizard]`, merge du persist `[persist]`,
+  `confirmerScellement`, reprises vs nouveaux brouillons, chargement
+  serveur du layout). Garde structurelle : le chargement des données du
+  compte ne remplace jamais un brouillon en cours (trace `[layout]`).
+  E2E fidèle à la recette avec F5 mid-parcours (reprise du brouillon
+  persisté, complétion, scellement, fiche porte le nom) : vert.

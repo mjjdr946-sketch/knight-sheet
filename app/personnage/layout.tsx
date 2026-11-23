@@ -25,6 +25,13 @@ export default function PersonnageLayout({ children }: { children: React.ReactNo
     const accountId = compteActif();
     if (accountId) {
       chargerFichesServeur(accountId).then((fiches) => {
+        // PROMPT v21 §1 (itération 18) : le chargement des données du compte
+        // ne remplace JAMAIS un brouillon de wizard en cours — on trace le
+        // contexte pour diagnostiquer la chaîne nom en prod.
+        const draft = useCharacterStore.getState().wizardDraft;
+        if (draft) {
+          console.info('[layout] chargement serveur : brouillon en cours préservé (nom:', JSON.stringify(draft.nom), ')');
+        }
         // CORRECTIF ops (it. 11, recette pt 6) : ne jamais garder le cache du
         // compte précédent quand le compte courant n'a aucune fiche serveur.
         const liste = (fiches ?? []).map((f) => f as never);

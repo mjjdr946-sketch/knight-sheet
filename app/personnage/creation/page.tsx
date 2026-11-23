@@ -170,7 +170,11 @@ export default function CreationPage() {
           <Champ
             label="Nom du chevalier"
             value={draft.nom}
-            onChange={(v) => maj((d) => { d.nom = v; })}
+            onChange={(v) => {
+              // §0 traçage (prompt v21) : chaque frappe est tracée (debounce 300 ms)
+              traceFrappeNom(v);
+              maj((d) => { d.nom = v; });
+            }}
             note="Étape 1 (p.110) : aspects à 2 et caractéristiques à 1 — appliqué automatiquement."
           />
         );
@@ -372,6 +376,14 @@ export default function CreationPage() {
       )}
     </main>
   );
+}
+
+// §0 traçage (prompt v21) : debounce du log des frappes du nom (module-level,
+// survit aux re-renders — aucune state React pour ne pas perturber le champ).
+let timerFrappeNom: ReturnType<typeof setTimeout> | undefined;
+function traceFrappeNom(v: string): void {
+  clearTimeout(timerFrappeNom);
+  timerFrappeNom = setTimeout(() => console.info('[wizard-nom] frappe (debounce 300 ms) →', JSON.stringify(v)), 300);
 }
 
 /* ─── Sous-composants simples ─────────────────────────────────────────── */

@@ -11,6 +11,46 @@ import { test, expect } from '@playwright/test';
 const COMPTE = `e2e-vesper-${Date.now()}`;
 const NOM = 'Dame Vesper E2E';
 
+test('recette fidèle v21 : F5 au milieu du wizard → reprise du brouillon → scellement → fiche porte le nom', async ({ page }) => {
+  // §1.4 (prompt v21) : un E2E SANS rechargement ne couvre pas le scénario réel.
+  const COMPTE_RELOAD = `e2e-reload-${Date.now()}`;
+  const NOM_RELOAD = 'Vesper Recharge E2E';
+
+  // création de compte
+  await page.goto('/quijoue');
+  await page.getByRole('button', { name: '+ Créer un nouveau compte' }).click();
+  await page.locator('input').first().fill(COMPTE_RELOAD);
+  await page.getByRole('button', { name: 'Créer', exact: true }).click();
+  await page.waitForURL((u) => !u.pathname.startsWith('/quijoue'), { timeout: 60_000 });
+  await page.getByRole('button', { name: /Créer mon premier chevalier/ }).click();
+
+  // wizard : démarrer, taper le nom PARTIELLEMENT…
+  await page.getByRole('button', { name: 'Démarrer la création' }).click();
+  const champNom = page.locator('input').first();
+  await champNom.fill('Vesper Recharge');
+
+  // …RECHARGER la page au milieu de la saisie (scénario réseau mobile réel)
+  await page.reload();
+  await page.waitForLoadState('domcontentloaded');
+  // le brouillon persisté doit être repris — étape 1 restaurée, nom prérempli
+  await expect(page.locator('input').first()).toHaveValue('Vesper Recharge', { timeout: 30_000 });
+
+  // compléter le nom, avancer jusqu'à l'étape 10, sceller
+  await page.locator('input').first().fill(NOM_RELOAD);
+  for (let i = 0; i < 9; i++) {
+    await page.getByRole('button', { name: 'Étape suivante' }).click();
+  }
+  await page.getByRole('button', { name: /Sceller et jouer/ }).click();
+  await page.waitForURL((u) => u.pathname === '/', { timeout: 30_000 });
+
+  // la fiche en base porte le NOM COMPLET
+  const comptes = await (await page.request.get('/api/comptes')).json() as { comptes: { id: string; nom: string }[] };
+  const compte = comptes.comptes.find((c) => c.nom === COMPTE_RELOAD);
+  expect(compte).toBeTruthy();
+  const fiches = await (await page.request.get(`/api/chevaliers?accountId=${compte!.id}`)).json() as { fiches: { nom: string }[] };
+  expect(fiches.fiches.find((f) => f.nom === NOM_RELOAD), 'la fiche porte le nom saisi AVANT le reload').toBeTruthy();
+});
+
 test('recette complète : création de compte → wizard → scellement → fiche dans l’API', async ({ page }) => {
   // ── 1. Sas (accès libre en dev sans SHEET_PASSWORD) → « Qui joue ? »
   await page.goto('/quijoue');
