@@ -5,7 +5,7 @@
  * Travaille sur une COPIE de travail ; l'étape 10 scelle la fiche (édition
  * bloquée, jauges restent jouables). Mode boosté = XP en plus (option MJ).
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCharacterStore } from '@/store/characterStore';
 import { computeDerived } from '@/engine/stats';
@@ -46,6 +46,8 @@ export default function CreationPage() {
   const demarrerWizard = useCharacterStore((s) => s.demarrerWizard);
   const majWizardDraft = useCharacterStore((s) => s.majWizardDraft);
   const confirmerScellement = useCharacterStore((s) => s.confirmerScellement);
+  const wizardDraftCompte = useCharacterStore((s) => s.wizardDraftCompte);
+  const abandonnerBrouillon = useCharacterStore((s) => s.abandonnerBrouillon);
 
   // MICRO-HOTFIX : l'étape courante vit dans le store (persistée) — un reload
   // réseau au milieu du wizard reprend là où le joueur en était.
@@ -55,6 +57,18 @@ export default function CreationPage() {
   // state local de composant (cause racine du bug prod : brouillon jamais
   // transféré, seule la fiche neutre était scellée).
   const draft = useCharacterStore((s) => s.wizardDraft);
+  // it. 19 §2 : le brouillon appartient à son compte — si le compte courant
+  // n'est pas le propriétaire (bascule sans passage par « Qui joue ? »), le
+  // brouillon est purgé au montage : jamais scellé sur un autre compte.
+  useEffect(() => {
+    if (!draft) return;
+    const compte = compteActif();
+    if (wizardDraftCompte && compte && wizardDraftCompte !== compte) {
+      console.error('[wizard] brouillon d\'un AUTRE compte détecté (', wizardDraftCompte, '≠', compte, ') — purge');
+      abandonnerBrouillon();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [booste, setBooste] = useState(false);
   const [messageErreur, setMessageErreur] = useState('');
   // Étape 10 (prompt v10 §4) : achat d'arsenal intégré — 60 PG de départ (p.174)
@@ -115,6 +129,13 @@ export default function CreationPage() {
       if (!accountId) {
         console.error('[scellement] ABANDON : aucun compte actif (knight-compte absent)');
         setMessageErreur('Aucun compte actif — impossible de sauvegarder. Rechoisis ton compte.');
+        return; // PAS de redirection
+      }
+      if (wizardDraftCompte && wizardDraftCompte !== accountId) {
+        // it. 19 §2 : un brouillon ne se scelle JAMAIS sur un autre compte
+        console.error('[scellement] ABANDON : brouillon propriété de', wizardDraftCompte, '≠ compte courant', accountId);
+        setMessageErreur('Ce brouillon appartient à un autre compte — il a été purgé. Démarre une nouvelle création.');
+        abandonnerBrouillon();
         return; // PAS de redirection
       }
       const finie: Character = { ...structuredClone(draft), scelle: true };

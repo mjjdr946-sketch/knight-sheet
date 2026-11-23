@@ -162,6 +162,10 @@ interface CharacterStore {
   majWizardDraft: (fn: (d: Character) => void) => void;
   /** MICRO-HOTFIX : mémorise l'étape du wizard (persistée, survit au F5) */
   majWizardStep: (etape: number) => void;
+  /** it. 19 §2 : id du compte propriétaire du brouillon (persisté avec lui) */
+  wizardDraftCompte: string | null;
+  /** it. 19 §2 : purge le brouillon (changement de compte / déconnexion) */
+  abandonnerBrouillon: () => void;
   /** Consomme le brouillon : fiche active = brouillon scellé 🔒 */
   confirmerScellement: (finie: Character) => void;
   /** Crée une nouvelle fiche (à partir du modèle d'exemple) */
@@ -313,6 +317,7 @@ export const useCharacterStore = create<CharacterStore>()(
       actifId: 'principal',
       autresFiches: {},
       wizardDraft: null,
+      wizardDraftCompte: null, // it. 19 §2 : le brouillon appartient à son compte
       wizardStep: 0,
 
       // ─── HOTFIX 2 (v19bis) : le brouillon du wizard vit dans le store ──
@@ -326,6 +331,8 @@ export const useCharacterStore = create<CharacterStore>()(
           return;
         }
         console.info('[wizard] demarrerWizard → NOUVEAU brouillon (nom vide)');
+        // it. 19 §2 : le brouillon est marqué du compte qui l'a démarré
+        const proprietaire = (typeof window !== 'undefined' ? localStorage.getItem('knight-compte') : null) ?? null;
         const base: Character = { ...structuredClone(personnageExemple), id: `fiche-${Date.now()}`, nom: '', scelle: false };
         base.favoris = [];
         base.xpJournal = [];
@@ -333,9 +340,14 @@ export const useCharacterStore = create<CharacterStore>()(
         (Object.keys(base.aspects) as AspectId[]).forEach((a) => { base.aspects[a] = 2; });
         (Object.keys(base.traits) as TraitId[]).forEach((tr) => { base.traits[tr] = 1; });
         base.conditions = [];
-        set({ wizardDraft: base });
+        set({ wizardDraft: base, wizardDraftCompte: proprietaire });
       },
       majWizardStep: (etape: number) => { set({ wizardStep: etape }); },
+      abandonnerBrouillon: () => {
+        // it. 19 §2 : jamais scellé sur un autre compte — purge tracée
+        console.info('[wizard] abandonnerBrouillon → purge (changement de compte/déconnexion)');
+        set({ wizardDraft: null, wizardDraftCompte: null, wizardStep: 0 });
+      },
       majWizardDraft: (fn) => {
         const d = get().wizardDraft;
         if (!d) {
@@ -354,7 +366,7 @@ export const useCharacterStore = create<CharacterStore>()(
         // §0 traçage (prompt v21) : le nom au moment exact du swap
         console.info('[wizard] confirmerScellement → fiche active =', finie.nom, '| brouillon consommé');
         // la fiche scellée DEVIENT l'active (invariant : l'ancienne neutre disparaît)
-        set({ character: finie, derived: computeDerived(finie), wizardDraft: null });
+        set({ character: finie, derived: computeDerived(finie), wizardDraft: null, wizardDraftCompte: null });
       },
 
       // ─── Slots de personnages (prompt v6 §2) ──────────────────────────
@@ -1136,6 +1148,7 @@ export const useCharacterStore = create<CharacterStore>()(
           autresFiches: state.autresFiches,
           adversaire: state.adversaire,
           wizardDraft: state.wizardDraft, // HOTFIX 2 : brouillon persisté (récupère sa place après un refresh)
+          wizardDraftCompte: state.wizardDraftCompte, // it. 19 §2 : propriétaire persisté
           wizardStep: state.wizardStep, // MICRO-HOTFIX : étape persistée
         }) as unknown as CharacterStore,
       merge: (persisted, current) => {
@@ -1156,6 +1169,7 @@ export const useCharacterStore = create<CharacterStore>()(
           // ops : wizardDraft est écrit par partialize mais n'était PAS recopié ici :
           // le brouillon du wizard était jeté à chaque rehydratation (reload).
           wizardDraft: p.wizardDraft ?? current.wizardDraft,
+          wizardDraftCompte: p.wizardDraftCompte ?? current.wizardDraftCompte,
           wizardStep: p.wizardStep ?? 0,
         };
       },

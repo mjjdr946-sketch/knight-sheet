@@ -9,6 +9,7 @@
  * rôle : les 4 comptes initiaux n'existent plus (remise à plat it. 17).
  */
 import { useEffect, useState } from 'react';
+import { useCharacterStore } from '@/store/characterStore';
 
 interface Compte { id: string; nom: string; role: string }
 
@@ -35,6 +36,8 @@ export default function QuiJouePage() {
     });
     const data = (await r.json()) as { ok: boolean; message?: string };
     if (data.ok) {
+      // it. 19 §2 : le brouillon du wizard appartient à son compte — purgé au changement
+      useCharacterStore.getState().abandonnerBrouillon();
       localStorage.setItem('knight-compte', nom); // préférence UI uniquement (cookie knight-compte posé par l'API)
       window.location.href = '/';
     } else {

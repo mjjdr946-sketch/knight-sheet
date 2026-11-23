@@ -9,7 +9,8 @@
  */
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useCharacterStore, ACCENT_PAR_MODELE, themeDeFiche, SCHEMA_VERSION } from '@/store/characterStore';
+import { useCharacterStore, ACCENT_PAR_MODELE, themeDeFiche } from '@/store/characterStore';
+import { evaluerMigration, poserAcquittement } from '@/lib/migration';
 import { computeDerived, palierPuissance } from '@/engine/stats';
 import { compteActif, chargerFichesServeur } from '@/lib/sync';
 import { personnageExemple } from '@/data/character';
@@ -36,10 +37,17 @@ export default function AccueilPage() {
   // fiche (champs du state), jamais de la clé entière.
   const detecterIncompatibles = () => {
     if (typeof window === 'undefined') return;
-    const ack = localStorage.getItem('knight-migration-ack');
-    if (ack === String(SCHEMA_VERSION)) return; // déjà acquitté pour ce schéma
-    if (localStorage.getItem('knight-sheet-v1')) {
-      setIncompat(true);
+    // it. 19 §1 (prompt v21) : comparaison CHIFFRÉE de la version persistée —
+    // la modale ne se déclenche que si les données sont plus ANCIENNES que le
+    // schéma courant ; toute donnée créée par la version courante est
+    // acquittée d'office (plus jamais sur un compte neuf).
+    const verdict = evaluerMigration(
+      localStorage.getItem('knight-sheet-v1'),
+      localStorage.getItem('knight-migration-ack'),
+    );
+    if (verdict === 'modale') setIncompat(true);
+    else if (verdict === 'acquittable' && !localStorage.getItem('knight-migration-ack')) {
+      poserAcquittement(); // données de la version courante → ack posé d'office
     }
   };
 
@@ -59,7 +67,7 @@ export default function AccueilPage() {
         localStorage.removeItem('knight-sheet-v1');
       }
     }
-    localStorage.setItem('knight-migration-ack', String(SCHEMA_VERSION));
+    poserAcquittement();
     setIncompat(false);
   };
 

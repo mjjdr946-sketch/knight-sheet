@@ -445,3 +445,13 @@ Modifier des paliers de modules, effets d'OD restants, ambiance/son.
   compte ne remplace jamais un brouillon en cours (trace `[layout]`).
   E2E fidèle à la recette avec F5 mid-parcours (reprise du brouillon
   persisté, complétion, scellement, fiche porte le nom) : vert.
+
+- ✅ **Itération 19 (v21) — les 2 dernières ouvertures** : (1) modale
+  « 🛠 Mise à jour effectuée » : comparaison CHIFFRÉE de la version
+  persistée (`evaluerMigration` dans src/lib/migration.ts) — modale
+  SEULEMENT si version < SCHEMA_VERSION, acquittement posé d'office pour
+  toute donnée de la version courante (plus jamais sur un compte neuf) ;
+  (2) brouillon du wizard marqué par compte (`wizardDraftCompte`
+  persisté), purgé au changement de compte (« Qui joue ? ») et au
+  montage du wizard si propriétaire ≠ compte courant, garde au
+  scellement (jamais scellé sur un autre compte). 300 tests + 2 E2E verts.
