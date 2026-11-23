@@ -59,7 +59,8 @@ describe('garde de source — champ nom câblé sur le brouillon du store', () =
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const src = require('fs').readFileSync('app/personnage/creation/page.tsx', 'utf8');
     expect(src).toContain('value={draft.nom}');
-    expect(src).toContain("maj((d) => { d.nom = v; })");
+    // hotfix 3 : câblage DIRECT sur le store (plus de relais maj pour le nom)
+    expect(src).toContain('majWizardDraft((d) => { d.nom = v; })');
     expect(src).not.toContain('useState(0)'); // plus de step local non persisté
     expect(src).toContain('s.wizardStep');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
