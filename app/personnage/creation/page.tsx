@@ -47,7 +47,10 @@ export default function CreationPage() {
   const majWizardDraft = useCharacterStore((s) => s.majWizardDraft);
   const confirmerScellement = useCharacterStore((s) => s.confirmerScellement);
 
-  const [step, setStep] = useState(0);
+  // MICRO-HOTFIX : l'étape courante vit dans le store (persistée) — un reload
+  // réseau au milieu du wizard reprend là où le joueur en était.
+  const step = useCharacterStore((s) => s.wizardStep);
+  const majWizardStep = useCharacterStore((s) => s.majWizardStep);
   // HOTFIX 2 (v19bis) : le brouillon vit DANS le store (persisté) — plus de
   // state local de composant (cause racine du bug prod : brouillon jamais
   // transféré, seule la fiche neutre était scellée).
@@ -64,8 +67,11 @@ export default function CreationPage() {
    */
   const demarrer = () => {
     // HOTFIX 2 : le brouillon neuf est créé DANS le store
+    const avant = useCharacterStore.getState().wizardDraft;
     demarrerWizard();
-    setStep(0);
+    // MICRO-HOTFIX : si le brouillon existait déjà (reprise après reload),
+    // on conserve l'étape persistée — sinon on repart de l'étape 1.
+    if (!avant) majWizardStep(0);
   };
 
   const budgetTotal = booste ? 85 : 60; // 60 PG (p.174) + 25 boosté (option MJ, p.128)
@@ -358,9 +364,9 @@ export default function CreationPage() {
       )}
       {draft && (
         <div className="fixed inset-x-0 bottom-[76px] z-30 flex gap-2 border-t border bg-zinc-950/95 p-3 backdrop-blur safe-bottom">
-          <button type="button" disabled={step === 0} onClick={() => setStep((s) => Math.max(0, s - 1))} className="min-h-[48px] flex-1 rounded-lg border border-zinc-700 text-sm text-zinc-300 disabled:opacity-30">←</button>
+          <button type="button" disabled={step === 0} onClick={() => majWizardStep(Math.max(0, step - 1))} className="min-h-[48px] flex-1 rounded-lg border border-zinc-700 text-sm text-zinc-300 disabled:opacity-30">←</button>
           {step < 9 ? (
-            <button type="button" onClick={() => setStep((s) => s + 1)} className="min-h-[48px] flex-[3] rounded-lg bg-neon-cyan/20 text-sm font-bold text-neon-cyan">Étape suivante</button>
+            <button type="button" onClick={() => majWizardStep(step + 1)} className="min-h-[48px] flex-[3] rounded-lg bg-neon-cyan/20 text-sm font-bold text-neon-cyan">Étape suivante</button>
           ) : null}
         </div>
       )}

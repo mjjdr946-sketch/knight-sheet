@@ -153,10 +153,15 @@ interface CharacterStore {
   /** HOTFIX 2 (v19bis) : brouillon du wizard — vit DANS le store (persisté),
    * jamais dans un state local de composant (cause racine du bug prod). */
   wizardDraft: Character | null;
+  /** MICRO-HOTFIX : étape courante du wizard (persistée) — le nom survit à la
+   * navigation ET au rechargement de la page. */
+  wizardStep: number;
   /** Démarre le wizard : brouillon NEUF dans le store */
   demarrerWizard: () => void;
   /** Met à jour le brouillon du wizard (chaque étape passe par ici) */
   majWizardDraft: (fn: (d: Character) => void) => void;
+  /** MICRO-HOTFIX : mémorise l'étape du wizard (persistée, survit au F5) */
+  majWizardStep: (etape: number) => void;
   /** Consomme le brouillon : fiche active = brouillon scellé 🔒 */
   confirmerScellement: (finie: Character) => void;
   /** Crée une nouvelle fiche (à partir du modèle d'exemple) */
@@ -308,9 +313,14 @@ export const useCharacterStore = create<CharacterStore>()(
       actifId: 'principal',
       autresFiches: {},
       wizardDraft: null,
+      wizardStep: 0,
 
       // ─── HOTFIX 2 (v19bis) : le brouillon du wizard vit dans le store ──
       demarrerWizard: () => {
+        // MICRO-HOTFIX : NE PAS écraser un brouillon en cours (reload réseau au
+        // milieu du wizard → retour étape 1 → re-clic « Démarrer » jetait le
+        // brouillon rempli : nom vide au scellement, constaté en prod).
+        if (get().wizardDraft) return; // reprise du brouillon existant
         const base: Character = { ...structuredClone(personnageExemple), id: `fiche-${Date.now()}`, nom: '', scelle: false };
         base.favoris = [];
         base.xpJournal = [];
@@ -320,6 +330,7 @@ export const useCharacterStore = create<CharacterStore>()(
         base.conditions = [];
         set({ wizardDraft: base });
       },
+      majWizardStep: (etape: number) => { set({ wizardStep: etape }); },
       majWizardDraft: (fn) => {
         const d = get().wizardDraft;
         if (!d) {
@@ -1115,6 +1126,7 @@ export const useCharacterStore = create<CharacterStore>()(
           autresFiches: state.autresFiches,
           adversaire: state.adversaire,
           wizardDraft: state.wizardDraft, // HOTFIX 2 : brouillon persisté (récupère sa place après un refresh)
+          wizardStep: state.wizardStep, // MICRO-HOTFIX : étape persistée
         }) as unknown as CharacterStore,
       merge: (persisted, current) => {
         // Restaure personnage + fiches + session + adversaire ; dérivées recalculées
@@ -1131,6 +1143,7 @@ export const useCharacterStore = create<CharacterStore>()(
           // ops : wizardDraft est écrit par partialize mais n'était PAS recopié ici :
           // le brouillon du wizard était jeté à chaque rehydratation (reload).
           wizardDraft: p.wizardDraft ?? current.wizardDraft,
+          wizardStep: p.wizardStep ?? 0,
         };
       },
     },
