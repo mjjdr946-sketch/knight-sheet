@@ -166,6 +166,8 @@ interface CharacterStore {
   wizardDraftCompte: string | null;
   /** it. 19 §2 : purge le brouillon (changement de compte / déconnexion) */
   abandonnerBrouillon: () => void;
+  /** it. 20 §2 : revendiquer le brouillon d'un autre compte (choix du joueur) */
+  revendiquerBrouillon: (compte: string) => void;
   /** Consomme le brouillon : fiche active = brouillon scellé 🔒 */
   confirmerScellement: (finie: Character) => void;
   /** Crée une nouvelle fiche (à partir du modèle d'exemple) */
@@ -347,6 +349,11 @@ export const useCharacterStore = create<CharacterStore>()(
         // it. 19 §2 : jamais scellé sur un autre compte — purge tracée
         console.info('[wizard] abandonnerBrouillon → purge (changement de compte/déconnexion)');
         set({ wizardDraft: null, wizardDraftCompte: null, wizardStep: 0 });
+      },
+      revendiquerBrouillon: (compte) => {
+        // it. 20 §2 : le joueur CHOISIT de continuer le brouillon sur ce compte
+        console.info('[wizard] revendiquerBrouillon → propriétaire =', compte);
+        set({ wizardDraftCompte: compte });
       },
       majWizardDraft: (fn) => {
         const d = get().wizardDraft;

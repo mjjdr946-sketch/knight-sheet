@@ -27,7 +27,8 @@ test('recette fidèle v21 : F5 au milieu du wizard → reprise du brouillon → 
   // wizard : démarrer, taper le nom PARTIELLEMENT…
   await page.getByRole('button', { name: 'Démarrer la création' }).click();
   const champNom = page.locator('input').first();
-  await champNom.fill('Vesper Recharge');
+  await champNom.click(); // focus
+  await champNom.pressSequentially('Vesper Recharge'); // FRAPPE CLAVIER réelle (mises en garde §1)
 
   // …RECHARGER la page au milieu de la saisie (scénario réseau mobile réel)
   await page.reload();
@@ -36,7 +37,8 @@ test('recette fidèle v21 : F5 au milieu du wizard → reprise du brouillon → 
   await expect(page.locator('input').first()).toHaveValue('Vesper Recharge', { timeout: 30_000 });
 
   // compléter le nom, avancer jusqu'à l'étape 10, sceller
-  await page.locator('input').first().fill(NOM_RELOAD);
+  await page.locator('input').first().click();
+  await page.locator('input').first().pressSequentially(' E2E'); // complète au clavier
   for (let i = 0; i < 9; i++) {
     await page.getByRole('button', { name: 'Étape suivante' }).click();
   }
@@ -75,7 +77,8 @@ test('hotfix 3 : nom saisi en RETOUR ARRIÈRE (étape 10 → étape 1) → scell
   }
   // saisie RÉELLE du nom (clavier, pas d'event dispatché programmatique)
   const champNom = page.locator('input').first();
-  await champNom.fill(NOM_BACK);
+  await champNom.click();
+  await champNom.pressSequentially(NOM_BACK); // frappe clavier réelle
   // le store est câblé : la valeur tapée est dans le champ (contrôlé)
   await expect(champNom).toHaveValue(NOM_BACK);
   // avancer jusqu'à l'étape 10 et sceller
@@ -108,7 +111,8 @@ test('recette complète : création de compte → wizard → scellement → fich
   // ── 3. Wizard : Démarrer → nom → 9 × « Étape suivante »
   await page.getByRole('button', { name: 'Démarrer la création' }).click();
   const champNom = page.locator('input').first();
-  await champNom.fill(NOM);
+  await champNom.click();
+  await champNom.pressSequentially(NOM); // frappe clavier réelle
   for (let i = 0; i < 9; i++) {
     await page.getByRole('button', { name: 'Étape suivante' }).click();
   }
@@ -142,7 +146,8 @@ test('it. 20 §3 : cycle ouvrir/fermer du panneau adversaire — le contenu se r
   await page.waitForURL((u) => !u.pathname.startsWith('/quijoue'), { timeout: 60_000 });
   await page.getByRole('button', { name: /Créer mon premier chevalier/ }).click();
   await page.getByRole('button', { name: 'Démarrer la création' }).click();
-  await page.locator('input').first().fill('Cycle Adversaire');
+  await page.locator('input').first().click();
+  await page.locator('input').first().pressSequentially('Cycle Adversaire');
   for (let i = 0; i < 9; i++) {
     await page.getByRole('button', { name: 'Étape suivante' }).click();
   }

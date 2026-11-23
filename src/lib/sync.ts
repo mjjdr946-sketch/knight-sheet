@@ -6,6 +6,7 @@
  * NE MASQUE PAS un échec de fiche (le bandeau reflète un OU logique).
  * Préférences UI seulement en localStorage (thème, cinématique, compte).
  */
+import { personnageExemple } from '../data/character';
 import { useCharacterStore } from '../store/characterStore';
 
 export const COMPTE_KEY = 'knight-compte';
@@ -161,7 +162,9 @@ export async function chargerFichesServeur(accountId: string): Promise<Character
     const r = await fetch(`/api/chevaliers?accountId=${accountId}`);
     if (!r.ok) { etat.fiche = true; notifier(); return null; }
     const data = (await r.json()) as { fiches: Character_Serveur[] };
-    return data.fiches;
+    // IT. 20 §4 : une fiche PARTIELLE (fiche de test PUT à 3 champs) fait
+    // crasher l'accueil — normalisation défensive à la réception.
+    return data.fiches.map(normaliserFiche) as Character_Serveur[];
   } catch {
     etat.fiche = true;
     notifier();
@@ -169,6 +172,28 @@ export async function chargerFichesServeur(accountId: string): Promise<Character
   }
 }
 interface Character_Serveur { id: string; nom: string; [k: string]: unknown }
+
+/** IT. 20 §4 : complète une fiche partielle avec les defaults du modèle.
+ * Pur et testé — l'accueil ne doit JAMAIS crasher sur une fiche incohérente. */
+export function normaliserFiche(fiche: Record<string, unknown>): Record<string, unknown> {
+  const base = structuredClone(personnageExemple) as unknown as Record<string, unknown>;
+  const complete = { ...base, ...fiche };
+  complete.id = (fiche.id as string) ?? base.id;
+  complete.nom = fiche.nom ?? '';
+  complete.metaArmor = fiche.metaArmor ?? base.metaArmor;
+  complete.jauges = fiche.jauges ?? base.jauges;
+  complete.armes = Array.isArray(fiche.armes) ? fiche.armes : base.armes;
+  complete.overdrives = Array.isArray(fiche.overdrives) ? fiche.overdrives : base.overdrives;
+  complete.modules = Array.isArray(fiche.modules) ? fiche.modules : [];
+  complete.conditions = Array.isArray(fiche.conditions) ? fiche.conditions : [];
+  complete.identite = fiche.identite ?? base.identite;
+  complete.aspects = fiche.aspects ?? base.aspects;
+  complete.traits = fiche.traits ?? base.traits;
+  complete.gloire = fiche.gloire ?? 0;
+  complete.niveau = fiche.niveau ?? 1;
+  complete.scelle = fiche.scelle ?? false;
+  return complete;
+}
 
 /** Branche le subscriber du store : toute écriture planifie une sauvegarde. */
 let branche = false;

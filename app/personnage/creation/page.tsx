@@ -5,7 +5,7 @@
  * Travaille sur une COPIE de travail ; l'étape 10 scelle la fiche (édition
  * bloquée, jauges restent jouables). Mode boosté = XP en plus (option MJ).
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCharacterStore } from '@/store/characterStore';
 import { computeDerived } from '@/engine/stats';
@@ -48,6 +48,10 @@ export default function CreationPage() {
   const confirmerScellement = useCharacterStore((s) => s.confirmerScellement);
   const wizardDraftCompte = useCharacterStore((s) => s.wizardDraftCompte);
   const abandonnerBrouillon = useCharacterStore((s) => s.abandonnerBrouillon);
+  const revendiquerBrouillon = useCharacterStore((s) => s.revendiquerBrouillon);
+  // IT. 20 §1 : compteur de rendus du champ nom — prouve le montage UNIQUE
+  // (hypothèse du double montage à trancher par la trace, pas en prod)
+  const montagesChampNom = useRef(0);
 
   // MICRO-HOTFIX : l'étape courante vit dans le store (persistée) — un reload
   // réseau au milieu du wizard reprend là où le joueur en était.
@@ -57,15 +61,16 @@ export default function CreationPage() {
   // state local de composant (cause racine du bug prod : brouillon jamais
   // transféré, seule la fiche neutre était scellée).
   const draft = useCharacterStore((s) => s.wizardDraft);
-  // it. 19 §2 : le brouillon appartient à son compte — si le compte courant
-  // n'est pas le propriétaire (bascule sans passage par « Qui joue ? »), le
-  // brouillon est purgé au montage : jamais scellé sur un autre compte.
+  // IT. 20 §2 : brouillon d'un AUTRE compte → MODALE explicite (purger ou
+  // revendiquer) — JAMAIS d'abandon silencieux (recette exhaustive : le
+  // scellement était bloqué sans aucun message).
+  const [conflitBrouillon, setConflitBrouillon] = useState<string | null>(null);
   useEffect(() => {
     if (!draft) return;
     const compte = compteActif();
     if (wizardDraftCompte && compte && wizardDraftCompte !== compte) {
-      console.error('[wizard] brouillon d\'un AUTRE compte détecté (', wizardDraftCompte, '≠', compte, ') — purge');
-      abandonnerBrouillon();
+      console.error('[wizard] brouillon d\'un AUTRE compte détecté (', wizardDraftCompte, '≠', compte, ') → modale de choix');
+      setConflitBrouillon(wizardDraftCompte);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -198,8 +203,11 @@ export default function CreationPage() {
           traceFrappeNom(v);
           majWizardDraft((d) => { d.nom = v; });
         };
+        montagesChampNom.current += 1;
+        console.info(`[wizard-nom] RENDER champ nom (montage/rendu n°${montagesChampNom.current}) — value=`, JSON.stringify(draft.nom));
         return (
           <Champ
+            key="wizard-nom" // IT. 20 §1 : clé STABLE — l'input n'est jamais recréé entre deux rendus
             label="Nom du chevalier"
             value={draft.nom}
             onChange={onChangeNom}
@@ -393,6 +401,24 @@ export default function CreationPage() {
         ))}
       </div>
       {corps()}
+      {conflitBrouillon && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal>
+          <div className="w-full max-w-sm space-y-3 rounded-xl border border-zinc-700 bg-zinc-950 p-4">
+            <p className="font-display text-sm text-neon-gold">⚠ Brouillon d'un autre compte</p>
+            <p className="text-xs text-zinc-400">
+              Ce brouillon a été créé sous le compte <b className="text-white">{conflitBrouillon}</b>. Le purger, ou le continuer sur ce compte ?
+            </p>
+            <button type="button" onClick={() => { abandonnerBrouillon(); setConflitBrouillon(null); }}
+              className="min-h-[48px] w-full rounded-lg border border-red-900 text-xs font-bold text-red-300 active:bg-red-900/40">
+              🗑 Purger le brouillon (recommencer à zéro)
+            </button>
+            <button type="button" onClick={() => { revendiquerBrouillon(compteActif() ?? conflitBrouillon); setConflitBrouillon(null); }}
+              className="min-h-[48px] w-full rounded-lg border border-neon-cyan/40 bg-neon-cyan/10 text-xs font-bold text-neon-cyan active:bg-neon-cyan/20">
+              ✋ Continuer ce brouillon sur ce compte
+            </button>
+          </div>
+        </div>
+      )}
       {messageErreur && (
         <div className="sticky top-0 z-50 bg-red-900/90 px-3 py-2 text-center text-xs font-semibold text-white" role="alert">
           ⚠ {messageErreur}

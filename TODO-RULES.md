@@ -467,3 +467,13 @@ Modifier des paliers de modules, effets d'OD restants, ambiance/son.
   (cycle ouvrir/fermer/rouvrir) → `ouvertParDefaut` sur les panneaux
   montés à la demande. Audit familles : plus aucun useState<Character/Record>
   dans le wizard ; `ajouterXP` non bloqué par le scellement ✓.
+
+- ✅ **Itération 20bis (v24) — wizard sous surveillance** : §1 champ nom à
+  clé STABLE (`key="wizard-nom"`) + compteur de rendus (`montagesChampNom`)
+  — le double montage est tranché par la trace ; frappe CLAVIER dans les
+  E2E (`pressSequentially`, plus de `fill`). §2 brouillon inter-comptes :
+  MODALE (purger ou revendiquer, `revendiquerBrouillon`) — plus jamais de
+  purge silencieuse. §3 accueil : état CHARGEMENT distinct de VIDE
+  (`chargementFiches`, spinner « Chargement des chevaliers… ») — E2E avec
+  GET retardé 800 ms. §4 fiches partielles normalisées
+  (`normaliserFiche` dans sync.ts, défensive à la réception serveur).

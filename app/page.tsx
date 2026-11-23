@@ -27,6 +27,10 @@ export default function AccueilPage() {
   const remplacerPersonnage = useCharacterStore((s) => s.remplacerPersonnage);
 
   const [hydrate, setHydrate] = useState(false);
+  // IT. 20 §3 : le GET serveur est ASYNCHRONE — l'état « vide » ne doit
+  // JAMAIS s'afficher avant la réponse (course de chargement constatée :
+  // « pas encore de chevalier » alors que la fiche existait en base).
+  const [chargementFiches, setChargementFiches] = useState(true);
   // Prompt v19 §2 : alerte d'incompatibilité — les anciens chevaliers sont
   // EFFACÉS (schéma pré-it. 11 incompatible, perte assumée par NunnuN).
   const [incompat, setIncompat] = useState(false);
@@ -97,7 +101,9 @@ export default function AccueilPage() {
           const neutre = { ...structuredClone(personnageExemple), id: 'aucune', nom: '' };
           useCharacterStore.setState({ character: neutre, autresFiches: {} } as never);
         }
-      });
+      }).finally(() => setChargementFiches(false)); // réponse serveur reçue (ou échec)
+    } else {
+      setChargementFiches(false); // pas de compte : pas de chargement serveur
     }
     setHydrate(true);
   }, []);
@@ -129,7 +135,16 @@ export default function AccueilPage() {
     );
   }
 
-  // Prompt v14 §2 (bug 2 it. 17bis) : état vide PROPRE — pas de carte fantôme
+  // Prompt v14 §2 (bug 2 it. 17bis) : état vide PROPRE — pas de carte fantôme.
+  // IT. 20 §3 : distinguer CHARGEMENT (spinner) de VIDE — jamais de « pas
+  // encore de chevalier » avant la réponse serveur.
+  if (chargementFiches) {
+    return (
+      <main className="flex h-dvh items-center justify-center">
+        <span className="font-display animate-pulse text-sm text-neon-cyan">Chargement des chevaliers…</span>
+      </main>
+    );
+  }
   if (fiches.length === 0) {
     return (
       <main className="mx-auto flex h-dvh max-w-md flex-col items-center justify-center gap-4 px-3">
