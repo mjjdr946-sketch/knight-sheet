@@ -72,7 +72,6 @@ export default function CreationPage() {
   const [booste, setBooste] = useState(false);
   const [messageErreur, setMessageErreur] = useState('');
   // Étape 10 (prompt v10 §4) : achat d'arsenal intégré — 60 PG de départ (p.174)
-  const [achats, setAchats] = useState<Record<string, number>>({}); // id arme → quantité
 
   /**
    * CORRECTIF it. 7 (bug 1 🔴) : l'assistant part d'une fiche NEUVE vierge
@@ -80,6 +79,9 @@ export default function CreationPage() {
    * la nouvelle fiche est AJOUTÉE à la liste (pas de remplacement).
    */
   const demarrer = () => {
+    // PROOF TAG (5e round) : chaque écran wizard logge son identité de build —
+    // si cette ligne n'apparaît pas dans la console prod, le build est obsolète.
+    console.info('[wizard] BUILD wizard-store-v7 (majWizardDraft partout, achats inclus)');
     // HOTFIX 2 : le brouillon neuf est créé DANS le store
     const avant = useCharacterStore.getState().wizardDraft;
     demarrerWizard();
@@ -89,9 +91,13 @@ export default function CreationPage() {
   };
 
   const budgetTotal = booste ? 85 : 60; // 60 PG (p.174) + 25 boosté (option MJ, p.128)
-  const depense = Object.entries(achats).reduce((total, [id, qte]) => {
-    const arme = armesArsenal.find((a) => a.id === id);
-    return total + (arme ? arme.coutPG * qte : 0);
+  // HOTFIX (5e round, preuve par l'état) : les ACHATS vivent AUSSI dans le
+  // brouillon du store — plus aucun état local au composant. La dépense se
+  // calcule depuis draft.armes (armes d'arsenal non équipées ajoutées ici).
+  const achatsBrouillon = (draft?.armes ?? []).filter((a) => (a as { arsenal?: boolean }).arsenal);
+  const depense = achatsBrouillon.reduce((total, a) => {
+    const arme = armesArsenal.find((m) => m.nom === a.nom);
+    return total + (arme ? arme.coutPG : 0);
   }, 0);
   const restant = budgetTotal - depense;
 
@@ -99,7 +105,11 @@ export default function CreationPage() {
     const arme = armesArsenal.find((a) => a.id === id);
     if (!arme) return;
     if (arme.coutPG > restant) { setMessageAchat('PG insuffisants'); return; }
-    setAchats((s) => ({ ...s, [id]: (s[id] ?? 0) + 1 }));
+    maj((d) => {
+      // l'arme d'arsenal entre dans le BROUILLON (marquée arsenal, non équipée)
+      d.armes = d.armes ?? [];
+      d.armes.push({ ...structuredClone(arme), id: `${arme.id}-${Date.now()}`, equipee: false, arsenal: true } as never);
+    });
     setMessageAchat('');
   };
   const [messageAchat, setMessageAchat] = useState('');
@@ -113,7 +123,7 @@ export default function CreationPage() {
   // !accountId retournaient sans message, une exception dans le void async
   // était avalée : l'URL restait sur le wizard sans aucune erreur).
   const valider = async () => {
-    console.info('[scellement] clic « Sceller et jouer »');
+    console.info('[scellement] clic « Sceller et jouer » | BUILD wizard-store-v7');
     try {
       if (!draft) {
         console.error('[scellement] ABANDON : wizardDraft est null dans le store');
@@ -151,14 +161,8 @@ export default function CreationPage() {
         heroisme: { current: 0 },
       };
       finie.xpJournal = finie.xpJournal ?? [];
-      // Étape 10 : achats d'arsenal appliqués avant scellement (prompt v10 §4)
-      finie.armes = [
-        ...finie.armes,
-        ...Object.entries(achats).flatMap(([id, qte]) => {
-          const modele = armesArsenal.find((a) => a.id === id);
-          return modele ? Array.from({ length: qte }, (_, i) => ({ ...structuredClone(modele), id: `${modele.id}-${Date.now()}-${i}`, equipee: false })) : [];
-        }),
-      ];
+      // HOTFIX (5e round) : les achats d'arsenal sont DÉJÀ dans le brouillon
+      // (écrits à chaque achat) — plus aucune reconstruction depuis un état local.
       // Équipement de départ par mission (p.174) : 3 nods de chaque type (information rôles — les nods restent consommables en jeu via ⚒ Matériel)
       void NODS;
       // HOTFIX 2 : la FICHE SCELLÉE (le brouillon du store) est poussée au
@@ -340,7 +344,7 @@ export default function CreationPage() {
                     <p className="text-[10px] text-zinc-500">{a.degats.nombre}D6+{a.degats.bonus} · {a.type}</p>
                   </div>
                   <div className="flex items-center gap-1">
-                    {(achats[a.id] ?? 0) > 0 && <span className="text-xs text-neon-cyan">×{achats[a.id]}</span>}
+                    {(draft?.armes ?? []).filter((ar) => ar.nom === a.nom).length > 0 && <span className="text-xs text-neon-cyan">×{(draft?.armes ?? []).filter((ar) => ar.nom === a.nom).length}</span>}
                     <button type="button" onClick={() => acheter(a.id)} disabled={a.coutPG > restant}
                       className="min-h-[44px] rounded-lg bg-neon-cyan/15 px-2.5 text-xs font-bold text-neon-cyan disabled:opacity-30">+</button>
                   </div>
