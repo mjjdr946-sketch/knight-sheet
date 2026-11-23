@@ -3,8 +3,15 @@
 /**
  * Header sticky — rangée de jauges 1-tap.
  * Se lit depuis le store (jauges + dérivées du moteur) ; zéro calcul local.
+ *
+ * MICRO-HOTFIX (prod) : sur un compte SANS chevalier, le header n'affichait
+ * que des jauges factices (fiche neutre « · PALADIN · ÉCUYER ») — première
+ * image du nouveau joueur. Fix : en-tête ALLÉGÉ « Bienvenue, <compte> —
+ * crée ton premier chevalier » + lien assistant, SANS jauges ; header
+ * complet uniquement si une fiche réelle existe.
  */
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import Gauge from './Gauge';
 import { useCharacterStore } from '@/store/characterStore';
 import { palierPuissance } from '../../src/engine/stats';
@@ -13,6 +20,32 @@ export default function GaugeBar() {
   const character = useCharacterStore((s) => s.character);
   const derived = useCharacterStore((s) => s.derived);
   const ajusterJauge = useCharacterStore((s) => s.ajusterJauge);
+  const pathname = usePathname();
+
+  // MICRO-HOTFIX : la fiche neutre (id « aucune », invariant it. 7/11) n'est
+  // PAS un chevalier — le header la traite comme « aucune fiche ».
+  const ficheReelle = character.id !== 'aucune' && character.nom !== '';
+
+  if (!ficheReelle) {
+    // En-tête allégé : bienvenue + lien assistant, zéro jauge factice
+    const nom = typeof window !== 'undefined' ? localStorage.getItem('knight-compte') : null;
+    return (
+      <header className="safe-top sticky top-0 z-40 shrink-0 border-b border bg-zinc-950/95 backdrop-blur">
+        <p className="text-center text-xs text-zinc-400">
+          Bienvenue, <b className="text-white">{nom ?? 'chevalier'}</b> — crée ton premier chevalier
+        </p>
+        {pathname !== '/personnage/creation' && (
+          <a
+            href="/personnage/creation"
+            className="mx-auto my-1.5 block w-fit rounded-lg border border-neon-cyan/40 bg-neon-cyan/10 px-3 py-1.5 text-xs font-bold text-neon-cyan active:bg-neon-cyan/20"
+          >
+            + Créer mon premier chevalier
+          </a>
+        )}
+        <CompteMenu />
+      </header>
+    );
+  }
 
   return (
     <header className="safe-top sticky top-0 z-40 shrink-0 border-b border bg-zinc-950/95 backdrop-blur">
