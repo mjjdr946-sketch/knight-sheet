@@ -366,7 +366,9 @@ export const useCharacterStore = create<CharacterStore>()(
         // §0 traçage (prompt v21) : le nom au moment exact du swap
         console.info('[wizard] confirmerScellement → fiche active =', finie.nom, '| brouillon consommé');
         // la fiche scellée DEVIENT l'active (invariant : l'ancienne neutre disparaît)
-        set({ character: finie, derived: computeDerived(finie), wizardDraft: null, wizardDraftCompte: null });
+        // ops : remettre l'étape à 0 — sinon rouvrir l'assistant après un scellement
+        // affiche « Étape 10/10 — Arsenal » avec l'écran d'intro (brouillon déjà consommé).
+        set({ character: finie, derived: computeDerived(finie), wizardDraft: null, wizardDraftCompte: null, wizardStep: 0 });
       },
 
       // ─── Slots de personnages (prompt v6 §2) ──────────────────────────
