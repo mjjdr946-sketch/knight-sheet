@@ -455,3 +455,15 @@ Modifier des paliers de modules, effets d'OD restants, ambiance/son.
   persisté), purgé au changement de compte (« Qui joue ? ») et au
   montage du wizard si propriétaire ≠ compte courant, garde au
   scellement (jamais scellé sur un autre compte). 300 tests + 2 E2E verts.
+
+- ✅ **Itération 20 (v21) — recette exhaustive** : (§1) `ClassId` étendu aux
+  13 classes de META_ARMURES ; étape 7 du wizard ET `changerArmure` (à la
+  volée) mettent `classe` en accord avec la méta-armure choisie ; titres
+  Combat « Le <classe> attaque/encaisse » dynamiques (plus de « Paladin »
+  codé en dur) ; bloc Armure affiche les PA réels de la méta-armure.
+  (§2) `CHAMPS_JEU` inclut gloire/xpJournal/niveau/overdrives — XP sur
+  fiche scellée persistées, paliers déclenchés. (§3) Panneau adversaire
+  KO confirmé : l'Accordion interne perdait son état ouvert au démontage
+  (cycle ouvrir/fermer/rouvrir) → `ouvertParDefaut` sur les panneaux
+  montés à la demande. Audit familles : plus aucun useState<Character/Record>
+  dans le wizard ; `ajouterXP` non bloqué par le scellement ✓.

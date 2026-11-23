@@ -62,7 +62,7 @@ export default function PanneauEnvironnement() {
   };
 
   return (
-    <Accordion titre="Environnement" sousTitre="chute · feu · noyade · toxique · accident (p.92)" accent="gold">
+    <Accordion titre="Environnement" sousTitre="chute · feu · noyade · toxique · accident (p.92)" accent="gold" ouvertParDefaut>
       <div className="space-y-2">
         <div className="flex gap-1.5 overflow-x-auto pb-1">
           {(

@@ -486,6 +486,7 @@ export const useCharacterStore = create<CharacterStore>()(
         set(recalcule({
           ...character,
           metaArmor: structuredClone(nouvelle),
+          classe: modele as Character['classe'], // IT. 20 §1 : la classe suit la méta-armure (audit usages)
           modules: [], // modules déséquipés (slots propres à chaque armure, p.130)
           overdrives: nouvelle.overdrivesDeBase.map((o) => ({ trait: o.trait, niveau: o.niveau, origine: 'base' })),
           ghostActif: false, // capacités spécifiques désactivées (p.152)

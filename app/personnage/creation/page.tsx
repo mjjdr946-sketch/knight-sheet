@@ -296,6 +296,9 @@ export default function CreationPage() {
             actif={draft.metaArmor.modele}
             onChoisir={(id) => maj((d) => {
               if (META_ARMURES[id]) d.metaArmor = structuredClone(META_ARMURES[id]);
+              // IT. 20 §1 : la CLASSE suit la méta-armure choisie — la fiche ne
+              // garde plus le « paladin » hérité de la fiche neutre.
+              d.classe = id as Character['classe'];
               // appliquer les OD de base
               d.overdrives = d.metaArmor.overdrivesDeBase.map((o) => ({ trait: o.trait, niveau: o.niveau })); // OD de base posés
             })}

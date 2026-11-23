@@ -58,7 +58,11 @@ export default function PanneauAdversaire() {
   const estBande = adversaire?.type === 'bande';
 
   return (
-    <Accordion titre="Adversaire" compteur={adversaire ? adversaire.nom : 'aucun'} accent="gold">
+    <Accordion titre="Adversaire" compteur={adversaire ? adversaire.nom : 'aucun'} accent="gold"
+      // IT. 20 §3 : le panneau est MONTÉ à la demande (bouton « Préparer ») —
+      // il doit être déplié d'office, sinon un cycle ouvrir/fermer/rouvrir le
+      // laisse replié (état interne perdu au démontage, KO recette exhaustive).
+      ouvertParDefaut>
       {!adversaire ? (
         <button
           type="button"

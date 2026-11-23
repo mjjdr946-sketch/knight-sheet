@@ -10,7 +10,11 @@
 // ─── Identifiants ────────────────────────────────────────────────────────────
 
 /** Classes jouables — union extensible (itération 1 : paladin uniquement) */
-export type ClassId = 'paladin';
+/** Classes jouables (identique aux clés de META_ARMURES — prompt v21 it. 20) */
+export type ClassId =
+  | 'paladin' | 'priest' | 'barbarian' | 'warrior' | 'warmaster'
+  | 'rogue' | 'ranger' | 'bard' | 'wizard'
+  | 'psion' | 'monk' | 'sorcerer' | 'necromancer';
 
 /** Les 5 aspects du personnage */
 export type AspectId = 'chair' | 'bete' | 'machine' | 'dame' | 'masque';

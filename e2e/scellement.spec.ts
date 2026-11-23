@@ -132,3 +132,32 @@ test('recette complète : création de compte → wizard → scellement → fich
   await page.reload();
   await expect(page.getByText(NOM).first()).toBeVisible({ timeout: 30_000 });
 });
+
+test('it. 20 §3 : cycle ouvrir/fermer du panneau adversaire — le contenu se ré-affiche', async ({ page }) => {
+  // compte + fiche
+  await page.goto('/quijoue');
+  await page.getByRole('button', { name: '+ Créer un nouveau compte' }).click();
+  await page.locator('input').first().fill(`e2e-adv-${Date.now()}`);
+  await page.getByRole('button', { name: 'Créer', exact: true }).click();
+  await page.waitForURL((u) => !u.pathname.startsWith('/quijoue'), { timeout: 60_000 });
+  await page.getByRole('button', { name: /Créer mon premier chevalier/ }).click();
+  await page.getByRole('button', { name: 'Démarrer la création' }).click();
+  await page.locator('input').first().fill('Cycle Adversaire');
+  for (let i = 0; i < 9; i++) {
+    await page.getByRole('button', { name: 'Étape suivante' }).click();
+  }
+  await page.getByRole('button', { name: /Sceller et jouer/ }).click();
+  await page.waitForURL((u) => u.pathname === '/', { timeout: 30_000 });
+  await page.goto('/personnage/combat');
+
+  // cycle ouvrir → fermer → rouvrir
+  await page.getByRole('button', { name: /Préparer l'adversaire/ }).click();
+  await expect(page.getByRole('button', { name: 'Créer un adversaire' })).toBeVisible();
+  await page.getByRole('button', { name: /Masquer l'adversaire/ }).click();
+  await page.getByRole('button', { name: /Préparer l'adversaire/ }).click();
+  // le contenu (Créer un adversaire / types) DOIT se ré-afficher
+  await expect(page.getByRole('button', { name: 'Créer un adversaire' })).toBeVisible();
+  // créer l'adversaire → le panneau passe en mode édition
+  await page.getByRole('button', { name: 'Créer un adversaire' }).click();
+  await expect(page.getByText('Adversaire', { exact: false }).first()).toBeVisible();
+});

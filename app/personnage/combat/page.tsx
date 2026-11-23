@@ -24,6 +24,8 @@ import type { TraitId, Weapon } from '@/types/character';
 
 export default function CombatPage() {
   const character = useCharacterStore((s) => s.character);
+  // IT. 20 §1 : le libellé de classe vient de la méta-armure RÉELLE (jamais codé en dur)
+  const libelleClasse = character.metaArmor.modele.charAt(0).toUpperCase() + character.metaArmor.modele.slice(1);
   const derived = useCharacterStore((s) => s.derived);
   const declarerStyle = useCharacterStore((s) => s.declarerStyle);
   const subirDegats = useCharacterStore((s) => s.subirDegats);
@@ -202,9 +204,9 @@ export default function CombatPage() {
         </div>
       </section>
 
-      {/* ─── Mode 1 : LE PALADIN ATTAQUE ────────────────────────────── */}
+      {/* ─── Mode 1 : LE <CLASSE> ATTAQUE (it. 20 : libellé dynamique — plus de « Paladin » codé en dur) ────────────────────────────── */}
       <section className="rounded-xl border border-neon-cyan/30 bg-zinc-900/70 p-3">
-        <h2 className="font-display mb-2 text-xs uppercase tracking-widest text-neon-cyan">⚔ Le Paladin attaque</h2>
+        <h2 className="font-display mb-2 text-xs uppercase tracking-widest text-neon-cyan">⚔ Le {libelleClasse} attaque</h2>
 
         {/* Arme équipée */}
         <div className="mb-2 flex gap-1.5 overflow-x-auto pb-1">
@@ -566,7 +568,7 @@ export default function CombatPage() {
 
       {/* ─── Mode 2 : LE PALADIN ENCAISSE ───────────────────────────── */}
       <section className="rounded-xl border border-red-900/40 bg-zinc-900/70 p-3">
-        <h2 className="font-display mb-2 text-xs uppercase tracking-widest text-red-300">🛡 Le Paladin encaisse</h2>
+        <h2 className="font-display mb-2 text-xs uppercase tracking-widest text-red-300">🛡 Le {libelleClasse} encaisse</h2>
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <label htmlFor="degats" className="w-24 text-xs text-zinc-400">Dégâts</label>
@@ -664,7 +666,7 @@ export default function CombatPage() {
       </Accordion>
 
       {/* ─── Armure : fold rapide (replié) ──────────────────────────── */}
-      <Accordion titre="Armure" sousTitre={character.armureDeployee ? 'déployée · 120 PA' : 'Guardian · 5 PA · CdF 5'} accent="gold">
+      <Accordion titre="Armure" sousTitre={character.armureDeployee ? `déployée · ${character.metaArmor.paTotal} PA` : 'Guardian · 5 PA · CdF 5'} accent="gold">
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"

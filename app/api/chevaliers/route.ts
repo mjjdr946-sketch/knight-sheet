@@ -16,8 +16,11 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ ok: true, fiches });
 }
 
-/** Champs modifiables sur une fiche scellée (jauges de jeu — combat/jets restent actifs). */
-const CHAMPS_JEU = new Set(['jauges', 'combatSession', 'favoris']);
+/** Champs modifiables sur une fiche scellée (jauges de jeu — combat/jets restent actifs).
+ * IT. 20 §2 : XP/évolutions INCLUSES — « Ajouter des XP » (+10 PG) est une action
+ * de jeu qui doit persister après scellement (avant : rejeté silencieusement
+ * côté API → bandeau « non sauvegardé » permanent). */
+const CHAMPS_JEU = new Set(['jauges', 'combatSession', 'favoris', 'gloire', 'xpJournal', 'niveau', 'overdrives']);
 
 export async function PUT(req: NextRequest) {
   const { accountId, fiche } = (await req.json()) as { accountId: string; fiche: Character };
