@@ -55,11 +55,14 @@ describe('brouillon marqué par compte', () => {
   });
 });
 
-describe('garde de source — purge au changement + revendication au wizard', () => {
-  it('/quijoue appelle abandonnerBrouillon au succès ; le wizard revendique au montage', () => {
+describe('garde de source — arbitrage du brouillon au wizard', () => {
+  it('/quijoue ne purge PLUS en silence (it. 20-bis §2) ; le wizard revendique au montage', () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const quijoue = require('fs').readFileSync('app/quijoue/page.tsx', 'utf8');
-    expect(quijoue).toContain('abandonnerBrouillon()');
+    // ops : la purge silencieuse au changement de compte rendait inatteignable la modale
+    // « purger ou revendiquer » d'it. 20-bis — le brouillon doit survivre à la bascule.
+    expect(quijoue).not.toContain('abandonnerBrouillon()');
+    expect(quijoue).toContain('brouillon conservé au changement de compte');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const wizard = require('fs').readFileSync('app/personnage/creation/page.tsx', 'utf8');
     expect(wizard).toContain('wizardDraftCompte'); // propriétaire lu

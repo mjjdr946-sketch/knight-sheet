@@ -36,8 +36,14 @@ export default function QuiJouePage() {
     });
     const data = (await r.json()) as { ok: boolean; message?: string };
     if (data.ok) {
-      // it. 19 §2 : le brouillon du wizard appartient à son compte — purgé au changement
-      useCharacterStore.getState().abandonnerBrouillon();
+      // ops : NE PAS purger ici. La purge silencieuse au changement de compte rendait
+      // INATTEIGNABLE la modale « purger ou revendiquer » du wizard (it. 20-bis §2) :
+      // quand l'assistant s'ouvrait, le brouillon était déjà null. Le brouillon d'un
+      // autre compte est désormais arbitré à l'ouverture de l'assistant.
+      const etat = useCharacterStore.getState();
+      if (etat.wizardDraft) {
+        console.info('[wizard] brouillon conservé au changement de compte (propriétaire:', etat.wizardDraftCompte, ') → arbitrage dans l’assistant');
+      }
       localStorage.setItem('knight-compte', nom); // préférence UI uniquement (cookie knight-compte posé par l'API)
       window.location.href = '/';
     } else {
