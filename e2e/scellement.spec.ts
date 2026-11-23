@@ -51,6 +51,48 @@ test('recette fidèle v21 : F5 au milieu du wizard → reprise du brouillon → 
   expect(fiches.fiches.find((f) => f.nom === NOM_RELOAD), 'la fiche porte le nom saisi AVANT le reload').toBeTruthy();
 });
 
+test('hotfix 3 : nom saisi en RETOUR ARRIÈRE (étape 10 → étape 1) → scellement → fiche au bon nom', async ({ page }) => {
+  // scénario exact de la recette vibe-coder : le parcours est fait SANS nom,
+  // puis retour à l'étape 1 pour saisir le nom, puis scellement.
+  const COMPTE_BACK = `e2e-back-${Date.now()}`;
+  const NOM_BACK = 'Aldric de Virelay';
+
+  await page.goto('/quijoue');
+  await page.getByRole('button', { name: '+ Créer un nouveau compte' }).click();
+  await page.locator('input').first().fill(COMPTE_BACK);
+  await page.getByRole('button', { name: 'Créer', exact: true }).click();
+  await page.waitForURL((u) => !u.pathname.startsWith('/quijoue'), { timeout: 60_000 });
+  await page.getByRole('button', { name: /Créer mon premier chevalier/ }).click();
+  await page.getByRole('button', { name: 'Démarrer la création' }).click();
+  // avancer jusqu'à l'étape 10 SANS nom
+  for (let i = 0; i < 9; i++) {
+    await page.getByRole('button', { name: 'Étape suivante' }).click();
+  }
+  // retour arrière jusqu'à l'étape 1 (bouton de navigation du wizard, PAS « ← Accueil »)
+  const boutonBack = page.getByRole('button', { name: '←', exact: true });
+  for (let i = 0; i < 9; i++) {
+    await boutonBack.click();
+  }
+  // saisie RÉELLE du nom (clavier, pas d'event dispatché programmatique)
+  const champNom = page.locator('input').first();
+  await champNom.fill(NOM_BACK);
+  // le store est câblé : la valeur tapée est dans le champ (contrôlé)
+  await expect(champNom).toHaveValue(NOM_BACK);
+  // avancer jusqu'à l'étape 10 et sceller
+  for (let i = 0; i < 9; i++) {
+    await page.getByRole('button', { name: 'Étape suivante' }).click();
+  }
+  await page.getByRole('button', { name: /Sceller et jouer/ }).click();
+  await page.waitForURL((u) => u.pathname === '/', { timeout: 30_000 });
+
+  // la fiche serveur porte le nom saisi en retour arrière
+  const comptes = await (await page.request.get('/api/comptes')).json() as { comptes: { id: string; nom: string }[] };
+  const compte = comptes.comptes.find((c) => c.nom === COMPTE_BACK);
+  expect(compte).toBeTruthy();
+  const fiches = await (await page.request.get(`/api/chevaliers?accountId=${compte!.id}`)).json() as { fiches: { nom: string }[] };
+  expect(fiches.fiches.find((f) => f.nom === NOM_BACK), 'nom saisi en retour arrière persisté').toBeTruthy();
+});
+
 test('recette complète : création de compte → wizard → scellement → fiche dans l’API', async ({ page }) => {
   // ── 1. Sas (accès libre en dev sans SHEET_PASSWORD) → « Qui joue ? »
   await page.goto('/quijoue');

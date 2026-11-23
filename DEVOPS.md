@@ -115,3 +115,22 @@ version — aucune action manuelle de NunnuN :
 
 Compte-rendu attendu de DevOps : sortie du script (compte des lignes
 supprimées par table), confirmation du redémarrage, résultat de la recette.
+
+
+## Signature exacte de `DELETE /api/chevaliers` (recette, scripts)
+
+Le `DELETE` lit les paramètres en **QUERY STRING** — un body (même
+`{accountId, ficheId}`) renvoie **400 « paramètres manquants »** :
+
+```bash
+# OK — query string :
+curl -X DELETE "https://<host>/api/chevaliers?accountId=<accountId>&id=<ficheId>"
+# → {"ok":true}
+
+# KO — body ignoré (message « paramètres manquants », 400) :
+curl -X DELETE "https://<host>/api/chevaliers" -d '{"accountId":"…","ficheId":"…"}'
+```
+
+- `accountId` = id du compte propriétaire (isolation vérifiée côté API) ;
+- `id` = **id de la fiche** (le champ `ficheId` n'existe pas dans la route).
+Scripts de recette : utiliser la forme query string.

@@ -190,19 +190,23 @@ export default function CreationPage() {
   const corps = () => {
     if (!draft) return <AvantDemarrage onDemarrer={demarrer} nomActuel={character.nom} />;
     switch (step) {
-      case 0: // 1 — Identité de base (p.110) : scores déjà reset, nom
+      case 0: { // 1 — Identité de base (p.110) : scores déjà reset, nom
+        // HOTFIX 3 (micro-prompt final) : câblage EXPLICITE du champ nom sur le
+        // store — champ CONTRÔLÉ par wizardDraft.nom, onChange → majWizardDraft.
+        const onChangeNom = (v: string) => {
+          // §0 traçage (prompt v21) : chaque frappe est tracée (debounce 300 ms)
+          traceFrappeNom(v);
+          majWizardDraft((d) => { d.nom = v; });
+        };
         return (
           <Champ
             label="Nom du chevalier"
             value={draft.nom}
-            onChange={(v) => {
-              // §0 traçage (prompt v21) : chaque frappe est tracée (debounce 300 ms)
-              traceFrappeNom(v);
-              maj((d) => { d.nom = v; });
-            }}
+            onChange={onChangeNom}
             note="Étape 1 (p.110) : aspects à 2 et caractéristiques à 1 — appliqué automatiquement."
           />
         );
+      }
       case 1: { // 2 — Archétype (p.111-113)
         return (
           <ChoixListe
