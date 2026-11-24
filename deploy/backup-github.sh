@@ -15,6 +15,15 @@ USER=${GITHUB_BACKUP_USER:-mjjdr946-sketch}
 # ops : secondes dans le nom — un horodatage à la minute provoquait un 422 ("sha
 # wasn't supplied") dès deux pushes dans la même minute (run manuel + cron, retry).
 STAMP=$(date -u +%Y%m%d-%H%M%S)
+# ops : garde-fou anti-doublon — on ne pousse que si le CONTENU a changé depuis le
+# dernier push réussi (empreinte écrite seulement après un 200/201, donc un échec ne
+# fait pas perdre le snapshot suivant). Évite d'empiler des fichiers identiques.
+ETAT=${KNIGHT_BACKUP_STATE:-/var/lib/knight-offsite/last.sha256}
+SUM=$(sha256sum "$DB" | cut -d' ' -f1)
+if [ -f "$ETAT" ] && [ "$(cat "$ETAT" 2>/dev/null)" = "$SUM" ]; then
+  echo "inchangé (sha ${SUM:0:12}…) — aucun push (dernier envoi identique)."
+  exit 0
+fi
 CONTENT=$(base64 -w0 "$DB")
 
 echo "Push du snapshot $DB → $USER/$REPO ($STAMP)…"
@@ -26,7 +35,9 @@ HTTP=$(curl -s -o /tmp/gh-out.json -w "%{http_code}" \
   -d "{\"message\":\"backup $STAMP\",\"content\":\"$CONTENT\"}")
 
 if [ "$HTTP" = "201" ] || [ "$HTTP" = "200" ]; then
-  echo "OK ($HTTP) — rétention par historique de commits."
+  mkdir -p "$(dirname "$ETAT")" 2>/dev/null || true
+  printf '%s\n' "$SUM" > "$ETAT" 2>/dev/null || true
+  echo "OK ($HTTP) — rétention par historique de commits (sha ${SUM:0:12}…)."
 else
   echo "Échec GitHub ($HTTP) :"; cat /tmp/gh-out.json | head -5
   exit 1
