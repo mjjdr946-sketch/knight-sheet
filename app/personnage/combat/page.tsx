@@ -685,7 +685,7 @@ export default function CombatPage() {
             Replier → Guardian
           </button>
         </div>
-        <p className="mt-1 text-[11px] text-zinc-600">Détail des modules : onglet Méta-armure.</p>
+        <p className="mt-1 text-[11px] text-zinc-600">Détail des modules : onglet ⚒ Équipement.</p>
       </Accordion>
 
             {/* ─── Opposition (prompt v11 §2 : bouton, pas un onglet) ──────── */}
