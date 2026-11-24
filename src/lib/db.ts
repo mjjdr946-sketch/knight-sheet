@@ -7,6 +7,7 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 
 const DB_PATH = process.env.KNIGHT_DB_PATH ?? '/data/knight.db';
 
@@ -58,8 +59,38 @@ function migrer(db: Database.Database): void {
       mis_a_jour TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `);
-  const v = db.prepare('SELECT version FROM schema_version').get() as { version: number } | undefined;
-  if (!v) db.prepare('INSERT INTO schema_version (version) VALUES (1)').run();
+  let v = db.prepare('SELECT version FROM schema_version').get() as { version: number } | undefined;
+  if (!v) { db.prepare('INSERT INTO schema_version (version) VALUES (1)').run(); v = { version: 1 }; }
+  // HOTFIX (recette vibe-coder) : les fiches référencent le compte par account_id
+  // = NOM — renommer un compte (suffixe « (test) ») les ORPHELINAIT. Migration v2 :
+  // l'id devient IMMuable (acc-<hash>), le nom redevient affichable/modifiable.
+  if (v.version < 2) {
+    const comptes = db.prepare('SELECT id, nom FROM accounts').all() as { id: string; nom: string }[];
+    for (const c of comptes) {
+      if (c.id !== c.nom) continue; // déjà immuable
+      const nouvelId = `acc-${hashId(c.nom)}`;
+      db.prepare('UPDATE accounts SET id = ? WHERE id = ?').run(nouvelId, c.id);
+      db.prepare('UPDATE chevaliers SET account_id = ? WHERE account_id = ?').run(nouvelId, c.id);
+      db.prepare('UPDATE adversaires SET account_id = ? WHERE account_id = ?').run(nouvelId, c.id);
+      db.prepare('UPDATE sessions_combat SET account_id = ? WHERE account_id = ?').run(nouvelId, c.id);
+    }
+    db.prepare('UPDATE schema_version SET version = 2').run();
+  }
+}
+
+/** Id immuable déterministe (8 hex du sha256 du nom de création).
+ * ATTENTION : un vrai hash — les 8 premiers hex du nom LITTÉRAL font
+ * collision dès que deux noms partagent leurs premiers caractères. */
+function hashId(nom: string): string {
+  return crypto.createHash('sha256').update(nom).digest('hex').slice(0, 8);
+}
+
+/** Résout une CLÉ de compte (id immuable OU nom courant) vers l'id immuable. */
+export function resoudreCompteId(cle: string): string {
+  const direct = getDb().prepare('SELECT id FROM accounts WHERE id = ?').get(cle) as { id: string } | undefined;
+  if (direct) return direct.id;
+  const parNom = getDb().prepare('SELECT id FROM accounts WHERE LOWER(nom) = LOWER(?)').get(cle) as { id: string } | undefined;
+  return parNom?.id ?? cle; // inconnu : renvoyer tel quel (les requêtes ne rienteront rien)
 }
 
 /** Récupère un compte par nom (écran « Qui joue ? »). */
@@ -78,11 +109,10 @@ export function creerCompte(nom: string): { ok: boolean; compte?: { id: string; 
   if (nomPropre.length < 2) return { ok: false, message: 'Nom trop court (2 caractères minimum)' };
   const existant = getDb().prepare('SELECT id, nom FROM accounts WHERE LOWER(nom) = LOWER(?)').get(nomPropre) as { id: string } | undefined;
   if (existant) return { ok: false, message: 'Ce nom est déjà pris' };
-  // ops : l'id DOIT être le nom — /quijoue stocke `nom` dans knight-compte et
-  // toutes les API reçoivent accountId=nom. Avec un id synthétique (acc-<ts>),
-  // la FK chevaliers.account_id → accounts(id) rejetait chaque écriture
-  // (FOREIGN KEY constraint failed) : impossible d'enregistrer un chevalier.
-  const id = nomPropre;
+  // HOTFIX : id IMMUALE (acc-<hash>) — le nom n'est plus une clé. Les routes
+  // résolvent nom → id via resoudreCompteId, la FK n'est plus fragilisée par
+  // un renommage (avant : renommer le compte orphelinait TOUTES ses fiches).
+  const id = `acc-${hashId(nomPropre)}`;
   getDb().prepare('INSERT INTO accounts (id, nom, role) VALUES (?, ?, ?)').run(id, nomPropre, 'joueur');
   return { ok: true, compte: { id, nom: nomPropre, role: 'joueur' } };
 }
@@ -94,6 +124,7 @@ export function tousComptes(): { id: string; nom: string; role: string }[] {
 // ─── Chevaliers ─────────────────────────────────────────────────────────────
 
 export function chevaliersDuCompte(accountId: string): { id: string; nom: string; fiche: string }[] {
+  accountId = resoudreCompteId(accountId); // clé = id immuable OU nom courant
   // CORRECTIF ops (it. 10) : la colonne est `fiche_json` mais les appelants
   // (app/api/chevaliers/route.ts) lisent `r.fiche` → JSON.parse(undefined) → 500
   // dès qu'un compte possède une fiche. Alias explicite ; à upstreamer proprement
@@ -102,6 +133,7 @@ export function chevaliersDuCompte(accountId: string): { id: string; nom: string
 }
 
 export function sauverChevalier(accountId: string, fiche: { id: string; nom: string }): void {
+  accountId = resoudreCompteId(accountId); // HOTFIX : le compte peut être désigné par son nom
   getDb()
     .prepare(`INSERT INTO chevaliers (id, account_id, nom, fiche_json, mis_a_jour) VALUES (?, ?, ?, ?, datetime('now'))
               ON CONFLICT(id) DO UPDATE SET nom = excluded.nom, fiche_json = excluded.fiche_json,
@@ -110,12 +142,13 @@ export function sauverChevalier(accountId: string, fiche: { id: string; nom: str
 }
 
 export function supprimerChevalier(accountId: string, id: string): void {
-  getDb().prepare('DELETE FROM chevaliers WHERE id = ? AND account_id = ?').run(id, accountId);
+  getDb().prepare('DELETE FROM chevaliers WHERE id = ? AND account_id = ?').run(id, resoudreCompteId(accountId));
 }
 
 // ─── Adversaires ────────────────────────────────────────────────────────────
 
 export function sauverAdversaire(accountId: string, adversaire: unknown & { id: string }): void {
+  accountId = resoudreCompteId(accountId);
   getDb()
     .prepare(`INSERT INTO adversaires (id, account_id, fiche_json, mis_a_jour) VALUES (?, ?, ?, datetime('now'))
               ON CONFLICT(id) DO UPDATE SET fiche_json = excluded.fiche_json, mis_a_jour = excluded.mis_a_jour`)
@@ -123,12 +156,13 @@ export function sauverAdversaire(accountId: string, adversaire: unknown & { id: 
 }
 
 export function adversairesDuCompte(accountId: string): string[] {
-  return (getDb().prepare('SELECT fiche_json FROM adversaires WHERE account_id = ?').all(accountId) as { fiche_json: string }[]).map((r) => r.fiche_json);
+  return (getDb().prepare('SELECT fiche_json FROM adversaires WHERE account_id = ?').all(resoudreCompteId(accountId)) as { fiche_json: string }[]).map((r) => r.fiche_json);
 }
 
 // ─── Session de combat (sauvegarde à chaque jet, debounce côté client) ──────
 
 export function sauverSession(accountId: string, session: unknown): void {
+  accountId = resoudreCompteId(accountId); // HOTFIX : nom OU id (PUT /api/session ne 500 plus)
   getDb()
     .prepare(`INSERT INTO sessions_combat (account_id, session_json, mis_a_jour) VALUES (?, ?, datetime('now'))
               ON CONFLICT(account_id) DO UPDATE SET session_json = excluded.session_json, mis_a_jour = excluded.mis_a_jour`)
@@ -136,6 +170,6 @@ export function sauverSession(accountId: string, session: unknown): void {
 }
 
 export function sessionDuCompte(accountId: string): string | null {
-  const r = getDb().prepare('SELECT session_json FROM sessions_combat WHERE account_id = ?').get(accountId) as { session_json: string } | undefined;
+  const r = getDb().prepare('SELECT session_json FROM sessions_combat WHERE account_id = ?').get(resoudreCompteId(accountId)) as { session_json: string } | undefined;
   return r?.session_json ?? null;
 }
