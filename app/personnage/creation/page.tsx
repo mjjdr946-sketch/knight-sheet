@@ -399,9 +399,8 @@ export default function CreationPage() {
               <input type="checkbox" checked={booste} onChange={(e) => setBooste(e.target.checked)} />
               Mode boosté (+25 PG — option MJ, p.128)
             </label>
-            <button type="button" onClick={() => void valider()} className="min-h-[48px] w-full rounded-lg bg-neon-cyan/20 text-sm font-bold text-neon-cyan">
-              🔒 Sceller et jouer
-            </button>
+            {/* ops : le CTA vit dans la barre fixe (voir plus bas) — à l'étape 10 il
+                était ici, sous la ligne de flottaison, et la barre n'affichait qu'un « ← ». */}
           </div>
         );
       default:
@@ -449,7 +448,9 @@ export default function CreationPage() {
           <button type="button" disabled={step === 0} onClick={() => majWizardStep(Math.max(0, step - 1))} className="min-h-[48px] flex-1 rounded-lg border border-zinc-700 text-sm text-zinc-300 disabled:opacity-30">←</button>
           {step < 9 ? (
             <button type="button" onClick={() => majWizardStep(step + 1)} className="min-h-[48px] flex-[3] rounded-lg bg-neon-cyan/20 text-sm font-bold text-neon-cyan">Étape suivante</button>
-          ) : null}
+          ) : (
+            <button type="button" onClick={() => void valider()} className="min-h-[48px] flex-[3] rounded-lg bg-neon-gold/20 text-sm font-bold text-neon-gold">🔒 Sceller et jouer</button>
+          )}
         </div>
       )}
     </main>
