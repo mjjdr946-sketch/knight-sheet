@@ -39,8 +39,13 @@ let timerSession: ReturnType<typeof setTimeout> | null = null;
 /** Sauvegarde la fiche active (debounce 800 ms, prompt v13 §1). */
 export function planifierSauvegardeFiche(): void {
   const accountId = compteActif();
-  if (!accountId) return;
+  if (!accountId) {
+    // IT. 22 : trace du silence — un « return » ici = 0 fetch invisible en prod
+    console.error('[sync] planification ignorée : aucun compte actif (knight-compte absent)');
+    return;
+  }
   if (timerFiche) clearTimeout(timerFiche);
+  console.info('[sync] PUT planifié (débounce 800 ms) vers', accountId);
   timerFiche = setTimeout(() => void pousserFiche(accountId), 800);
 }
 
@@ -153,6 +158,28 @@ export async function sauverFicheImmediate(accountId: string, fiche: unknown): P
     etat.fiche = true;
     notifier();
     return false;
+  }
+}
+
+/** IT. 22 §2 : réconcilie le localStorage avec le nom CANONIQUE du compte —
+ * le marquage « (test) » a renommé les comptes ; le vieux nom dans
+ * knight-compte ne résolvait plus → 0 fetch silencieux (sync morte). */
+export async function reconcilierCompte(): Promise<string | null> {
+  const cle = compteActif();
+  if (!cle) return null;
+  try {
+    const r = await fetch('/api/comptes');
+    if (!r.ok) return null;
+    const data = (await r.json()) as { comptes: { id: string; nom: string }[] };
+    const match = data.comptes.find((c) => c.nom.toLowerCase().startsWith(cle.toLowerCase()));
+    if (match && match.nom !== cle) {
+      console.info('[sync] compte réconcilié :', cle, '→', match.nom);
+      localStorage.setItem('knight-compte', match.nom);
+      return match.nom;
+    }
+    return cle;
+  } catch {
+    return null;
   }
 }
 

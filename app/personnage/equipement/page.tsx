@@ -42,10 +42,31 @@ export default function EquipementPage() {
 
   const filtre = (texte: string) => texte.toLowerCase().includes(recherche.toLowerCase());
 
-  const armesFiltrees = catalogueArmes.filter((a) => filtre(`${a.nom} ${a.effets.join(' ')}`));
+  // IT. 22 §7 : filtre par CATÉGORIE des équipements achetés ET achetables
+  const [categorieFiltre, setCategorieFiltre] = useState<'toutes' | 'contact' | 'tir'>('toutes');
+
+  const armesFiltrees = catalogueArmes
+    .filter((a) => categorieFiltre === 'toutes' || a.type === categorieFiltre)
+    .filter((a) => filtre(`${a.nom} ${a.effets.join(' ')}`));
   const modulesFiltres = catalogueModules.filter((m) => filtre(`${m.nom} ${m.categorie}`));
 
   const exec = (fn: () => { ok: boolean; message: string }) => setMessage(fn().message);
+
+  // IT. 22 §7 : boutons de filtre par catégorie (armes de contact / armes de tir)
+  const boutonsFiltre = (
+    <div className="flex gap-1.5">
+      {(['toutes', 'contact', 'tir'] as const).map((cat) => (
+        <button
+          key={cat}
+          type="button"
+          onClick={() => setCategorieFiltre(cat)}
+          className={`min-h-[44px] flex-1 rounded-lg border px-2 text-xs ${categorieFiltre === cat ? 'border-neon-cyan bg-neon-cyan/10 text-neon-cyan' : 'border-zinc-700 text-zinc-400'}`}
+        >
+          {cat === 'toutes' ? 'Toutes' : cat === 'contact' ? 'Contact' : 'Tir'}
+        </button>
+      ))}
+    </div>
+  );
 
   return (
     <div className="space-y-4">
@@ -106,7 +127,15 @@ export default function EquipementPage() {
                       </button>
                     )}
                     {possedee && (
-                      <button type="button" onClick={() => { const ok = equiperArme(a.id ?? '', true); setMessage(ok ? `${a.nom} équipée` : 'Équipement impossible'); }}
+                      <button type="button" onClick={() => {
+                        // IT. 22 §7 : équiper l'INSTANCE de l'inventaire (son id
+                        // réel ≠ l'id du catalogue — avant : le PUT cherchait un
+                        // id inexistant et refusait « Équipement impossible »)
+                        const instance = character.armes.find((ar) => ar.nom === a.nom && !ar.equipee);
+                        if (!instance) { setMessage('Déjà équipée'); return; }
+                        const ok = equiperArme(instance.id, true);
+                        setMessage(ok ? `${a.nom} équipée` : 'Équipement impossible');
+                      }}
                         className="min-h-[44px] rounded-lg bg-neon-cyan/15 px-2.5 text-[11px] text-neon-cyan active:bg-neon-cyan/25">
                         Équiper
                       </button>

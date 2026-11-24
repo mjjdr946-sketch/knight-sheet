@@ -87,13 +87,13 @@ describe('§2 — désélection d’arme à l’étape Arsenal', () => {
 
 describe('§5 — progression PG (monterTrait / monterAspect)', () => {
   it('monterTrait : coût = nouvelle valeur, débit gloire, journal, plafond aspect', () => {
-    const scellee = { ...structuredClone(personnageExemple), id: 'principal', gloire: 5, xpJournal: [] };
+    const scellee = { ...structuredClone(personnageExemple), id: 'principal', gloire: 10, xpJournal: [] };
     useCharacterStore.setState({ character: scellee } as never);
     // personnageExemple : Force 3, Chair 4 → plafond du trait Force = 4 ;
-    // monter Force 3 → 4 coûte 4 (la nouvelle valeur)
+    // RÈGLES p.108 : monter Force 3 → 4 coûte 2 × 4 = 8
     const r = store().monterTrait('force', 4);
     expect(r.ok).toBe(true);
-    expect(store().character.gloire).toBe(1); // 5 − 4
+    expect(store().character.gloire).toBe(2); // 10 − 8
     expect(store().character.traits['force']).toBe(4);
     expect(store().character.xpJournal?.length).toBeGreaterThan(0);
     // plafond : Chair = 4 → monter Force à 5 → refus
@@ -103,9 +103,9 @@ describe('§5 — progression PG (monterTrait / monterAspect)', () => {
   });
 
   it('monterAspect : un cran maximum, coût = nouvelle valeur, plafond 9', () => {
-    const scellee = { ...structuredClone(personnageExemple), id: 'principal', gloire: 10, xpJournal: [] };
+    const scellee = { ...structuredClone(personnageExemple), id: 'principal', gloire: 30, xpJournal: [] };
     useCharacterStore.setState({ character: scellee } as never);
-    // Chair = 4 → seule cible : 5, coût 5
+    // Chair = 4 → seule cible : 5, coût 5 × 5 = 25
     const r = store().monterAspect('chair', 5);
     expect(r.ok).toBe(true);
     expect(store().character.gloire).toBe(5);

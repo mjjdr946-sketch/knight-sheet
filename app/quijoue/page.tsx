@@ -54,7 +54,7 @@ export default function QuiJouePage() {
   };
 
   return (
-    <main className="mx-auto flex h-dvh max-w-md flex-col items-center justify-center gap-4 px-3">
+    <main className="mx-auto flex h-dvh max-w-md lg:max-w-2xl flex-col items-center justify-center gap-4 px-3">
       <h1 className="font-display text-2xl text-neon-cyan">Qui joue ?</h1>
       {erreur && (
         <p className="w-full rounded-lg border border-red-800 bg-red-900/40 px-3 py-2 text-center text-xs font-semibold text-red-200" role="alert">

@@ -25,6 +25,8 @@ export default function AccueilPage() {
   const supprimerFiche = useCharacterStore((s) => s.supprimerFiche);
   const chargerFiche = useCharacterStore((s) => s.chargerFiche);
   const remplacerPersonnage = useCharacterStore((s) => s.remplacerPersonnage);
+  // IT. 22 §1 : suppression avec confirmation CUSTOM + DELETE serveur
+  const [suppressionEnCours, setSuppressionEnCours] = useState<{ id: string; nom: string } | null>(null);
 
   const [hydrate, setHydrate] = useState(false);
   // IT. 20 §3 : le GET serveur est ASYNCHRONE — l'état « vide » ne doit
@@ -147,7 +149,7 @@ export default function AccueilPage() {
   }
   if (fiches.length === 0) {
     return (
-      <main className="mx-auto flex h-dvh max-w-md flex-col items-center justify-center gap-4 px-3">
+      <main className="mx-auto flex h-dvh max-w-md lg:max-w-2xl flex-col items-center justify-center gap-4 px-3">
         <p className="font-display text-xl text-neon-cyan">Knight</p>
         <p className="text-center text-sm text-zinc-400">
           Ce compte n'a pas encore de chevalier. Crée ton premier chevalier avec l'assistant (10 étapes).
@@ -161,7 +163,7 @@ export default function AccueilPage() {
   }
 
   return (
-    <main className="mx-auto max-w-md space-y-4 px-3 pb-10 pt-8">
+    <main className="mx-auto max-w-md lg:max-w-2xl space-y-4 px-3 pb-10 pt-8">
       <header className="text-center">
         <h1 className="font-display text-2xl text-neon-cyan">Knight</h1>
         <p className="mt-1 text-sm text-zinc-500">Mes chevaliers</p>
@@ -224,10 +226,7 @@ export default function AccueilPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (fiches.length <= 1) { alert('Au moins une fiche doit rester.'); return; }
-                    if (confirm(`Supprimer ${fiche.nom} ?`)) supprimerFiche(id);
-                  }}
+                  onClick={() => setSuppressionEnCours({ id, nom: fiche.nom })}
                   className="min-h-[48px] flex-1 rounded-lg border border-red-900/50 text-xs text-red-400 active:bg-red-900/20"
                 >
                   Supprimer
@@ -237,6 +236,30 @@ export default function AccueilPage() {
           );
         })}
       </ul>
+
+      {/* IT. 22 §1 : confirmation CUSTOM + DELETE serveur (avant : la garde « au moins une fiche » + l'absence de DELETE laissaient la fiche réapparaître) */}
+      {suppressionEnCours && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal>
+          <div className="w-full max-w-sm space-y-3 rounded-xl border border-zinc-700 bg-zinc-950 p-4">
+            <p className="font-display text-sm text-red-300">🗑 Supprimer {suppressionEnCours.nom} ?</p>
+            <p className="text-xs text-zinc-400">Irréversible — la fiche disparaît du serveur et de cet appareil.</p>
+            <button type="button" onClick={async () => {
+              const accountId = compteActif();
+              if (accountId) {
+                try { await fetch(`/api/chevaliers?accountId=${encodeURIComponent(accountId)}&id=${encodeURIComponent(suppressionEnCours.id)}`, { method: 'DELETE' }); } catch (e) { console.error('[accueil] DELETE échoué', e); }
+              }
+              supprimerFiche(suppressionEnCours.id);
+              setSuppressionEnCours(null);
+            }} className="min-h-[48px] w-full rounded-lg border border-red-900 text-xs font-bold text-red-300 active:bg-red-900/40">
+              Supprimer définitivement
+            </button>
+            <button type="button" onClick={() => setSuppressionEnCours(null)}
+              className="min-h-[48px] w-full rounded-lg border border-zinc-700 text-xs text-zinc-300 active:bg-zinc-800">
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ─── Créer → wizard 10 étapes (CORRECTIF it. 7, bug 3 🔴) ────── */}
       <button

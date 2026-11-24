@@ -12,7 +12,7 @@ import TabBar from '../../components/navigation/TabBar';
 import { useCharacterStore, themeDeFiche } from '@/store/characterStore';
 import { computeDerived } from '@/engine/stats';
 import { personnageExemple } from '@/data/character';
-import { brancherSync, compteActif, chargerFichesServeur, syncEnRetard, surSync } from '@/lib/sync';
+import { brancherSync, compteActif, chargerFichesServeur, reconcilierCompte, syncEnRetard, surSync } from '@/lib/sync';
 
 export default function PersonnageLayout({ children }: { children: React.ReactNode }) {
   const [hydrate, setHydrate] = useState(false);
@@ -24,7 +24,10 @@ export default function PersonnageLayout({ children }: { children: React.ReactNo
     brancherSync();
     const accountId = compteActif();
     if (accountId) {
-      chargerFichesServeur(accountId).then((fiches) => {
+      // IT. 22 §2 : réconcilier knight-compte (le marquage « (test) » a renommé
+      // les comptes — le vieux nom ne résolvait plus → 0 fetch silencieux).
+      reconcilierCompte().then((cleCanonique) => {
+      chargerFichesServeur(cleCanonique ?? accountId).then((fiches) => {
         // PROMPT v21 §1 (itération 18) : le chargement des données du compte
         // ne remplace JAMAIS un brouillon de wizard en cours — on trace le
         // contexte pour diagnostiquer la chaîne nom en prod.
@@ -47,6 +50,7 @@ export default function PersonnageLayout({ children }: { children: React.ReactNo
           useCharacterStore.setState({ character: neutre, autresFiches: {} } as never);
         }
       });
+      }); // fin de la chaîne de réconciliation IT. 22 §2
     }
     // Reprise du persist (cache UI) : recalcul des dérivées à partir du personnage restauré
     useCharacterStore.persist.rehydrate();

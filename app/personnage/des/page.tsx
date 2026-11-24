@@ -71,7 +71,7 @@ export default function DesPage() {
   useShake(lancerStable, secousseOk);
 
   return (
-    <main className="mx-auto max-w-md space-y-4 px-3 pb-24 pt-4">
+    <main className="mx-auto max-w-md lg:max-w-2xl space-y-4 px-3 pb-24 pt-4">
       <h1 className="font-display text-xl text-neon-cyan">Jets de dés</h1>
 
       <div className="grid grid-cols-2 gap-2">

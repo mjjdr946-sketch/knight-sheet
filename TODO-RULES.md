@@ -491,3 +491,17 @@ Modifier des paliers de modules, effets d'OD restants, ambiance/son.
   §8 Détail du jet sur la page Dés (drill-down par dé).
   🔶 plafond exact des traits (aspect vs aspect+1) à valider par le MJ
   (implémenté = valeur de l'aspect, p.110 littérale).
+
+- ✅ **Itération 21 (v25) — retour de table** : §1 audit de câblage exhaustif
+  (DEVOPS.md, 30 actions UI→store→endpoint, chaque ligne prouvée) + garde
+  inversée `CHAMPS_STRUCTURELS` (la liste positive oubliait des champs à
+  chaque itération — tout hors identité de création est modifiable sur
+  fiche scellée) + modale custom « 🔓 Déverrouiller » (confirm() natif
+  invisible en prod). §2 désélection d'arme (« − 1 », budget recalculé).
+  🔶 Plafond des traits : implémenté = valeur de l'aspect (lecture
+  littérale p.110) — à valider par le MJ (aspect vs aspect+1).
+  🔶 Filtre par catégorie des équipements achetés : la liste des achetés
+  vit DANS le catalogue (« possedee ») — le filtre est donc celui du
+  catalogue (recherche par nom) ; pas de liste séparée dupliquée.
+  🔶 E2E achat→équiper→Combat : à ajouter en itération suivante (le flux
+  équiper existe via le catalogue, la fiche scellée bloque l'achat).

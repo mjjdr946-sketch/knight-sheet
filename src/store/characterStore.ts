@@ -9,7 +9,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { applyDamage, type DamageInput, type DamageResult } from '../engine/damage';
-import { computeDerived } from '../engine/stats';
+import { computeDerived, coutEvolutionTrait, coutEvolutionAspect } from '../engine/stats';
 import { effetsDeNiveau } from '../data/paliers-modules';
 import { odDuType, coutTypeWarrior, coutImpulsion, coutGhost, coutLongbow, profilLongbow, coutVision, coutChangeling, coutBenedictionArmes, ATTAQUE_PLASMA, UTILITAIRE_PLASMA, ORIFLAMME, conditionImpulsion } from '../engine/capacites';
 import { STYLE_CONDITION_ID, getStyle, styleVersCondition } from '../engine/combat';
@@ -172,6 +172,9 @@ interface CharacterStore {
   monterTrait: (trait: TraitId, valeur: number) => { ok: boolean; message: string };
   /** IT. 21 §4 : dépenser des PG pour monter un aspect (coût = nouvelle valeur, plafond 9 — p.110) */
   monterAspect: (aspect: AspectId, valeur: number) => { ok: boolean; message: string };
+  /** IT. 22 §4 : diminution avec REMBOURSEMENT (coût de la valeur quittée — symétrie p.108) */
+  baisserAspect: (aspect: AspectId, valeur: number) => { ok: boolean; message: string };
+  baisserTrait: (trait: TraitId, valeur: number) => { ok: boolean; message: string };
   /** Consomme le brouillon : fiche active = brouillon scellé 🔒 */
   confirmerScellement: (finie: Character) => void;
   /** Crée une nouvelle fiche (à partir du modèle d'exemple) */
@@ -507,7 +510,7 @@ export const useCharacterStore = create<CharacterStore>()(
         if (valeur <= actuel) return { ok: false, message: 'Valeur identique ou inférieure' };
         const plafond = plafondTrait(trait, character.aspects);
         if (valeur > plafond) return { ok: false, message: `Plafond de l'aspect atteint (${plafond})` };
-        const cout = valeur; // coût = nouvelle valeur (prompt v21, digest p.110)
+        const cout = coutEvolutionTrait(valeur); // RÈGLES p.108 : 2 × score visé
         if (character.gloire < cout) return { ok: false, message: `Il te manque ${cout - character.gloire} PG` };
         const jour = [...(character.xpJournal ?? []), { quand: new Date().toISOString(), points: -cout, note: `Montée de ${trait} → ${valeur}`, paliers: [] }];
         set(recalcule({ ...character, traits: { ...character.traits, [trait]: valeur }, gloire: character.gloire - cout, xpJournal: jour }));
@@ -519,13 +522,39 @@ export const useCharacterStore = create<CharacterStore>()(
         if (valeur <= actuel) return { ok: false, message: 'Seule l\'augmentation d\'un cran est possible' };
         if (valeur > actuel + 1) return { ok: false, message: 'La valeur ne monte que d\'un cran' };
         if (valeur > 9) return { ok: false, message: 'Plafond PJ : 9 (p.110)' };
-        const cout = valeur; // coût = nouvelle valeur (prompt v21)
+        const cout = coutEvolutionAspect(valeur); // RÈGLES p.108 : 5 × score visé
         if (character.gloire < cout) return { ok: false, message: `Il te manque ${cout - character.gloire} PG` };
         const jour = [...(character.xpJournal ?? []), { quand: new Date().toISOString(), points: -cout, note: `Montée de l'aspect ${aspect} → ${valeur}`, paliers: [] }];
         set(recalcule({ ...character, aspects: { ...character.aspects, [aspect]: valeur }, gloire: character.gloire - cout, xpJournal: jour }));
         return { ok: true, message: `Aspect ${aspect} monté à ${valeur} (−${cout} PG)` };
       },
 
+      // IT. 22 §4 : diminution + REMBOURSEMENT (symétrie p.108 — le remboursement
+      // = le coût de la valeur QUITTÉE). Cohérence : l'aspect ne descend pas sous
+      // ses caractéristiques liées (message explicite).
+      baisserAspect: (aspect: AspectId, valeur: number) => {
+        const { character } = get();
+        const actuel = character.aspects[aspect] ?? 2;
+        if (valeur !== actuel - 1) return { ok: false, message: 'Seule la valeur directement inférieure est possible' };
+        if (valeur < 1) return { ok: false, message: 'Minimum : 1' };
+        const traitsLies = (Object.keys(TRAIT_VERS_ASPECT) as TraitId[]).filter((tid) => TRAIT_VERS_ASPECT[tid] === aspect);
+        const traitTropHaut = traitsLies.find((tid) => (character.traits[tid] ?? 1) > valeur);
+        if (traitTropHaut) return { ok: false, message: `Une caractéristique liée dépasse ${valeur} — diminue-la d'abord` };
+        const remboursement = coutEvolutionAspect(actuel);
+        const jour = [...(character.xpJournal ?? []), { quand: new Date().toISOString(), points: remboursement, note: `Baisse de l'aspect ${aspect} → ${valeur} (remboursement)`, paliers: [] }];
+        set(recalcule({ ...character, aspects: { ...character.aspects, [aspect]: valeur }, gloire: character.gloire + remboursement, xpJournal: jour }));
+        return { ok: true, message: `Aspect remis à ${valeur} (+${remboursement} PG)` };
+      },
+      baisserTrait: (trait: TraitId, valeur: number) => {
+        const { character } = get();
+        const actuel = character.traits[trait] ?? 1;
+        if (valeur !== actuel - 1) return { ok: false, message: 'Seule la valeur directement inférieure est possible' };
+        if (valeur < 1) return { ok: false, message: 'Minimum : 1' };
+        const remboursement = coutEvolutionTrait(actuel);
+        const jour = [...(character.xpJournal ?? []), { quand: new Date().toISOString(), points: remboursement, note: `Baisse de ${trait} → ${valeur} (remboursement)`, paliers: [] }];
+        set(recalcule({ ...character, traits: { ...character.traits, [trait]: valeur }, gloire: character.gloire + remboursement, xpJournal: jour }));
+        return { ok: true, message: `${trait} remis à ${valeur} (+${remboursement} PG)` };
+      },
       changerArmure: (modele) => {
         // scellement (bug 2) : édition de feuille bloquée
         if (editionBloquee(get())) return;

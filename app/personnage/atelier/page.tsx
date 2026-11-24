@@ -100,7 +100,7 @@ export default function AtelierPage() {
 
   if (verrou) {
     return (
-      <main className="mx-auto max-w-md space-y-3 px-3 pb-24 pt-6">
+      <main className="mx-auto max-w-md lg:max-w-2xl space-y-3 px-3 pb-24 pt-6">
         <h1 className="font-display text-xl text-neon-cyan">Atelier — arme de prestige</h1>
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-4 text-sm text-zinc-300">
           🔒 <b>Verrouillé.</b> La création d'une arme de prestige exige d'être chevalier de la
@@ -112,7 +112,7 @@ export default function AtelierPage() {
   }
 
   return (
-    <main className="mx-auto max-w-md space-y-3 px-3 pb-24 pt-6">
+    <main className="mx-auto max-w-md lg:max-w-2xl space-y-3 px-3 pb-24 pt-6">
       <h1 className="font-display text-xl text-neon-cyan">Atelier — arme de prestige</h1>
       <p className="text-xs text-zinc-500">Budget de conception : <b className="text-neon-gold">{restant}</b> PG restants / {BUDGET} (p.36)</p>
 

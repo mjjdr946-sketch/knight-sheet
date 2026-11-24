@@ -409,7 +409,7 @@ export default function CreationPage() {
   };
 
   return (
-    <main className="mx-auto max-w-md px-3 pb-44 pt-6">
+    <main className="mx-auto max-w-md lg:max-w-2xl px-3 pb-44 pt-6">
       <header className="mb-4 flex items-center justify-between">
         <button type="button" onClick={() => router.push('/')} className="text-sm text-zinc-500">← Accueil</button>
         <span className="text-xs text-zinc-500">Étape {step + 1}/10 — {ETAPES[step]}</span>

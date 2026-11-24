@@ -65,7 +65,7 @@ export default function FeuillePage() {
   const deverrouiller = useCharacterStore((s) => s.deverrouiller);
   const [modalDeverrouiller, setModalDeverrouiller] = useState(false);
   return (
-    <main className="mx-auto max-w-md px-3 pb-24 pt-4">
+    <main className="mx-auto max-w-md lg:max-w-2xl px-3 pb-24 pt-4">
       <h1 className="font-display mb-3 text-xl text-neon-cyan">
         Feuille {scelle && <span className="text-sm text-neon-gold">🔒 scellée</span>}
       </h1>

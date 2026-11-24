@@ -319,3 +319,16 @@ export function valeurChevalier(character: {
   for (const total of parTrait.values()) overdrives += GRILLE[Math.min(5, total)] ?? 0;
   return { armes, modules, overdrives, total: armes + modules + overdrives };
 }
+
+
+// ─── IT. 21 (prompt v21) : progression par PG — RÈGLE DU LIVRE p.108 ─────────
+// « L'aspect : 5 × score visé (1→2 = 10 PX ; 2→3 = 15 ; 4→5 = 25) »
+// « La caractéristique : 2 × score visé (3→4 = 8 PX ; 5→6 = 12) »
+// « Une caractéristique ne peut jamais dépasser son aspect lié »
+// « Aspect : maximum +1 point du même aspect entre deux missions »
+export function coutEvolutionAspect(scoreVise: number): number {
+  return 5 * scoreVise;
+}
+export function coutEvolutionTrait(scoreVise: number): number {
+  return 2 * scoreVise;
+}

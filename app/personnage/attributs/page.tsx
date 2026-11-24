@@ -9,6 +9,7 @@
 import { useState } from 'react';
 import { useCharacterStore } from '@/store/characterStore';
 import Accordion from '../../../components/ui/Accordion';
+import { coutEvolutionAspect, coutEvolutionTrait } from '../../../src/engine/stats';
 import type { AspectId, TraitId } from '@/types/character';
 
 const ASPECTS: { id: AspectId; nom: string; traits: { id: TraitId; nom: string }[] }[] = [
@@ -31,6 +32,8 @@ export default function AttributsPage() {
   const character = useCharacterStore((s) => s.character);
   const monterTrait = useCharacterStore((s) => s.monterTrait);
   const monterAspect = useCharacterStore((s) => s.monterAspect);
+  const baisserTrait = useCharacterStore((s) => s.baisserTrait);
+  const baisserAspect = useCharacterStore((s) => s.baisserAspect);
   const [erreurProgression, setErreurProgression] = useState('');
   const derived = useCharacterStore((s) => s.derived);
   const setChoixDerive = useCharacterStore((s) => s.setChoixDerive);
@@ -58,16 +61,19 @@ export default function AttributsPage() {
                 onChange={(e) => {
                   const cible = Number(e.target.value);
                   if (cible === character.aspects[aspect.id]) return;
-                  const r = monterAspect(aspect.id, cible);
+                  // IT. 22 §4 : route montée OU baisse (remboursement symétrique)
+                  const r = cible > character.aspects[aspect.id] ? monterAspect(aspect.id, cible) : baisserAspect(aspect.id, cible);
                   if (!r.ok) setErreurProgression(r.message);
                 }}
                 className="min-h-[48px] rounded border border-zinc-700 bg-zinc-950 px-2 text-xs text-white"
               >
-                {[character.aspects[aspect.id], character.aspects[aspect.id] + 1].map((v) => (
-                  <option key={v} value={v}>
-                    {v} PG{v === character.aspects[aspect.id] ? '' : ` (coût ${v})`}
-                  </option>
-                ))}
+                {[character.aspects[aspect.id] - 1, character.aspects[aspect.id], character.aspects[aspect.id] + 1]
+                  .filter((v) => v >= 1 && v <= 9)
+                  .map((v) => (
+                    <option key={v} value={v}>
+                      {v} PG{v === character.aspects[aspect.id] ? '' : v > character.aspects[aspect.id] ? ` (coût ${coutEvolutionAspect(v)})` : ` (rembourse ${coutEvolutionAspect(character.aspects[aspect.id])})`}
+                    </option>
+                  ))}
               </select>
             </div>
             <div className="grid grid-cols-3 gap-1.5">
@@ -84,14 +90,17 @@ export default function AttributsPage() {
                     <select
                       value={actuel}
                       onChange={(e) => {
-                        const r = monterTrait(t.id, Number(e.target.value));
+                        // IT. 22 §4 : route montée (coût p.108 : 2 × score visé)
+                        // OU baisse (remboursement symétrique)
+                        const v = Number(e.target.value);
+                        const r = v > actuel ? monterTrait(t.id, v) : baisserTrait(t.id, v);
                         if (!r.ok) setErreurProgression(r.message);
                       }}
                       className="min-h-[48px] w-full rounded border border-zinc-700 bg-zinc-950 text-sm text-white"
                     >
                       {options.map((v) => (
                         <option key={v} value={v}>
-                          {v}{v > actuel ? ` (${v} PG)` : ''}
+                          {v}{v > actuel ? ` (${coutEvolutionTrait(v)} PG)` : ''}
                         </option>
                       ))}
                     </select>
