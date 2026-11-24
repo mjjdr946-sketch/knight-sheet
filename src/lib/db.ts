@@ -65,14 +65,26 @@ function migrer(db: Database.Database): void {
   // = NOM — renommer un compte (suffixe « (test) ») les ORPHELINAIT. Migration v2 :
   // l'id devient IMMuable (acc-<hash>), le nom redevient affichable/modifiable.
   if (v.version < 2) {
+    // CORRECTIF ops (simulation sur copie de la base prod) — deux bugs bloquants :
+    // 1) la garde `id !== nom` sautait TOUS les comptes renommés « (test) » (id sans
+    //    suffixe, nom avec) : ils n'étaient jamais migrés, puis la version passait à 2
+    //    (migration perdue). Un id immuable se reconnaît à son préfixe `acc-`.
+    // 2) les FK sont ACTIVES en prod (pragma foreign_keys = 1) et le DDL n'a pas
+    //    `ON UPDATE CASCADE` : `UPDATE accounts SET id` échouait en
+    //    « FOREIGN KEY constraint failed ». La migration passe donc en transaction
+    //    avec `defer_foreign_keys` (FK vérifiées au COMMIT).
     const comptes = db.prepare('SELECT id, nom FROM accounts').all() as { id: string; nom: string }[];
-    for (const c of comptes) {
-      if (c.id !== c.nom) continue; // déjà immuable
+    const migrerCompte = db.transaction((c: { id: string; nom: string }) => {
       const nouvelId = `acc-${hashId(c.nom)}`;
-      db.prepare('UPDATE accounts SET id = ? WHERE id = ?').run(nouvelId, c.id);
+      db.pragma('defer_foreign_keys = ON');
       db.prepare('UPDATE chevaliers SET account_id = ? WHERE account_id = ?').run(nouvelId, c.id);
       db.prepare('UPDATE adversaires SET account_id = ? WHERE account_id = ?').run(nouvelId, c.id);
       db.prepare('UPDATE sessions_combat SET account_id = ? WHERE account_id = ?').run(nouvelId, c.id);
+      db.prepare('UPDATE accounts SET id = ? WHERE id = ?').run(nouvelId, c.id);
+    });
+    for (const c of comptes) {
+      if (c.id.startsWith('acc-')) continue; // déjà immuable
+      migrerCompte(c);
     }
     db.prepare('UPDATE schema_version SET version = 2').run();
   }
