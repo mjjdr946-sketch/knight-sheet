@@ -153,8 +153,8 @@ export function sauverChevalier(accountId: string, fiche: { id: string; nom: str
     .run(fiche.id, accountId, fiche.nom, JSON.stringify(fiche));
 }
 
-export function supprimerChevalier(accountId: string, id: string): void {
-  getDb().prepare('DELETE FROM chevaliers WHERE id = ? AND account_id = ?').run(id, resoudreCompteId(accountId));
+export function supprimerChevalier(accountId: string, id: string): number {
+  return getDb().prepare('DELETE FROM chevaliers WHERE id = ? AND account_id = ?').run(id, resoudreCompteId(accountId)).changes;
 }
 
 // ─── Adversaires ────────────────────────────────────────────────────────────

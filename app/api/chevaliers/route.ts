@@ -49,6 +49,9 @@ export async function DELETE(req: NextRequest) {
   const accountId = req.nextUrl.searchParams.get('accountId');
   const id = req.nextUrl.searchParams.get('id');
   if (!accountId || !id) return NextResponse.json({ ok: false, message: 'paramètres manquants' }, { status: 400 });
-  supprimerChevalier(accountId, id);
-  return NextResponse.json({ ok: true });
+  // La route ne doit pas mentir : 0 ligne supprimée = 404 (un id erroné renvoyait
+  // {ok:true} et la fiche revenait au rechargement suivant).
+  const n = supprimerChevalier(accountId, id);
+  if (n === 0) return NextResponse.json({ ok: false, message: 'fiche introuvable' }, { status: 404 });
+  return NextResponse.json({ ok: true, supprimees: n });
 }

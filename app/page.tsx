@@ -26,7 +26,11 @@ export default function AccueilPage() {
   const chargerFiche = useCharacterStore((s) => s.chargerFiche);
   const remplacerPersonnage = useCharacterStore((s) => s.remplacerPersonnage);
   // IT. 22 §1 : suppression avec confirmation CUSTOM + DELETE serveur
-  const [suppressionEnCours, setSuppressionEnCours] = useState<{ id: string; nom: string } | null>(null);
+  // `id` = id SERVEUR (celui de la fiche), `cle` = clé du store (actifId pour la fiche
+  // active, son id sinon). Le DELETE doit viser l'id serveur : envoyer `actifId`
+  // (« principal ») supprimait 0 ligne en répondant 200 → la fiche revenait au reload.
+  const [suppressionEnCours, setSuppressionEnCours] = useState<{ id: string; cle: string; nom: string } | null>(null);
+  const [erreurSuppression, setErreurSuppression] = useState('');
 
   const [hydrate, setHydrate] = useState(false);
   // IT. 20 §3 : le GET serveur est ASYNCHRONE — l'état « vide » ne doit
@@ -226,7 +230,7 @@ export default function AccueilPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setSuppressionEnCours({ id, nom: fiche.nom })}
+                  onClick={() => setSuppressionEnCours({ id: fiche.id, cle: id, nom: fiche.nom })}
                   className="min-h-[48px] flex-1 rounded-lg border border-red-900/50 text-xs text-red-400 active:bg-red-900/20"
                 >
                   Supprimer
@@ -243,12 +247,21 @@ export default function AccueilPage() {
           <div className="w-full max-w-sm space-y-3 rounded-xl border border-zinc-700 bg-zinc-950 p-4">
             <p className="font-display text-sm text-red-300">🗑 Supprimer {suppressionEnCours.nom} ?</p>
             <p className="text-xs text-zinc-400">Irréversible — la fiche disparaît du serveur et de cet appareil.</p>
+            {erreurSuppression && <p className="rounded-lg border border-red-700 bg-red-950/40 p-2 text-xs text-red-300">{erreurSuppression}</p>}
             <button type="button" onClick={async () => {
               const accountId = compteActif();
+              const cle = suppressionEnCours.cle;
               if (accountId) {
-                try { await fetch(`/api/chevaliers?accountId=${encodeURIComponent(accountId)}&id=${encodeURIComponent(suppressionEnCours.id)}`, { method: 'DELETE' }); } catch (e) { console.error('[accueil] DELETE échoué', e); }
+                try {
+                  const r = await fetch(`/api/chevaliers?accountId=${encodeURIComponent(accountId)}&id=${encodeURIComponent(suppressionEnCours.id)}`, { method: 'DELETE' });
+                  if (!r.ok) { setErreurSuppression(`Suppression refusée par le serveur (${r.status}) — fiche conservée.`); return; }
+                } catch (e) { console.error('[accueil] DELETE échoué', e); setErreurSuppression('Serveur injoignable — fiche conservée.'); return; }
+              } else {
+                setErreurSuppression('Aucun compte sélectionné — fiche conservée.');
+                return;
               }
-              supprimerFiche(suppressionEnCours.id);
+              supprimerFiche(cle);
+              setErreurSuppression('');
               setSuppressionEnCours(null);
             }} className="min-h-[48px] w-full rounded-lg border border-red-900 text-xs font-bold text-red-300 active:bg-red-900/40">
               Supprimer définitivement
