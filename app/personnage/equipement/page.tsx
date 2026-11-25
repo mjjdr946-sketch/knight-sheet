@@ -131,6 +131,11 @@ export default function EquipementPage() {
                         // IT. 22 §7 : équiper l'INSTANCE de l'inventaire (son id
                         // réel ≠ l'id du catalogue — avant : le PUT cherchait un
                         // id inexistant et refusait « Équipement impossible »)
+                        if (character.scelle) {
+                          // KO testeur : le refus silencieux de la fiche scellée
+                          setMessage('Fiche scellée — déverrouille l\'édition dans la Feuille pour équiper');
+                          return;
+                        }
                         const instance = character.armes.find((ar) => ar.nom === a.nom && !ar.equipee);
                         if (!instance) { setMessage('Déjà équipée'); return; }
                         const ok = equiperArme(instance.id, true);
