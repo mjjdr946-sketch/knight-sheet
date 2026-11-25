@@ -130,6 +130,16 @@ test('IT. 22 §7 : XP → achat → Équiper → l’arme apparaît dans Combat 
   await page.getByRole('button', { name: /Catalogue d'armes/ }).click();
   await page.getByRole('button', { name: /Acheter 15 PG/ }).first().click();
 
+  // Libérer les mains : le wizard arme d'office une arme à DEUX MAINS
+  // (Fusil d'assaut) — validerEquipement refuse alors tout autre équipement
+  // (« … occupe les deux mains »). Le scénario doit déséquiper d'abord.
+  // Re-requête à chaque tour : le bouton disparaît une fois l'arme déséquipée.
+  for (let i = 0; i < 8; i++) {
+    const bouton = page.getByRole('button', { name: 'Déséquiper' }).first();
+    if ((await bouton.count()) === 0) break;
+    await bouton.click();
+    await page.waitForTimeout(200);
+  }
   // Équiper l'INSTANCE de l'inventaire (le correctif id réel)
   await page.getByRole('button', { name: 'Équiper' }).first().click();
   await expect(page.getByText('équipée').first()).toBeVisible();

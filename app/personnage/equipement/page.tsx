@@ -12,6 +12,7 @@ import { armesArsenal } from '../../../src/data/weapons';
 import { NOUVEL_ARSENAL_2038, ARMES_PRESTIGE, RELIQUES_ESPOIR, MODULES_PRESTIGE } from '../../../src/data/arsenal-2038';
 import { catalogueModules } from '../../../src/data/modules';
 import { META_ARMURES } from '../../../src/data/meta-armures';
+import { validerEquipement } from '@/engine/equipement';
 import type { Weapon, ArmorModule } from '@/types/character';
 
 /** Badge d'accessibilité (prompt v17 §3) */
@@ -108,6 +109,10 @@ export default function EquipementPage() {
         <div className="space-y-1.5">
           {armesFiltrees.map((a) => {
             const possedee = possedees.has(a.nom);
+            // instance de l'inventaire : équipée ou non (une arme à deux mains en
+            // main empêche tout autre équipement → il FAUT pouvoir la déséquiper)
+            const instanceInv = character.armes.find((ar) => ar.nom === a.nom);
+            const dejaEquipee = !!instanceInv?.equipee;
             const tableRonde = ARMES_PRESTIGE.some((p) => p.id === a.id);
             const releve = RELIQUES_ESPOIR.some((r) => r.nom.includes(a.nom));
             return (
@@ -126,18 +131,32 @@ export default function EquipementPage() {
                         Acheter {a.coutPG} PG
                       </button>
                     )}
-                    {possedee && (
+                    {possedee && dejaEquipee && (
+                      <button type="button" onClick={() => {
+                        setMessage(equiperArme(instanceInv!.id, false) ? `${a.nom} déséquipée` : 'Déséquipement impossible');
+                      }}
+                        className="min-h-[44px] rounded-lg border border-zinc-600 px-2.5 text-[11px] text-zinc-300 active:bg-zinc-800">
+                        Déséquiper
+                      </button>
+                    )}
+                    {possedee && !dejaEquipee && (
                       <button type="button" onClick={() => {
                         // IT. 22 §7 : équiper l'INSTANCE de l'inventaire (son id
                         // réel ≠ l'id du catalogue — avant : le PUT cherchait un
                         // id inexistant et refusait « Équipement impossible »)
-                        if (character.scelle) {
-                          // KO testeur : le refus silencieux de la fiche scellée
-                          setMessage('Fiche scellée — déverrouille l\'édition dans la Feuille pour équiper');
-                          return;
-                        }
+                        // CORRECTIF ops : ce refus contredisait le store livré dans le
+                        // même commit (equiperArme autorise l'équipement sur fiche
+                        // scellée — action de jeu, FAQ p.453) ET le test E2E
+                        // « XP → achat → Équiper → l'arme apparaît dans Combat » (8/8
+                        // exigé avant déploiement). Deux chemins pour la même action
+                        // (catalogue vs inventaire) doivent se comporter pareil.
                         const instance = character.armes.find((ar) => ar.nom === a.nom && !ar.equipee);
                         if (!instance) { setMessage('Déjà équipée'); return; }
+                        // L'utilisateur doit savoir POURQUOI : « Équipement impossible »
+                        // seul ne disait pas qu'une arme à deux mains occupe déjà les deux
+                        // mains (cause du KO testeur « le bouton ne fait rien »).
+                        const v = validerEquipement(character, { ...instance, equipee: true });
+                        if (!v.ok) { setMessage(`Équipement impossible — ${v.raison ?? 'mains occupées'}`); return; }
                         const ok = equiperArme(instance.id, true);
                         setMessage(ok ? `${a.nom} équipée` : 'Équipement impossible');
                       }}
