@@ -786,8 +786,9 @@ export const useCharacterStore = create<CharacterStore>()(
       },
 
       equiperArme: (id, equiper) => {
-        // scellement (bug 2) : édition de feuille bloquée (le déséquipement est permis — voir FAQ)
-        if (equiper && editionBloquee(get())) return false;
+        // IT. 22 (KO testeur) : l'ÉQUIPEMENT de l'arme achetée est une action de
+        // JEU — permise même sur fiche scellée (FAQ p.453, symétrie avec le
+        // déséquipement). Seule la SUPPRESSION de l'inventaire reste bloquée.
         const { character } = get();
         const arme = character.armes.find((a) => a.id === id);
         if (!arme) return false;

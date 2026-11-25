@@ -47,6 +47,7 @@ describe('baisse avec remboursement', () => {
     expect(store().character.traits['force']).toBe(2);
   });
 
+
   it('garde de source — l’UI route montée/descente vers le store', () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const src = require('fs').readFileSync('app/personnage/attributs/page.tsx', 'utf8');

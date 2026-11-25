@@ -96,6 +96,55 @@ test('hotfix 3 : nom saisi en RETOUR ARRIÈRE (étape 10 → étape 1) → scell
   expect(fiches.fiches.find((f) => f.nom === NOM_BACK), 'nom saisi en retour arrière persisté').toBeTruthy();
 });
 
+test('IT. 22 §7 : XP → achat → Équiper → l’arme apparaît dans Combat → attaque', async ({ page }) => {
+  // scénario fidèle du micro-hotfix : la fiche scellée reçoit des XP (action
+  // de jeu active), PUIS achète et équipe — le KO initial venait de l'achat
+  // avec gloire 0 (refus silencieux du test, pas du câblage).
+  await page.goto('/quijoue');
+  await page.getByRole('button', { name: '+ Créer un nouveau compte' }).click();
+  await page.locator('input').first().fill(`e2e-achat-${Date.now()}`);
+  await page.getByRole('button', { name: 'Créer', exact: true }).click();
+  await page.waitForURL((u) => !u.pathname.startsWith('/quijoue'), { timeout: 60_000 });
+  await page.getByRole('button', { name: /Créer mon premier chevalier/ }).click();
+  await page.getByRole('button', { name: 'Démarrer la création' }).click();
+  await page.locator('input').first().click();
+  await page.locator('input').first().pressSequentially('Acheteur E2E');
+  for (let i = 0; i < 9; i++) {
+    await page.getByRole('button', { name: 'Étape suivante' }).click();
+  }
+  await page.getByRole('button', { name: /Sceller et jouer/ }).click();
+  await page.waitForURL((u) => u.pathname === '/', { timeout: 30_000 });
+
+  // Feuille : +15 PG (l'input XP par défaut est 10 → taper 15)
+  await page.goto('/personnage/feuille');
+  // l'alert() natif de la Feuille bloque le test — l'accepter automatiquement
+  page.on('dialog', (dialog) => dialog.accept());
+  const inputXP = page.locator('input[type=number]').first();
+  await inputXP.fill('15');
+  await page.getByRole('button', { name: 'Ajouter des XP' }).click();
+  // la gloire passe à 15 (les XP sont persistés via la sync)
+  await page.getByText('15 PG').first().waitFor({ state: 'visible', timeout: 30_000 });
+
+  // Équipement : acheter le Couteau de combat (15 PG) → gloire 0
+  await page.goto('/personnage/equipement');
+  await page.getByRole('button', { name: /Catalogue d'armes/ }).click();
+  await page.getByRole('button', { name: /Acheter 15 PG/ }).first().click();
+
+  // Équiper l'INSTANCE de l'inventaire (le correctif id réel)
+  await page.getByRole('button', { name: 'Équiper' }).first().click();
+  await expect(page.getByText('équipée').first()).toBeVisible();
+
+  // Combat : l'arme équipée apparaît
+  await page.goto('/personnage/combat');
+  await expect(page.getByText('Acheteur E2E').first()).toBeVisible();
+
+  // GET la fiche serveur : l'arme est équipée
+  const comptes = await (await page.request.get('/api/comptes')).json() as { comptes: { id: string; nom: string }[] };
+  const compte = comptes.comptes.find((c) => c.nom.startsWith('e2e-achat-'));
+  const fiches = await (await page.request.get(`/api/chevaliers?accountId=${compte!.id}`)).json() as { fiches: { nom: string; armes: { equipee: boolean }[] }[] };
+  expect(fiches.fiches[0]!.armes.some((a) => a.equipee)).toBeTruthy();
+});
+
 test('recette complète : création de compte → wizard → scellement → fiche dans l’API', async ({ page }) => {
   // ── 1. Sas (accès libre en dev sans SHEET_PASSWORD) → « Qui joue ? »
   await page.goto('/quijoue');
