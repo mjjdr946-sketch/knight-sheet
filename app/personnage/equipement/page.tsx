@@ -77,7 +77,15 @@ export default function EquipementPage() {
         <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Rechercher (nom ou effet)…"
           className="min-h-[44px] flex-1 rounded-lg border border-zinc-700 bg-zinc-950 px-2 text-sm text-white" />
       </div>
-      {message && <p className="rounded-lg border border-neon-cyan/30 bg-neon-cyan/5 p-2 text-xs text-neon-cyan">{message}</p>}
+      {/* Bandeau COLLANT : le retour d'action doit rester visible même quand la
+          liste d'armes est défilée (le KO « clic = zéro feedback » venait aussi
+          de là : le message était rendu au-dessus de la zone défilée). */}
+      {message && (
+        <p role="status" aria-live="polite"
+          className="sticky top-0 z-20 rounded-lg border border-neon-cyan/40 bg-zinc-950/95 p-2 text-xs text-neon-cyan shadow-lg backdrop-blur">
+          {message}
+        </p>
+      )}
 
       {/* ─── 1. Mon armure (prompt v17 §1) ─────────────────────────── */}
       <Accordion titre="Mon armure" compteur={character.modules.length} ouvertParDefaut accent="cyan">
